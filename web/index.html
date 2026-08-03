@@ -24,9 +24,8 @@ button{padding:.5rem;font-size:1rem;cursor:pointer}
 <h1>callout <a id="logout" href="#" class="hidden">reset</a></h1>
 
 <div id="setup" class="hidden">
-  <p><small>One-time setup — saved in this browser only.</small></p>
+  <p><small>Enter your app token — saved in this browser only.</small></p>
   <form id="setupForm">
-    <input id="projectUrl" placeholder="Supabase project URL (https://xxxx.supabase.co)" required>
     <input id="appToken" type="password" placeholder="App token" required>
     <button>Connect</button>
   </form>
@@ -43,6 +42,8 @@ button{padding:.5rem;font-size:1rem;cursor:pointer}
 </div>
 
 <script>
+const API = "https://hkxerogzvowkyvdifbpn.supabase.co";
+
 const $ = (id) => document.getElementById(id);
 const show = (id, on = true) => $(id).classList.toggle("hidden", !on);
 
@@ -80,12 +81,11 @@ function render(d) {
 }
 
 async function load() {
-  const url = localStorage.getItem("callout_url");
   const token = localStorage.getItem("callout_token");
-  if (!url || !token) { show("setup"); return; }
+  if (!token) { show("setup"); return; }
   show("logout"); show("loading"); show("error", false);
   try {
-    const res = await fetch(`${url}/functions/v1/dashboard?format=json`, {
+    const res = await fetch(`${API}/functions/v1/dashboard?format=json`, {
       headers: { "x-app-token": token },
     });
     if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized — check token." : `HTTP ${res.status}`);
@@ -102,7 +102,6 @@ async function load() {
 
 $("setupForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  localStorage.setItem("callout_url", $("projectUrl").value.trim().replace(/\/+$/, ""));
   localStorage.setItem("callout_token", $("appToken").value.trim());
   show("setup", false);
   load();
@@ -110,7 +109,6 @@ $("setupForm").addEventListener("submit", (e) => {
 
 $("logout").addEventListener("click", (e) => {
   e.preventDefault();
-  localStorage.removeItem("callout_url");
   localStorage.removeItem("callout_token");
   location.reload();
 });
