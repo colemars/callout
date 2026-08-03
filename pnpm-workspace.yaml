@@ -1,0 +1,5 @@
+# supabase/ (Deno edge functions) and web/ (static Pages dashboard) are the
+# legacy callout stack — deliberately NOT part of the workspace. See ROADMAP.md.
+packages:
+  - "apps/*"
+  - "packages/*"

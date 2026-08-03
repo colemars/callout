@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["web/**"]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm depcruise
+      - name: financial-core has zero runtime dependencies
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/financial-core/package.json';
+            if (fs.existsSync(p) && require('./' + p).dependencies) {
+              console.error('financial-core must not have runtime dependencies');
+              process.exit(1);
+            }
+          "
+      - run: pnpm turbo run typecheck test build
