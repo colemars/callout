@@ -66,6 +66,47 @@ export function deriveEvents(
       }
     }
 
+    // Investments: judged on the same month-roll trigger, once per month.
+    // (Runtime-guarded: metric snapshots persisted before this field existed
+    // deserialize without it.)
+    const inv = current.investments as MetricSet["investments"] | undefined;
+    if (previous.month !== current.month && inv !== undefined) {
+      if (inv.contributionsCompletedMonth.amountMinor > 0) {
+        events.push({
+          ...base,
+          type: "RETIREMENT_CONTRIBUTION_MADE",
+          month: current.completedMonth.month,
+          amount: inv.contributionsCompletedMonth,
+        });
+        const prev = inv.contributionsPriorMonth.amountMinor;
+        const curr = inv.contributionsCompletedMonth.amountMinor;
+        if (prev > 0 && curr >= prev + 10_00 && curr >= prev * 1.05) {
+          events.push({
+            ...base,
+            type: "RETIREMENT_CONTRIBUTION_INCREASED",
+            previousMonth: current.priorMonth.month,
+            month: current.completedMonth.month,
+            previous: inv.contributionsPriorMonth,
+            current: inv.contributionsCompletedMonth,
+          });
+        }
+      }
+      const passivePrev = inv.passiveIncomePriorMonth.amountMinor;
+      const passiveCurr = inv.passiveIncomeCompletedMonth.amountMinor;
+      if (
+        passivePrev > 0 &&
+        passiveCurr >= passivePrev + 10_00 &&
+        passiveCurr >= passivePrev * 1.1
+      ) {
+        events.push({
+          ...base,
+          type: "PASSIVE_INCOME_INCREASED",
+          previous: inv.passiveIncomePriorMonth,
+          current: inv.passiveIncomeCompletedMonth,
+        });
+      }
+    }
+
     // Recurring merchants: set difference between snapshots.
     const prevMerchants = new Set(previous.recurringCandidates.map((c) => c.merchant));
     const currMerchants = new Set(current.recurringCandidates.map((c) => c.merchant));
@@ -190,6 +231,9 @@ function sortKey(e: FinancialEvent): string {
       return `5:${e.type}`;
     case "PASSIVE_INCOME_INCREASED":
       return `6:${e.type}`;
+    case "RETIREMENT_CONTRIBUTION_MADE":
+    case "RETIREMENT_CONTRIBUTION_INCREASED":
+      return `6:${e.month}:${e.type}`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `7:${e.type}`;
   }

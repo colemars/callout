@@ -146,6 +146,7 @@ export function sandboxInput(overrides?: Partial<KingdomInput>): KingdomInput {
 
   return {
     accounts,
+    investmentActivity: [],
     transactions: [
       txn({
         postedAt: "2026-08-01",

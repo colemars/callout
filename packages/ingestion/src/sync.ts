@@ -2,12 +2,15 @@ import type {
   AccountId,
   AccountRepository,
   ISODate,
+  InvestmentActivityRepository,
+  NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,
   TransactionRepository,
   UserId,
 } from "@platform/financial-core";
-import { money } from "@platform/financial-core";
+import { addDays, money } from "@platform/financial-core";
+import type { InvestmentsProvider } from "./investments/provider.js";
 import { PlaidError } from "./plaid/client.js";
 import type {
   AccessTokenStore,
@@ -20,6 +23,11 @@ import type {
 
 export interface SyncDeps {
   readonly provider: TransactionProvider;
+  /** Optional Investments product sync (trailing-window, idempotent upserts). */
+  readonly investments?: {
+    readonly provider: InvestmentsProvider;
+    readonly repo: InvestmentActivityRepository;
+  };
   readonly tokens: AccessTokenStore;
   readonly connections: ConnectionStore;
   readonly accountRepo: AccountRepository;
@@ -37,6 +45,9 @@ export interface SyncReport {
   readonly added: number;
   readonly modified: number;
   readonly removed: number;
+  /** Investments product outcome; absent when the sync isn't configured for it. */
+  readonly investments?: "ok" | "unsupported" | "error";
+  readonly investmentActivityCount?: number;
   readonly message?: string;
 }
 
@@ -135,12 +146,68 @@ async function syncConnection(
     if (!page.hasMore) break;
   }
 
+  // Investments product: trailing-window fetch, idempotent by sourceActivityId.
+  // Its failures never fail the whole connection sync.
+  let investments: SyncReport["investments"];
+  let investmentActivityCount: number | undefined;
+  if (deps.investments !== undefined) {
+    try {
+      const activity = await deps.investments.provider.fetchActivity(
+        token,
+        addDays(deps.today, -90),
+        deps.today,
+      );
+      const upserts: NewInvestmentActivity[] = [];
+      for (const a of activity) {
+        const accountId = accountIds.get(a.externalAccountId);
+        if (accountId === undefined) continue;
+        upserts.push({
+          userId,
+          accountId,
+          source: "plaid",
+          sourceActivityId: a.sourceActivityId,
+          date: a.date,
+          description: a.description,
+          kind: a.kind,
+          amount: money(a.amountMinor),
+          ...(a.ticker === undefined ? {} : { ticker: a.ticker }),
+          ...(a.quantity === undefined ? {} : { quantity: a.quantity }),
+        });
+      }
+      await deps.investments.repo.upsertMany(userId, upserts);
+      investments = "ok";
+      investmentActivityCount = upserts.length;
+    } catch (error) {
+      if (
+        error instanceof PlaidError &&
+        [
+          "PRODUCTS_NOT_SUPPORTED",
+          "PRODUCT_NOT_READY",
+          "NO_INVESTMENT_ACCOUNTS",
+          "INVALID_PRODUCT",
+        ].includes(error.code)
+      ) {
+        investments = "unsupported";
+      } else {
+        investments = "error";
+      }
+    }
+  }
+
   await deps.connections.update(connection.id, {
     cursor,
     status: "ok",
     lastSyncedAt: deps.now(),
   });
-  return { institution, status: "ok", added, modified, removed };
+  return {
+    institution,
+    status: "ok",
+    added,
+    modified,
+    removed,
+    ...(investments === undefined ? {} : { investments }),
+    ...(investmentActivityCount === undefined ? {} : { investmentActivityCount }),
+  };
 }
 
 function toNewTransaction(

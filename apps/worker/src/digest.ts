@@ -52,6 +52,10 @@ export function renderEventLine(e: Eventish): string {
       return `${s(e.month)}: net cash flow negative — ${absMoney(e.netFlow)} more out than in.`;
     case "NET_CASH_FLOW_POSITIVE":
       return `${s(e.month)}: net cash flow positive — ${money(e.netFlow)}.`;
+    case "RETIREMENT_CONTRIBUTION_MADE":
+      return `Retirement contribution in ${s(e.month)}: ${money(e.amount)}.`;
+    case "RETIREMENT_CONTRIBUTION_INCREASED":
+      return `Retirement contributions increased: ${money(e.previous)} -> ${money(e.current)}/mo.`;
     case "PASSIVE_INCOME_INCREASED":
       return `Passive income up: ${money(e.previous)} -> ${money(e.current)}.`;
     case "EMERGENCY_RUNWAY_CHANGED":

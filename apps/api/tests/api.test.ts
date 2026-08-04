@@ -9,6 +9,7 @@ import { isoDate, money, userId } from "@platform/financial-core";
 import {
   createAccountRepository,
   createEventStore,
+  createInvestmentActivityRepository,
   createTransactionRepository,
 } from "@platform/repositories";
 import { drizzle } from "drizzle-orm/pglite";
@@ -90,6 +91,30 @@ beforeAll(async () => {
       type: "NET_CASH_FLOW_POSITIVE",
       month: "2026-07" as never,
       netFlow: money(100_000),
+    },
+  ]);
+
+  await createInvestmentActivityRepository(db).upsertMany(USER, [
+    {
+      userId: USER,
+      accountId: account.id,
+      source: "plaid",
+      sourceActivityId: "ivt-1",
+      date: isoDate("2026-08-01"),
+      description: "EMPLOYEE CONTRIBUTION",
+      kind: "contribution",
+      amount: money(65_000),
+    },
+    {
+      userId: USER,
+      accountId: account.id,
+      source: "plaid",
+      sourceActivityId: "ivt-2",
+      date: isoDate("2026-07-20"),
+      description: "VTSAX DIVIDEND",
+      kind: "dividend",
+      amount: money(4_200),
+      ticker: "VTSAX",
     },
   ]);
 
@@ -207,6 +232,20 @@ describe("routes", () => {
     expect(
       (await get("/api/v1/insights/history?from=2026-08-31&to=2026-08-01", GOOD_TOKEN)).statusCode,
     ).toBe(400);
+  });
+
+  it("GET /api/v1/investments/activity returns activity with range filtering", async () => {
+    const all = (await get("/api/v1/investments/activity", GOOD_TOKEN)).json();
+    expect(all).toHaveLength(2);
+    expect(all[0].userId).toBeUndefined(); // serializer strips internals
+
+    const ranged = (await get("/api/v1/investments/activity?from=2026-08-01", GOOD_TOKEN)).json();
+    expect(ranged).toHaveLength(1);
+    expect(ranged[0]).toMatchObject({
+      kind: "contribution",
+      amount: { amountMinor: 65_000, currency: "USD" },
+    });
+    expect((await get("/api/v1/investments/activity")).statusCode).toBe(401);
   });
 
   it("GET /api/v1/goals returns the empty list", async () => {

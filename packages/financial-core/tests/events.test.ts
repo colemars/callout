@@ -66,6 +66,9 @@ describe("FinancialEvent", () => {
           return "cashflow";
         case "PASSIVE_INCOME_INCREASED":
           return "income";
+        case "RETIREMENT_CONTRIBUTION_MADE":
+        case "RETIREMENT_CONTRIBUTION_INCREASED":
+          return "retirement";
         case "EMERGENCY_RUNWAY_CHANGED":
           return "runway";
         default:

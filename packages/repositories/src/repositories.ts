@@ -1,5 +1,12 @@
 import type { PlatformDb } from "@platform/database";
-import { accounts, balanceSnapshots, budgets, goals, transactions } from "@platform/database";
+import {
+  accounts,
+  balanceSnapshots,
+  budgets,
+  goals,
+  investmentActivity,
+  transactions,
+} from "@platform/database";
 import type {
   AccountId,
   AccountRepository,
@@ -9,6 +16,8 @@ import type {
   ExternalAccount,
   GoalRepository,
   ISODate,
+  InvestmentActivityRepository,
+  NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,
   TransactionRepository,
@@ -20,6 +29,7 @@ import {
   accountFromRow,
   budgetFromRow,
   goalFromRow,
+  investmentActivityFromRow,
   snapshotFromRow,
   transactionFromRow,
 } from "./mappers.js";
@@ -148,6 +158,51 @@ export function createBudgetRepository(db: PlatformDb): BudgetRepository {
         .where(and(eq(budgets.userId, userId), eq(budgets.active, true)))
         .orderBy(asc(budgets.category));
       return rows.map(budgetFromRow).filter((b) => b !== null);
+    },
+  };
+}
+
+export function createInvestmentActivityRepository(db: PlatformDb): InvestmentActivityRepository {
+  return {
+    async upsertMany(userId: UserId, activity: readonly NewInvestmentActivity[]) {
+      for (const a of activity) {
+        const values = {
+          userId,
+          accountId: a.accountId,
+          source: a.source,
+          sourceActivityId: a.sourceActivityId,
+          date: a.date,
+          description: a.description,
+          kind: a.kind,
+          amountMinor: a.amount.amountMinor,
+          currency: a.amount.currency,
+          securityTicker: a.ticker ?? null,
+          quantity: a.quantity ?? null,
+        };
+        await db
+          .insert(investmentActivity)
+          .values(values)
+          .onConflictDoUpdate({
+            target: [
+              investmentActivity.userId,
+              investmentActivity.source,
+              investmentActivity.sourceActivityId,
+            ],
+            set: values,
+          });
+      }
+    },
+
+    async findByUser(userId: UserId, range?: DateRange) {
+      const conditions = [eq(investmentActivity.userId, userId)];
+      if (range?.from !== undefined) conditions.push(gte(investmentActivity.date, range.from));
+      if (range?.to !== undefined) conditions.push(lte(investmentActivity.date, range.to));
+      const rows = await db
+        .select()
+        .from(investmentActivity)
+        .where(and(...conditions))
+        .orderBy(desc(investmentActivity.date), asc(investmentActivity.id));
+      return rows.map(investmentActivityFromRow);
     },
   };
 }

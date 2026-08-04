@@ -158,16 +158,22 @@ export function computeAge(input: KingdomInput): AgeState {
   // Essential monthly recovered from the engine's own runway math: liquid ÷ runway.
   const essentialMonthly = runway !== null && runway > 0 ? goldMinor / runway : null;
   const fiTarget = essentialMonthly === null ? null : essentialMonthly * 300; // 25y × 12 (4% rule proxy)
+  // Real passive income (Plaid Investments dividends/interest) beats the proxy when present.
+  const passiveMonthly = input.metrics?.investments?.passiveIncomeMonthly?.amountMinor ?? null;
+  const passiveCovers =
+    passiveMonthly !== null && essentialMonthly !== null && passiveMonthly >= essentialMonthly;
   const toAge4: AgeGate[] = [
     gate(
       "selfSustaining",
-      "Holdings ≥ 25 years of essential spending (4% rule)",
+      "Passive income covers essential spending (or 4%-rule holdings)",
       "The fields feed the realm without the crown lifting a finger",
-      fiTarget !== null && goldMinor + stoneMinor >= fiTarget,
-      fiTarget === null
-        ? "essential spend unmeasured"
-        : `holdings ${fmtMinor(goldMinor + stoneMinor)} of ${fmtMinor(fiTarget)} needed`,
-      fiTarget === null,
+      passiveCovers || (fiTarget !== null && goldMinor + stoneMinor >= fiTarget),
+      passiveCovers
+        ? `passive income ${fmtMinor(passiveMonthly ?? 0)}/mo covers essentials ${fmtMinor(essentialMonthly ?? 0)}/mo (measured from dividends)`
+        : fiTarget === null
+          ? "essential spend unmeasured"
+          : `holdings ${fmtMinor(goldMinor + stoneMinor)} of ${fmtMinor(fiTarget)} needed (4%-rule proxy${passiveMonthly === null ? "; passive income unmeasured" : ""})`,
+      fiTarget === null && !passiveCovers,
     ),
     gate(
       "savings30",

@@ -43,6 +43,8 @@ Deno.serve(async (req) => {
         params.access_token = token;
       } else {
         params.products = ["transactions"];
+        // Investments attaches when the institution supports it; plain banks still link.
+        params.optional_products = ["investments"];
       }
       const resp = await plaid("/link/token/create", params);
       return json({ link_token: resp.link_token });

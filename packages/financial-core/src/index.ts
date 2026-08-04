@@ -51,6 +51,12 @@ export type {
   Goal,
   SavingsNetFlowGoal,
 } from "./entities/goal.js";
+export type {
+  InvestmentActivity,
+  InvestmentActivityId,
+  InvestmentActivityKind,
+} from "./entities/investment-activity.js";
+export { investmentActivityId } from "./entities/investment-activity.js";
 export type { BalanceSnapshot, Budget, Metric, RecurringExpense, User } from "./entities/misc.js";
 
 export type { FinancialEvent, FinancialEventType } from "./events/events.js";
@@ -62,6 +68,8 @@ export type {
   DateRange,
   ExternalAccount,
   GoalRepository,
+  InvestmentActivityRepository,
+  NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,
   TransactionRepository,

@@ -4,6 +4,7 @@ import type { EngineConfig } from "./config.js";
 import { computeBudgetStatus } from "./internal/budget.js";
 import { computeDebtTrajectory, totalHighInterestDebt } from "./internal/debt.js";
 import { computeGoalStatuses } from "./internal/goals.js";
+import { summarizeInvestments } from "./internal/investments.js";
 import { detectRecurring } from "./internal/recurring.js";
 import { computeRunwayMonths, lastFullMonths } from "./internal/runway.js";
 import { summarizeMonth } from "./internal/spending.js";
@@ -50,5 +51,6 @@ export function computeMetrics(
       config,
     ),
     emergencyRunwayMonths: computeRunwayMonths(state.accounts, state.transactions, asOf, config),
+    investments: summarizeInvestments(state.investmentActivity, asOf, config),
   };
 }

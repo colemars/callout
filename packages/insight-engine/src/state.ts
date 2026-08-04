@@ -3,6 +3,7 @@ import type {
   BalanceSnapshot,
   Budget,
   Goal,
+  InvestmentActivity,
   Transaction,
   UserId,
 } from "@platform/financial-core";
@@ -15,4 +16,6 @@ export interface FinancialState {
   readonly budgets: readonly Budget[];
   readonly goals: readonly Goal[];
   readonly snapshots: readonly BalanceSnapshot[];
+  /** Plaid Investments records; empty when the product isn't connected. */
+  readonly investmentActivity: readonly InvestmentActivity[];
 }

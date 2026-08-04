@@ -36,6 +36,35 @@ export function buildChronicle(
     (input.metrics?.recurringCandidates ?? []).map((r) => r.merchant.toLowerCase()),
   );
 
+  const activityEntries: ChronicleEntry[] = input.investmentActivity.flatMap((a) => {
+    const size = Math.abs(a.amount.amountMinor);
+    if (a.kind === "contribution" && a.amount.amountMinor > 0) {
+      return [
+        {
+          date: a.date,
+          icon: "🐪",
+          headline: `A caravan departs for the Treasury — ${fmtMinor(size)} invested.`,
+          tone: "good" as const,
+          source: "txn" as const,
+          refId: a.id,
+        },
+      ];
+    }
+    if ((a.kind === "dividend" || a.kind === "interest") && a.amount.amountMinor > 0) {
+      return [
+        {
+          date: a.date,
+          icon: "🏞️",
+          headline: `The estates pay their yield — +${fmtMinor(size)}${a.ticker ? ` (${a.ticker})` : ""}.`,
+          tone: "good" as const,
+          source: "txn" as const,
+          refId: a.id,
+        },
+      ];
+    }
+    return [];
+  });
+
   const txnEntries: ChronicleEntry[] = input.transactions
     .filter((t) => !t.pending)
     .flatMap((t) => {
@@ -45,7 +74,7 @@ export function buildChronicle(
         : [{ ...entry, date: t.postedAt, source: "txn" as const, refId: t.id }];
     });
 
-  return [...eventEntries, ...txnEntries]
+  return [...eventEntries, ...activityEntries, ...txnEntries]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, cap);
 }

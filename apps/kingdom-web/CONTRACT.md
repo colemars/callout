@@ -43,6 +43,15 @@ The feed is **policy-free**: `RESOURCE_VALUE_CHANGED` fires on any value
 change with `pctChange` attached; each consumer applies its own thresholds
 (the text strip skips <1% moves; a canvas may tween every cent).
 
+## Event vocabulary additions (additive, schemaVersion unchanged)
+
+`RETIREMENT_CONTRIBUTION_MADE` {month, amount} and
+`RETIREMENT_CONTRIBUTION_INCREASED` {previousMonth, month, previous, current}
+joined the platform vocabulary (2026-08-04); `PASSIVE_INCOME_INCREASED` is now
+actually derivable (dividends + interest, month over month). Chronicle entries
+may also originate from `/api/v1/investments/activity` records (contribution →
+caravan, dividend/interest → estate yield), refId = activity id.
+
 ## Getting data
 
 - **In-page engine (recommended: Phaser/TS)**: import `kingdomModel` +

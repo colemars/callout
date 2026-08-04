@@ -150,6 +150,33 @@ export const balanceSnapshots = platform.table(
   ],
 );
 
+/** Explicit activity inside investment accounts (Plaid Investments product). */
+export const investmentActivity = platform.table(
+  "investment_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    source: text("source").notNull(), // 'plaid'
+    sourceActivityId: text("source_activity_id").notNull(),
+    date: date("date", { mode: "string" }).notNull(),
+    description: text("description").notNull(),
+    kind: text("kind").notNull(), // contribution | dividend | interest | buy | sell | other
+    /** SIGNED minor units: positive = cash into the account. */
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("USD"),
+    securityTicker: text("security_ticker"),
+    /** Share quantity as text — share counts are not money. */
+    quantity: text("quantity"),
+  },
+  (t) => [
+    uniqueIndex("investment_activity_user_source_ux").on(t.userId, t.source, t.sourceActivityId),
+    index("investment_activity_user_date_ix").on(t.userId, t.date),
+  ],
+);
+
 /** Global provider-category → platform-category rules (ported from public.category_map). */
 export const categoryRules = platform.table(
   "category_rules",

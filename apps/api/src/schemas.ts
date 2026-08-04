@@ -98,6 +98,18 @@ export const limitQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 
+export const investmentActivitySchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  date: z.string(),
+  description: z.string(),
+  kind: z.enum(["contribution", "dividend", "interest", "buy", "sell", "other"]),
+  /** Positive = cash into the account. */
+  amount: moneySchema,
+  ticker: z.string().optional(),
+  quantity: z.string().optional(),
+});
+
 export const errorSchema = z.object({
   error: z.string(),
 });

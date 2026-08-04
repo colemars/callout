@@ -12,6 +12,7 @@ import {
   createBudgetRepository,
   createEventStore,
   createGoalRepository,
+  createInvestmentActivityRepository,
   createMetricSnapshotStore,
   createTransactionRepository,
 } from "@platform/repositories";
@@ -32,6 +33,7 @@ import {
   eventsQuery,
   goalSchema,
   historyQuery,
+  investmentActivitySchema,
   snapshotSchema,
   transactionSchema,
 } from "./schemas.js";
@@ -180,6 +182,24 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             asOf: latest.asOf as ISODate as string,
             metrics: latest as unknown as Record<string, unknown>,
           };
+        },
+      );
+
+      v1.get(
+        "/investments/activity",
+        {
+          schema: {
+            querystring: dateRangeQuery,
+            response: { 200: z.array(investmentActivitySchema), 401: errorSchema },
+          },
+        },
+        async (request) => {
+          const userId = await requireUser(request);
+          const range: DateRange = {
+            ...(request.query.from === undefined ? {} : { from: isoDate(request.query.from) }),
+            ...(request.query.to === undefined ? {} : { to: isoDate(request.query.to) }),
+          };
+          return createInvestmentActivityRepository(deps.db).findByUser(userId, range);
         },
       );
 

@@ -14,6 +14,7 @@ import {
   createBudgetRepository,
   createEventStore,
   createGoalRepository,
+  createInvestmentActivityRepository,
   createMetricSnapshotStore,
   createSnapshotRepository,
   createTransactionRepository,
@@ -190,6 +191,58 @@ describe("Goal + Budget repositories", () => {
     const budgets = await createBudgetRepository(db).listActive(USER);
     expect(budgets).toHaveLength(1);
     expect(budgets[0]?.category).toBe("delivery");
+  });
+});
+
+describe("InvestmentActivityRepository", () => {
+  it("upserts idempotently and filters by range", async () => {
+    const accountRepo = createAccountRepository(db);
+    const account = await accountRepo.upsertByExternalId(USER, {
+      userId: USER,
+      source: "plaid",
+      externalId: "plaid-401k",
+      name: "401k",
+      institution: "Test Bank",
+      kind: "investment",
+      subtype: "401k",
+      balance: money(2_000_000),
+      isActive: true,
+    });
+
+    const repo = createInvestmentActivityRepository(db);
+    const contribution = {
+      userId: USER,
+      accountId: account.id,
+      source: "plaid" as const,
+      sourceActivityId: "ivt-1",
+      date: isoDate("2026-08-01"),
+      description: "EMPLOYEE CONTRIBUTION",
+      kind: "contribution" as const,
+      amount: money(65_000),
+    };
+    await repo.upsertMany(USER, [
+      contribution,
+      {
+        ...contribution,
+        sourceActivityId: "ivt-2",
+        date: isoDate("2026-07-20"),
+        kind: "dividend" as const,
+        amount: money(4_200),
+        ticker: "VTSAX",
+        quantity: "1.23",
+      },
+    ]);
+    // Re-upsert with changed amount: same key, updated row.
+    await repo.upsertMany(USER, [{ ...contribution, amount: money(66_000) }]);
+
+    const all = await repo.findByUser(USER);
+    expect(all).toHaveLength(2);
+    expect(all.find((a) => a.sourceActivityId === "ivt-1")?.amount).toEqual(money(66_000));
+    expect(all.find((a) => a.sourceActivityId === "ivt-2")?.ticker).toBe("VTSAX");
+
+    const ranged = await repo.findByUser(USER, { from: isoDate("2026-08-01") });
+    expect(ranged.map((a) => a.sourceActivityId)).toEqual(["ivt-1"]);
+    expect(await repo.findByUser(OTHER_USER)).toEqual([]);
   });
 });
 

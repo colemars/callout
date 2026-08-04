@@ -335,6 +335,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/investments/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            accountId: string;
+                            date: string;
+                            description: string;
+                            /** @enum {string} */
+                            kind: "contribution" | "dividend" | "interest" | "buy" | "sell" | "other";
+                            amount: {
+                                amountMinor: number;
+                                currency: string;
+                            };
+                            ticker?: string;
+                            quantity?: string;
+                        }[];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/insights/history": {
         parameters: {
             query?: never;

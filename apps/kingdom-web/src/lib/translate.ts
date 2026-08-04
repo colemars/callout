@@ -58,6 +58,16 @@ export function translate(event: ApiEvent): TranslatedEvent {
         tone: "good",
         headline: `The moon of ${asStr(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
       };
+    case "RETIREMENT_CONTRIBUTION_MADE":
+      return {
+        tone: "good",
+        headline: `A caravan reached the Royal Treasury in ${asStr(p.month)} — ${asMoney(p.amount)} sealed away.`,
+      };
+    case "RETIREMENT_CONTRIBUTION_INCREASED":
+      return {
+        tone: "good",
+        headline: `The tribute to the Treasury grows: ${asMoney(p.previous)} → ${asMoney(p.current)} each moon. The Guildmaster is pleased.`,
+      };
     case "PASSIVE_INCOME_INCREASED":
       return {
         tone: "good",

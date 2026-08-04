@@ -16,6 +16,18 @@ export interface KingdomTxn extends Txn {
   accountId?: string;
 }
 
+/** Investment activity as served by /api/v1/investments/activity. */
+export interface KingdomInvestmentActivity {
+  id: string;
+  accountId: string;
+  date: string;
+  description: string;
+  kind: string;
+  /** Positive = cash into the account. */
+  amount: ApiMoney;
+  ticker?: string;
+}
+
 export interface MonthSummaryView {
   month: string;
   transactionCount: number;
@@ -29,11 +41,20 @@ export interface KingdomMetrics extends MetricsView {
   completedMonth?: MonthSummaryView;
   priorMonth?: MonthSummaryView;
   mtd?: MonthSummaryView;
+  investments?: {
+    contributionsMtd: ApiMoney;
+    contributionsCompletedMonth: ApiMoney;
+    contributionsPriorMonth: ApiMoney;
+    passiveIncomeCompletedMonth: ApiMoney;
+    passiveIncomePriorMonth: ApiMoney;
+    passiveIncomeMonthly: ApiMoney | null;
+  };
 }
 
 export interface KingdomInput {
   accounts: KingdomAccount[];
   transactions: KingdomTxn[];
+  investmentActivity: KingdomInvestmentActivity[];
   events: ApiEvent[];
   metrics: KingdomMetrics | null;
   /** Injected wall-clock date (ISO) — the model never reads a clock. */

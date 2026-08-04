@@ -1,6 +1,7 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { Account } from "../entities/account.js";
 import type { Goal } from "../entities/goal.js";
+import type { InvestmentActivity } from "../entities/investment-activity.js";
 import type { BalanceSnapshot, Budget } from "../entities/misc.js";
 import type { Transaction, TransactionSource } from "../entities/transaction.js";
 import type { AccountId, UserId } from "../ids.js";
@@ -45,6 +46,15 @@ export interface GoalRepository {
 
 export interface BudgetRepository {
   listActive(userId: UserId): Promise<Budget[]>;
+}
+
+/** Ingestion-shaped activity: the database assigns the platform id. */
+export type NewInvestmentActivity = Omit<InvestmentActivity, "id">;
+
+export interface InvestmentActivityRepository {
+  /** Upsert keyed on (userId, source, sourceActivityId). */
+  upsertMany(userId: UserId, activity: readonly NewInvestmentActivity[]): Promise<void>;
+  findByUser(userId: UserId, range?: DateRange): Promise<InvestmentActivity[]>;
 }
 
 export interface SnapshotRepository {

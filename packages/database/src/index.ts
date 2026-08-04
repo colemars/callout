@@ -8,6 +8,7 @@ export {
   categoryRules,
   events,
   goals,
+  investmentActivity,
   metricSnapshots,
   platform,
   providerConnections,

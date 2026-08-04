@@ -85,7 +85,29 @@ export function emptyState(overrides?: Partial<FinancialState>): FinancialState 
     budgets: [],
     goals: [],
     snapshots: [],
+    investmentActivity: [],
     ...overrides,
+  };
+}
+
+let activityCounter = 0;
+export function investmentActivity(overrides: {
+  date: string;
+  amountMinor: number;
+  kind: "contribution" | "dividend" | "interest" | "buy" | "sell" | "other";
+  accountId?: string;
+}): import("@platform/financial-core").InvestmentActivity {
+  activityCounter++;
+  return {
+    id: `ivt-${activityCounter}` as never,
+    userId: USER,
+    accountId: accountId(overrides.accountId ?? "acct-401k"),
+    source: "plaid",
+    sourceActivityId: `src-ivt-${activityCounter}`,
+    date: isoDate(overrides.date),
+    description: overrides.kind.toUpperCase(),
+    kind: overrides.kind,
+    amount: money(overrides.amountMinor),
   };
 }
 

@@ -16,3 +16,8 @@ export type { SyncDeps, SyncReport } from "./sync.js";
 export { runSync } from "./sync.js";
 export type { AppleCsvRow } from "./csv/apple.js";
 export { importAppleCardCsv, parseAppleCardCsv } from "./csv/apple.js";
+export type {
+  InvestmentsProvider,
+  ProviderInvestmentActivity,
+} from "./investments/provider.js";
+export { createPlaidInvestmentsProvider, mapPlaidInvestmentKind } from "./investments/provider.js";

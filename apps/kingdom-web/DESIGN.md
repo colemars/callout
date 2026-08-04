@@ -72,16 +72,16 @@ double-granting on re-sync.
 **Unverifiable today — advisors may NOT promise these until their data source
 lands:**
 
-- **Retirement contributions** — verifiable via **Plaid's Investments product**
-  (`/investments/transactions`), which reports contributions as explicit typed
-  records (separate from market movement — balance deltas alone can never be
-  used, since a rally isn't behavior). This is a planned ingestion slice:
-  request the product at Link, map contribution records, derive
-  `RETIREMENT_CONTRIBUTION_MADE` / `_INCREASED` events. It also surfaces
-  dividends → real passive-income measurement (fixing the Age 4 proxy).
-  Until integrated, the Guildmaster stays quiet on contributions.
-  (Caveats: re-link may be needed on existing items; custodian coverage
-  varies; separately priced per investment account in production.)
+- ~~Retirement contributions~~ — **INTEGRATED (2026-08-04)**: Plaid Investments
+  ships contributions/dividends as explicit typed records into
+  `platform.investment_activity`; the engine derives
+  `RETIREMENT_CONTRIBUTION_MADE` / `_INCREASED` and real
+  `PASSIVE_INCOME_INCREASED` events, and Age 4's gate now accepts measured
+  passive income (dividends) alongside the 4%-rule proxy. The Guildmaster has
+  his voice. Balance deltas remain forbidden as behavior proof.
+  (Caveats stand: custodian coverage varies — unsupported items report
+  `investments: "unsupported"` and the Council stays quiet for them;
+  separately priced per investment account in production.)
 - Income raises as deliberate acts, insurance purchases, "learning something"
   — no data source on the horizon; the Council never speaks of them.
 
@@ -217,9 +217,6 @@ That's the FI screenshot people share.
 - True passive-income measurement for Age 4 (4%-rule proxy today)
 - CPI-based Winter (own-spend proxy today)
 - Stone trend arrows (needs asset balance history from engine snapshots)
-- **Plaid Investments integration** (contribution + dividend records → the
-  Guildmaster's voice, real passive income, true Stone growth) — the most
-  valuable data slice on this list
 - Income-raise and insurance verification (no data source on the horizon)
 - The map itself — graphics after the meta-game proves out in text
 - The calendar view (`/api/v1/insights/history` + `/events?since=` exist to

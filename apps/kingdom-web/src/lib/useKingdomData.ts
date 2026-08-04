@@ -1,6 +1,12 @@
 import type { ApiEvent, ProductClients } from "@platform/ui";
 import { useEffect, useState } from "react";
-import type { KingdomAccount, KingdomInput, KingdomMetrics, KingdomTxn } from "../model/types";
+import type {
+  KingdomAccount,
+  KingdomInput,
+  KingdomInvestmentActivity,
+  KingdomMetrics,
+  KingdomTxn,
+} from "../model/types";
 
 export type KingdomDataState =
   | { status: "loading" }
@@ -27,9 +33,10 @@ export function useKingdomData(clients: ProductClients): KingdomDataState {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const from = new Date(Date.now() - 70 * 86_400_000).toISOString().slice(0, 10);
-        const [accounts, transactions, events, insights] = await Promise.all([
+        const [accounts, transactions, activity, events, insights] = await Promise.all([
           clients.api.GET("/api/v1/accounts"),
           clients.api.GET("/api/v1/transactions", { params: { query: { from } } }),
+          clients.api.GET("/api/v1/investments/activity", { params: { query: { from } } }),
           clients.api.GET("/api/v1/events", { params: { query: { limit: 25 } } }),
           clients.api.GET("/api/v1/insights"),
         ]);
@@ -39,6 +46,7 @@ export function useKingdomData(clients: ProductClients): KingdomDataState {
           input: {
             accounts: (accounts.data ?? []) as KingdomAccount[],
             transactions: (transactions.data ?? []) as KingdomTxn[],
+            investmentActivity: (activity.data ?? []) as KingdomInvestmentActivity[],
             events: (events.data ?? []) as ApiEvent[],
             metrics: (insights.data?.metrics ?? null) as KingdomMetrics | null,
             today,

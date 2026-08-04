@@ -81,6 +81,18 @@ export type FinancialEvent = EventBase &
         readonly current: Money;
       }
     | {
+        readonly type: "RETIREMENT_CONTRIBUTION_MADE";
+        readonly month: ISOMonth;
+        readonly amount: Money;
+      }
+    | {
+        readonly type: "RETIREMENT_CONTRIBUTION_INCREASED";
+        readonly previousMonth: ISOMonth;
+        readonly month: ISOMonth;
+        readonly previous: Money;
+        readonly current: Money;
+      }
+    | {
         readonly type: "EMERGENCY_RUNWAY_CHANGED";
         readonly previousMonths: number;
         readonly currentMonths: number;

@@ -4,12 +4,14 @@ import type { SyncReport } from "@platform/ingestion";
 import {
   createCategorizer,
   createPlaidClient,
+  createPlaidInvestmentsProvider,
   createPlaidProvider,
   runSync,
 } from "@platform/ingestion";
 import {
   createAccountRepository,
   createConnectionStore,
+  createInvestmentActivityRepository,
   createSnapshotRepository,
   createTransactionRepository,
   createVaultTokenStore,
@@ -24,16 +26,19 @@ export async function runSyncCommand(db: PlatformDb): Promise<SyncReport[]> {
   const categorize = createCategorizer(new Map(rules.map((r) => [r.sourceCategory, r.category])));
 
   const plaidEnv = process.env.PLAID_ENV === "production" ? "production" : "sandbox";
-  const provider = createPlaidProvider(
-    createPlaidClient({
-      clientId: requireEnv("PLAID_CLIENT_ID"),
-      secret: requireEnv("PLAID_SECRET"),
-      env: plaidEnv,
-    }),
-  );
+  const client = createPlaidClient({
+    clientId: requireEnv("PLAID_CLIENT_ID"),
+    secret: requireEnv("PLAID_SECRET"),
+    env: plaidEnv,
+  });
+  const provider = createPlaidProvider(client);
 
   return runSync(user, {
     provider,
+    investments: {
+      provider: createPlaidInvestmentsProvider(client),
+      repo: createInvestmentActivityRepository(db),
+    },
     tokens: createVaultTokenStore(db),
     connections: createConnectionStore(db),
     accountRepo: createAccountRepository(db),

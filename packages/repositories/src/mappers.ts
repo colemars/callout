@@ -1,4 +1,11 @@
-import type { accounts, balanceSnapshots, budgets, goals, transactions } from "@platform/database";
+import type {
+  accounts,
+  balanceSnapshots,
+  budgets,
+  goals,
+  investmentActivity,
+  transactions,
+} from "@platform/database";
 import type {
   Account,
   AccountKind,
@@ -8,6 +15,8 @@ import type {
   Category,
   CurrencyCode,
   Goal,
+  InvestmentActivity,
+  InvestmentActivityKind,
   Transaction,
   TransactionSource,
 } from "@platform/financial-core";
@@ -15,6 +24,7 @@ import {
   accountId,
   connectionId,
   goalId,
+  investmentActivityId,
   isCategory,
   isoDate,
   money,
@@ -106,6 +116,24 @@ export function budgetFromRow(row: BudgetRow): Budget | null {
     category: row.category,
     monthlyCap: money(row.monthlyCapMinor, currency(row.currency)),
     active: row.active,
+  };
+}
+
+type InvestmentActivityRow = typeof investmentActivity.$inferSelect;
+
+export function investmentActivityFromRow(row: InvestmentActivityRow): InvestmentActivity {
+  return {
+    id: investmentActivityId(row.id),
+    userId: userId(row.userId),
+    accountId: accountId(row.accountId),
+    source: "plaid",
+    sourceActivityId: row.sourceActivityId,
+    date: isoDate(row.date),
+    description: row.description,
+    kind: row.kind as InvestmentActivityKind,
+    amount: money(row.amountMinor, currency(row.currency)),
+    ...(row.securityTicker === null ? {} : { ticker: row.securityTicker }),
+    ...(row.quantity === null ? {} : { quantity: row.quantity }),
   };
 }
 

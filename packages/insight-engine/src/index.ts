@@ -6,6 +6,7 @@ export type {
   CategorySpend,
   DebtTrajectoryEntry,
   GoalStatus,
+  InvestmentSummary,
   MetricSet,
   MonthSummary,
   RecurringCandidate,

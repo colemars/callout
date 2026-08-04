@@ -93,4 +93,21 @@ export interface MetricSet {
   readonly goalStatuses: readonly GoalStatus[];
   /** Liquid balance ÷ average monthly essential spend; null when not computable. */
   readonly emergencyRunwayMonths: number | null;
+  /** Plaid Investments summary (contributions + passive income). */
+  readonly investments: InvestmentSummary;
+}
+
+export interface InvestmentSummary {
+  /** Contributions (explicit records only — never balance deltas). */
+  readonly contributionsMtd: Money;
+  readonly contributionsCompletedMonth: Money;
+  readonly contributionsPriorMonth: Money;
+  /** Dividends + interest for the completed / prior month. */
+  readonly passiveIncomeCompletedMonth: Money;
+  readonly passiveIncomePriorMonth: Money;
+  /**
+   * Average monthly passive income over the trailing 3 full months.
+   * Null when no investment activity exists at all — "no data" is not $0.
+   */
+  readonly passiveIncomeMonthly: Money | null;
 }

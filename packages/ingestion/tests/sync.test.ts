@@ -219,3 +219,76 @@ describe("runSync", () => {
     expect(fakes.connectionUpdates).toEqual([{ id: "conn-1", patch: { status: "error" } }]);
   });
 });
+
+describe("runSync with the Investments product", () => {
+  const simplePages: SyncPage[] = [
+    { added: [], modified: [], removedSourceTxnIds: [], nextCursor: "c1", hasMore: false },
+  ];
+
+  it("upserts mapped activity and reports ok", async () => {
+    const fakes = makeFakes();
+    const stored: unknown[] = [];
+    const investments = {
+      provider: {
+        async fetchActivity() {
+          return [
+            {
+              externalAccountId: "ext-1",
+              sourceActivityId: "ivt-1",
+              date: isoDate("2026-08-01"),
+              description: "EMPLOYEE CONTRIBUTION",
+              kind: "contribution" as const,
+              amountMinor: 65_000,
+            },
+            {
+              externalAccountId: "unknown-acct",
+              sourceActivityId: "ivt-skip",
+              date: isoDate("2026-08-01"),
+              description: "orphan",
+              kind: "other" as const,
+              amountMinor: 1,
+            },
+          ];
+        },
+      },
+      repo: {
+        async upsertMany(_u: unknown, rows: readonly unknown[]) {
+          stored.push(...rows);
+        },
+        async findByUser() {
+          return [];
+        },
+      },
+    };
+    const reports = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      investments,
+    });
+    expect(reports[0]?.investments).toBe("ok");
+    expect(reports[0]?.investmentActivityCount).toBe(1); // orphan account skipped
+    expect(stored).toHaveLength(1);
+  });
+
+  it("reports unsupported (not error) when the item lacks the product", async () => {
+    const fakes = makeFakes();
+    const investments = {
+      provider: {
+        async fetchActivity(): Promise<never> {
+          throw new PlaidError({ error_code: "PRODUCTS_NOT_SUPPORTED", error_message: "no" });
+        },
+      },
+      repo: {
+        async upsertMany() {},
+        async findByUser() {
+          return [];
+        },
+      },
+    };
+    const reports = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      investments,
+    });
+    expect(reports[0]?.status).toBe("ok"); // main sync unaffected
+    expect(reports[0]?.investments).toBe("unsupported");
+  });
+});
