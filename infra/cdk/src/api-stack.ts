@@ -32,7 +32,8 @@ export class PlatformApiStack extends Stack {
         minify: true,
         sourceMap: true,
         // Some transitive deps still call require() from ESM.
-        banner: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+        banner:
+          "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
       },
       environment: {
         DATABASE_URL: "{{resolve:secretsmanager:platform/database-url}}",

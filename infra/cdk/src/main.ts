@@ -1,6 +1,6 @@
 import { App } from "aws-cdk-lib";
-import { GithubOidcStack } from "./oidc-stack.js";
 import { PlatformApiStack } from "./api-stack.js";
+import { GithubOidcStack } from "./oidc-stack.js";
 
 const app = new App();
 
