@@ -25,8 +25,8 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
   Live: https://ohf5w7ank0.execute-api.us-west-2.amazonaws.com (us-west-2, colocated with the Supabase DB). Done out of order (before Phase 6) so the first product has an API to talk to.
 - [x] **Phase 8 — Financial Kingdom** (M–L) — *done 2026-08-03*
   `apps/kingdom-web` (Pages at /callout/kingdom/) + extracted `packages/ui` (clients, dashboard hook, types, primitives). Same api-client, same events, different translation table — the platform never learned kingdoms exist.
-- [ ] **Phase 9 — Workers, queues, notifications** (M)
-  EventBridge Scheduler → sync → engine → `platform.events` → SQS → notifier (replaces the old `notify` edge function for good).
+- [x] **Phase 9 — Workers, queues, notifications** (M) — *done 2026-08-03*
+  EventBridge (daily 09:30 UTC) → sync Lambda → SQS (+DLQ) → notifier Lambda → SES (IAM-only, no keys; Resend dropped for SES). GitHub Actions cron retired to workflow_dispatch. Legacy `notify` edge function fully superseded at cutover.
 - [ ] **Phase 10 — Production hardening** (ongoing)
   Playwright e2e, CloudWatch alarms, Plaid webhooks (`SYNC_UPDATES_AVAILABLE` replaces polling), pooling review (`max: 1` per Lambda), Renovate.
 
