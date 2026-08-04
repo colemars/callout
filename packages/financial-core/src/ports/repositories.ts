@@ -1,7 +1,7 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { Account } from "../entities/account.js";
 import type { Goal } from "../entities/goal.js";
-import type { BalanceSnapshot } from "../entities/misc.js";
+import type { BalanceSnapshot, Budget } from "../entities/misc.js";
 import type { Transaction, TransactionSource } from "../entities/transaction.js";
 import type { AccountId, UserId } from "../ids.js";
 
@@ -16,8 +16,12 @@ export interface DateRange {
   readonly to?: ISODate;
 }
 
+/** Ingestion-shaped transaction: the database assigns the platform id. */
+export type NewTransaction = Omit<Transaction, "id">;
+
 export interface TransactionRepository {
-  upsertMany(userId: UserId, transactions: readonly Transaction[]): Promise<void>;
+  /** Upsert keyed on (userId, source, sourceTxnId). */
+  upsertMany(userId: UserId, transactions: readonly NewTransaction[]): Promise<void>;
   findByUser(userId: UserId, range?: DateRange): Promise<Transaction[]>;
   deleteBySourceIds(
     userId: UserId,
@@ -26,8 +30,12 @@ export interface TransactionRepository {
   ): Promise<number>;
 }
 
+/** Provider-shaped account payload: the database assigns the platform id. */
+export type ExternalAccount = Omit<Account, "id" | "externalId"> & { readonly externalId: string };
+
 export interface AccountRepository {
-  upsert(userId: UserId, account: Account): Promise<Account>;
+  /** Upsert keyed on (userId, source, externalId) — the ingestion path. */
+  upsertByExternalId(userId: UserId, account: ExternalAccount): Promise<Account>;
   listActive(userId: UserId): Promise<Account[]>;
 }
 
@@ -35,8 +43,13 @@ export interface GoalRepository {
   listActive(userId: UserId): Promise<Goal[]>;
 }
 
+export interface BudgetRepository {
+  listActive(userId: UserId): Promise<Budget[]>;
+}
+
 export interface SnapshotRepository {
   upsert(userId: UserId, snapshot: BalanceSnapshot): Promise<void>;
+  listByUser(userId: UserId): Promise<BalanceSnapshot[]>;
   /** Latest snapshot for the account on or before the given date. */
   latestOnOrBefore(
     userId: UserId,

@@ -58,8 +58,11 @@ export { assertNever } from "./events/events.js";
 
 export type {
   AccountRepository,
+  BudgetRepository,
   DateRange,
+  ExternalAccount,
   GoalRepository,
+  NewTransaction,
   SnapshotRepository,
   TransactionRepository,
 } from "./ports/repositories.js";
