@@ -80,10 +80,10 @@ export function renderDigest(asOf: string, events: readonly Eventish[]): Digest 
   return {
     subject,
     text: lines.map((l) => `- ${l}`).join("\n"),
-    html: `<div style="font-family:-apple-system,sans-serif;max-width:600px"><h2>Daily callout — ${esc(asOf)}</h2><ul>${lines
+    html: `<div style="font-family:-apple-system,sans-serif;max-width:600px"><h2>Daily Penny Kingdom — ${esc(asOf)}</h2><ul>${lines
       .map((l) => `<li>${esc(l)}</li>`)
       .join(
         "",
-      )}</ul><p style="color:#888;font-size:12px">From your financial platform. Dashboards: <a href="https://colemars.github.io/callout/app/">Accountability</a> · <a href="https://colemars.github.io/callout/kingdom/">Kingdom</a></p></div>`,
+      )}</ul><p style="color:#888;font-size:12px">From your financial platform. Dashboards: <a href="https://colemars.github.io/pennykingdom/app/">Accountability</a> · <a href="https://colemars.github.io/pennykingdom/kingdom/">Kingdom</a></p></div>`,
   };
 }

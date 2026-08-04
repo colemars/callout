@@ -19,7 +19,7 @@ async function handlePost(body: Record<string, unknown>): Promise<Response> {
   if (body.action === "create_link_token") {
     const params: Record<string, unknown> = {
       user: { client_user_id: "cole" },
-      client_name: "callout",
+      client_name: "Penny Kingdom",
       language: "en",
       country_codes: ["US"],
     };

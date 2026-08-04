@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>callout — link banks</title>
+<title>penny kingdom — link banks</title>
 <style>
 :root{color-scheme:light dark}
 body{font-family:-apple-system,sans-serif;max-width:480px;margin:3rem auto;padding:0 1rem}
@@ -15,7 +15,7 @@ small{color:#888}
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 </head>
 <body>
-<h1>callout</h1>
+<h1>penny kingdom</h1>
 <p><a href="index.html">← dashboard</a></p>
 
 <div id="needToken" class="hidden">
@@ -30,7 +30,8 @@ small{color:#888}
 
 <script>
 const API = "https://hkxerogzvowkyvdifbpn.supabase.co/functions/v1/plaid-link";
-const token = localStorage.getItem("callout_token");
+// pennykingdom_token going forward; callout_token honored so the rename doesn't log anyone out.
+const token = localStorage.getItem("pennykingdom_token") ?? localStorage.getItem("callout_token");
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const msg = (t) => { document.getElementById("msg").textContent = t; };
 
@@ -62,14 +63,14 @@ function openLink(linkToken, updateItemId, receivedRedirectUri) {
     token: linkToken,
     ...(receivedRedirectUri ? { receivedRedirectUri } : {}),
     onSuccess: async (public_token, metadata) => {
-      sessionStorage.removeItem("callout_oauth_link");
+      sessionStorage.removeItem("pennykingdom_oauth_link");
       if (updateItemId) await api({ action: "relinked", item_id: updateItemId });
       else await api({ action: "exchange", public_token, institution: metadata.institution && metadata.institution.name });
       msg("Linked.");
       load();
     },
     onExit: (err) => {
-      sessionStorage.removeItem("callout_oauth_link");
+      sessionStorage.removeItem("pennykingdom_oauth_link");
       if (err) msg("Exited: " + (err.display_message || err.error_code));
     },
   });
@@ -80,13 +81,13 @@ async function start(updateItemId) {
   msg("");
   const r = await api({ action: "create_link_token", update_item_id: updateItemId });
   if (r.error) { msg("Error: " + r.error); return; }
-  sessionStorage.setItem("callout_oauth_link", JSON.stringify({ link_token: r.link_token, update_item_id: updateItemId ?? null }));
+  sessionStorage.setItem("pennykingdom_oauth_link", JSON.stringify({ link_token: r.link_token, update_item_id: updateItemId ?? null }));
   openLink(r.link_token, updateItemId);
 }
 
 function resumeOauth() {
   if (!new URLSearchParams(location.search).has("oauth_state_id")) return;
-  const saved = sessionStorage.getItem("callout_oauth_link");
+  const saved = sessionStorage.getItem("pennykingdom_oauth_link");
   if (!saved) { msg("OAuth return without a pending link session — start again."); return; }
   const { link_token, update_item_id } = JSON.parse(saved);
   openLink(link_token, update_item_id ?? undefined, window.location.href);

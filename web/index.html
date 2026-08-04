@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>callout</title>
+<title>penny kingdom</title>
 <style>
 :root{color-scheme:light dark}
 body{font-family:-apple-system,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem}
@@ -21,7 +21,7 @@ button{padding:.5rem;font-size:1rem;cursor:pointer}
 </style>
 </head>
 <body>
-<h1>callout <span style="float:right;font-size:.8rem"><a href="link.html">banks</a> · <a id="logout" href="#" class="hidden">reset</a></span></h1>
+<h1>penny kingdom <span style="float:right;font-size:.8rem"><a href="link.html">banks</a> · <a id="logout" href="#" class="hidden">reset</a></span></h1>
 
 <div id="setup" class="hidden">
   <p><small>Enter your app token — saved in this browser only.</small></p>
@@ -81,7 +81,8 @@ function render(d) {
 }
 
 async function load() {
-  const token = localStorage.getItem("callout_token");
+  // pennykingdom_token going forward; callout_token honored so the rename doesn't log anyone out.
+  const token = localStorage.getItem("pennykingdom_token") ?? localStorage.getItem("callout_token");
   if (!token) { show("setup"); return; }
   show("logout"); show("loading"); show("error", false);
   try {
@@ -102,13 +103,14 @@ async function load() {
 
 $("setupForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  localStorage.setItem("callout_token", $("appToken").value.trim());
+  localStorage.setItem("pennykingdom_token", $("appToken").value.trim());
   show("setup", false);
   load();
 });
 
 $("logout").addEventListener("click", (e) => {
   e.preventDefault();
+  localStorage.removeItem("pennykingdom_token");
   localStorage.removeItem("callout_token");
   location.reload();
 });

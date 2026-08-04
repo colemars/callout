@@ -9,12 +9,13 @@ import type { Construct } from "constructs";
 
 // GitHub's unique-ID subject format (repos on the new claim format embed
 // owner/repo ids): repo:OWNER@OWNER_ID/REPO@REPO_ID:ref:... Pinning the ids is
-// stronger than names — immune to owner/repo name reuse.
-const REPO_SUBJECTS = ["repo:colemars@42340374/callout@1322262155:*", "repo:colemars/callout:*"];
+// stronger than names — immune to owner/repo name reuse — and wildcarding the
+// name segment makes the trust survive repo renames (the ids never change).
+const REPO_SUBJECTS = ["repo:colemars@42340374/*@1322262155:*", "repo:colemars/pennykingdom:*"];
 
 /**
  * One-time stack (deployed from a developer machine): lets GitHub Actions on
- * colemars/callout deploy via OIDC — no long-lived AWS keys in GitHub.
+ * colemars/pennykingdom deploy via OIDC — no long-lived AWS keys in GitHub.
  * The role can only assume the CDK bootstrap roles and manage platform/*
  * secrets; CloudFormation's execution role does the actual provisioning.
  */
