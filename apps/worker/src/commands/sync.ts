@@ -16,6 +16,7 @@ import {
   createInvestmentActivityRepository,
   createSnapshotRepository,
   createTransactionRepository,
+  createUserCategoryRuleStore,
   createVaultTokenStore,
 } from "@platform/repositories";
 import { eq } from "drizzle-orm";
@@ -36,7 +37,7 @@ export interface UserSyncReport {
 
 export async function runSyncCommand(db: PlatformDb): Promise<UserSyncReport[]> {
   const rules = await db.select().from(categoryRules).where(eq(categoryRules.source, "plaid"));
-  const categorize = createCategorizer(new Map(rules.map((r) => [r.sourceCategory, r.category])));
+  const globalRules = new Map(rules.map((r) => [r.sourceCategory, r.category]));
 
   const plaidEnv = process.env.PLAID_ENV === "production" ? "production" : "sandbox";
   const client = createPlaidClient({
@@ -45,8 +46,9 @@ export async function runSyncCommand(db: PlatformDb): Promise<UserSyncReport[]> 
     env: plaidEnv,
   });
   const provider = createPlaidProvider(client);
+  const userRuleStore = createUserCategoryRuleStore(db);
 
-  const deps = {
+  const shared = {
     provider,
     investments: {
       provider: createPlaidInvestmentsProvider(client),
@@ -57,14 +59,16 @@ export async function runSyncCommand(db: PlatformDb): Promise<UserSyncReport[]> 
     accountRepo: createAccountRepository(db),
     transactionRepo: createTransactionRepository(db),
     snapshotRepo: createSnapshotRepository(db),
-    categorize,
     today: todayUtc(),
     now: () => new Date(),
   };
 
   const results: UserSyncReport[] = [];
   for (const user of await connectedUsers(db)) {
-    results.push({ userId: user, reports: await runSync(user, deps) });
+    // Per-user categorizer: their corrections and the scribe's learned rules.
+    const userRules = await userRuleStore.listForUser(user, "plaid");
+    const categorize = createCategorizer(globalRules, userRules);
+    results.push({ userId: user, reports: await runSync(user, { ...shared, categorize }) });
   }
   return results;
 }

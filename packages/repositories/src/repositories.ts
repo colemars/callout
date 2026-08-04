@@ -95,6 +95,7 @@ export function createTransactionRepository(db: PlatformDb): TransactionReposito
           currency: t.amount.currency,
           pending: t.pending,
           category: t.category,
+          categorySource: t.categorySource,
           sourceCategory: t.sourceCategory ?? null,
         };
         await db
@@ -102,9 +103,25 @@ export function createTransactionRepository(db: PlatformDb): TransactionReposito
           .values(values)
           .onConflictDoUpdate({
             target: [transactions.userId, transactions.source, transactions.sourceTxnId],
-            set: values,
+            set: {
+              ...values,
+              // A user's correction is law: re-syncs (Plaid "modified", cursor
+              // replays) must never clobber it with a freshly computed category.
+              category: sql`case when "transactions"."category_source" = 'user' then "transactions"."category" else excluded."category" end`,
+              categorySource: sql`case when "transactions"."category_source" = 'user' then 'user' else excluded."category_source" end`,
+            },
           });
       }
+    },
+
+    async setCategoryByUser(userId, id, category) {
+      const rows = await db
+        .update(transactions)
+        .set({ category, categorySource: "user" })
+        .where(and(eq(transactions.userId, userId), eq(transactions.id, id)))
+        .returning();
+      const row = rows[0];
+      return row === undefined ? null : transactionFromRow(row);
     },
 
     async findByUser(userId: UserId, range?: DateRange) {

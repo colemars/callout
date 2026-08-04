@@ -23,6 +23,7 @@ import {
   createMetricSnapshotStore,
   createSnapshotRepository,
   createTransactionRepository,
+  createUserCategoryRuleStore,
   createVaultTokenStore,
   loadFinancialState,
 } from "@platform/repositories";
@@ -42,7 +43,11 @@ export function createUserSync(
   const client = createPlaidClient(plaid);
   return async (userId) => {
     const rules = await db.select().from(categoryRules).where(eq(categoryRules.source, "plaid"));
-    const categorize = createCategorizer(new Map(rules.map((r) => [r.sourceCategory, r.category])));
+    const userRules = await createUserCategoryRuleStore(db).listForUser(userId, "plaid");
+    const categorize = createCategorizer(
+      new Map(rules.map((r) => [r.sourceCategory, r.category])),
+      userRules,
+    );
 
     const reports = await runSync(userId, {
       provider: createPlaidProvider(client),

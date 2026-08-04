@@ -73,20 +73,24 @@ export async function importAppleCardCsv(
   transactionRepo: TransactionRepository,
 ): Promise<{ imported: number }> {
   const rows = parseAppleCardCsv(csvText);
-  const txns: NewTransaction[] = rows.map((row) => ({
-    userId,
-    accountId,
-    source: "apple_csv",
-    sourceTxnId: row.sourceTxnId,
-    postedAt: row.transactionDate,
-    description: row.description,
-    merchant: row.merchant,
-    // Apple: positive = purchase (outflow) -> platform: negative = outflow.
-    amount: negate(minorFromDecimalString(row.amountRaw)),
-    pending: false,
-    category: categorize(null, row.category, row.merchant, row.description),
-    sourceCategory: row.category,
-  }));
+  const txns: NewTransaction[] = rows.map((row) => {
+    const verdict = categorize(null, row.category, row.merchant, row.description);
+    return {
+      userId,
+      accountId,
+      source: "apple_csv",
+      sourceTxnId: row.sourceTxnId,
+      postedAt: row.transactionDate,
+      description: row.description,
+      merchant: row.merchant,
+      // Apple: positive = purchase (outflow) -> platform: negative = outflow.
+      amount: negate(minorFromDecimalString(row.amountRaw)),
+      pending: false,
+      category: verdict.category,
+      categorySource: verdict.source,
+      sourceCategory: row.category,
+    };
+  });
   await transactionRepo.upsertMany(userId, txns);
   return { imported: txns.length };
 }

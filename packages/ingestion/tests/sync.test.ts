@@ -136,7 +136,7 @@ const deps = (fakes: ReturnType<typeof makeFakes>, provider: TransactionProvider
   accountRepo: fakes.accountRepo,
   transactionRepo: fakes.transactionRepo,
   snapshotRepo: fakes.snapshotRepo,
-  categorize: () => "other" as const,
+  categorize: () => ({ category: "other", source: "rule" }) as const,
   today: isoDate("2026-08-15"),
   now: () => new Date("2026-08-15T09:00:00Z"),
 });

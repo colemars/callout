@@ -29,6 +29,7 @@ const fakeVerifier: JwtVerifier = {
 
 let client: PGlite;
 let app: FastifyInstance;
+let db: PlatformDb;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -45,7 +46,7 @@ beforeAll(async () => {
       await client.exec(statement);
     }
   }
-  const db = drizzle(client, { schema }) as unknown as PlatformDb;
+  db = drizzle(client, { schema }) as unknown as PlatformDb;
 
   // Seed: one account, two transactions, one budget, one event.
   const account = await createAccountRepository(db).upsertByExternalId(USER, {
@@ -323,5 +324,58 @@ describe("product state", () => {
       GOOD_TOKEN,
     );
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("transaction category override", () => {
+  const patch = (url: string, payload: unknown, token?: string) =>
+    app.inject({
+      method: "PATCH",
+      url,
+      payload: payload as Record<string, unknown>,
+      headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
+    });
+
+  it("sets the category as law and learns a standing rule", async () => {
+    const txns = (await get("/api/v1/transactions", GOOD_TOKEN)).json();
+    const target = txns[0];
+    expect(target.categorySource).toBe("rule"); // exposed since the provenance column
+
+    const res = await patch(
+      `/api/v1/transactions/${target.id}`,
+      { category: "transfer" },
+      GOOD_TOKEN,
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      id: target.id,
+      category: "transfer",
+      categorySource: "user",
+    });
+
+    // The correction persisted a per-user standing rule.
+    const { userCategoryRules } = schema;
+    const rules = await db.select().from(userCategoryRules);
+    expect(rules.some((r) => r.origin === "user" && r.category === "transfer")).toBe(true);
+  });
+
+  it("rejects bad categories, unknown ids, and other users' transactions", async () => {
+    const txns = (await get("/api/v1/transactions", GOOD_TOKEN)).json();
+    expect(
+      (await patch(`/api/v1/transactions/${txns[0].id}`, { category: "nonsense" }, GOOD_TOKEN))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await patch(
+          "/api/v1/transactions/00000000-0000-0000-0000-00000000dead",
+          { category: "dining" },
+          GOOD_TOKEN,
+        )
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (await patch(`/api/v1/transactions/${txns[0].id}`, { category: "dining" })).statusCode,
+    ).toBe(401);
   });
 });

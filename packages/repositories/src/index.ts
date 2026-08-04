@@ -11,4 +11,6 @@ export { createEventStore, createMetricSnapshotStore } from "./engine-stores.js"
 export { createConnectionStore, createVaultTokenStore } from "./ingestion-stores.js";
 export type { ProductStateRecord, ProductStateStore } from "./product-state.js";
 export { createProductStateStore } from "./product-state.js";
+export type { UserCategoryRuleStore, UserRuleEntry } from "./user-rules.js";
+export { createUserCategoryRuleStore } from "./user-rules.js";
 export { loadFinancialState } from "./state.js";

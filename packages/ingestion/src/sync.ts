@@ -222,6 +222,12 @@ function toNewTransaction(
   pt: ProviderTransaction,
   categorize: CategorizeFn,
 ): NewTransaction {
+  const verdict = categorize(
+    pt.sourceCategoryDetailed ?? null,
+    pt.sourceCategoryPrimary ?? null,
+    pt.merchant ?? null,
+    pt.description,
+  );
   return {
     userId,
     accountId,
@@ -231,12 +237,8 @@ function toNewTransaction(
     description: pt.description,
     amount: money(pt.amountMinor),
     pending: pt.pending,
-    category: categorize(
-      pt.sourceCategoryDetailed ?? null,
-      pt.sourceCategoryPrimary ?? null,
-      pt.merchant ?? null,
-      pt.description,
-    ),
+    category: verdict.category,
+    categorySource: verdict.source,
     ...(pt.authorizedAt === undefined ? {} : { authorizedAt: pt.authorizedAt }),
     ...(pt.merchant === undefined ? {} : { merchant: pt.merchant }),
     ...(pt.sourceCategoryDetailed === undefined

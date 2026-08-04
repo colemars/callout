@@ -28,3 +28,12 @@ export function isCategory(s: string): s is Category {
 
 /** Categories excluded from spending metrics (they move money, not consume it). */
 export const NON_SPENDING_CATEGORIES: readonly Category[] = ["transfer", "debt_payment", "income"];
+
+/** Who decided a transaction's category. 'user' is law; 'ai' is the scribe; 'rule' is regex/table. */
+export const CATEGORY_SOURCES = ["rule", "ai", "user"] as const;
+
+export type CategorySource = (typeof CATEGORY_SOURCES)[number];
+
+export function isCategorySource(s: string): s is CategorySource {
+  return (CATEGORY_SOURCES as readonly string[]).includes(s);
+}

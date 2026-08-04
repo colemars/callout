@@ -6,7 +6,8 @@ import type { AuthenticatedUser, JwtVerifier } from "@platform/auth";
 import { AuthError } from "@platform/auth";
 import type { PlatformDb } from "@platform/database";
 import type { DateRange, ISODate, UserId } from "@platform/financial-core";
-import { isoDate } from "@platform/financial-core";
+import { isoDate, transactionId } from "@platform/financial-core";
+import { normalizeMatchKey } from "@platform/ingestion";
 import {
   createAccountRepository,
   createBudgetRepository,
@@ -16,6 +17,7 @@ import {
   createMetricSnapshotStore,
   createProductStateStore,
   createTransactionRepository,
+  createUserCategoryRuleStore,
 } from "@platform/repositories";
 import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest } from "fastify";
 import {
@@ -35,12 +37,14 @@ import {
   goalSchema,
   historyQuery,
   investmentActivitySchema,
+  patchTransactionBody,
   productParams,
   productStateSchema,
   putStateBody,
   putStateResultSchema,
   snapshotSchema,
   syncRunSchema,
+  transactionIdParams,
   transactionSchema,
 } from "./schemas.js";
 import type { UserSync } from "./sync.js";
@@ -233,6 +237,41 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             asOf: m.asOf as string,
             metrics: m as unknown as Record<string, unknown>,
           }));
+        },
+      );
+
+      v1.patch(
+        "/transactions/:id",
+        {
+          schema: {
+            params: transactionIdParams,
+            body: patchTransactionBody,
+            response: {
+              200: transactionSchema,
+              400: errorSchema,
+              401: errorSchema,
+              404: errorSchema,
+            },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const txn = await createTransactionRepository(deps.db).setCategoryByUser(
+            userId,
+            transactionId(request.params.id),
+            request.body.category,
+          );
+          if (txn === null) return reply.status(404).send({ error: "unknown transaction" });
+          // The correction becomes a standing rule so the next occurrence of
+          // the same merchant lands right without another correction.
+          await createUserCategoryRuleStore(deps.db).upsert(
+            userId,
+            txn.source,
+            normalizeMatchKey(txn.merchant ?? null, txn.description),
+            request.body.category,
+            "user",
+          );
+          return txn;
         },
       );
 

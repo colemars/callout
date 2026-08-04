@@ -1,10 +1,11 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { Account } from "../entities/account.js";
+import type { Category } from "../entities/category.js";
 import type { Goal } from "../entities/goal.js";
 import type { InvestmentActivity } from "../entities/investment-activity.js";
 import type { BalanceSnapshot, Budget } from "../entities/misc.js";
 import type { Transaction, TransactionSource } from "../entities/transaction.js";
-import type { AccountId, UserId } from "../ids.js";
+import type { AccountId, TransactionId, UserId } from "../ids.js";
 
 /**
  * Repository ports (ARCHITECTURE.md "Repository Pattern"). Business logic
@@ -21,7 +22,7 @@ export interface DateRange {
 export type NewTransaction = Omit<Transaction, "id">;
 
 export interface TransactionRepository {
-  /** Upsert keyed on (userId, source, sourceTxnId). */
+  /** Upsert keyed on (userId, source, sourceTxnId). Never clobbers a 'user' category. */
   upsertMany(userId: UserId, transactions: readonly NewTransaction[]): Promise<void>;
   findByUser(userId: UserId, range?: DateRange): Promise<Transaction[]>;
   deleteBySourceIds(
@@ -29,6 +30,12 @@ export interface TransactionRepository {
     source: TransactionSource,
     sourceTxnIds: readonly string[],
   ): Promise<number>;
+  /** The user's correction — category becomes law (categorySource 'user'). Null: not their txn. */
+  setCategoryByUser(
+    userId: UserId,
+    id: TransactionId,
+    category: Category,
+  ): Promise<Transaction | null>;
 }
 
 /** Provider-shaped account payload: the database assigns the platform id. */

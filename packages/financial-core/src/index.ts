@@ -39,8 +39,14 @@ export {
 export type { AccountId, ConnectionId, GoalId, TransactionId, UserId } from "./ids.js";
 export { accountId, connectionId, goalId, transactionId, userId } from "./ids.js";
 
-export type { Category } from "./entities/category.js";
-export { CATEGORIES, isCategory, NON_SPENDING_CATEGORIES } from "./entities/category.js";
+export type { Category, CategorySource } from "./entities/category.js";
+export {
+  CATEGORIES,
+  CATEGORY_SOURCES,
+  isCategory,
+  isCategorySource,
+  NON_SPENDING_CATEGORIES,
+} from "./entities/category.js";
 export type { Account, AccountKind, AccountSource } from "./entities/account.js";
 export { isDebtAccount } from "./entities/account.js";
 export type { Transaction, TransactionSource } from "./entities/transaction.js";

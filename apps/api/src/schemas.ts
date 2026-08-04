@@ -34,6 +34,8 @@ export const transactionSchema = z.object({
   amount: moneySchema,
   pending: z.boolean(),
   category: z.string(),
+  /** Who decided the category: rule (regex/table) | ai (scribe) | user (correction). */
+  categorySource: z.enum(["rule", "ai", "user"]),
   source: z.string(),
 });
 
@@ -151,3 +153,25 @@ export const putStateBody = z
   });
 
 export const putStateResultSchema = z.object({ version: z.number().int() });
+
+export const transactionIdParams = z.object({ id: z.string().uuid() });
+
+export const patchTransactionBody = z.object({
+  category: z.enum([
+    "groceries",
+    "dining",
+    "delivery",
+    "coffee",
+    "transport",
+    "shopping",
+    "subscriptions",
+    "entertainment",
+    "travel",
+    "health",
+    "housing",
+    "debt_payment",
+    "income",
+    "transfer",
+    "other",
+  ]),
+});

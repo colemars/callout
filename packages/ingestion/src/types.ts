@@ -1,6 +1,7 @@
 import type {
   AccountKind,
   Category,
+  CategorySource,
   ConnectionId,
   ISODate,
   TransactionSource,
@@ -80,9 +81,15 @@ export interface TransactionProvider {
   syncPage(accessToken: string, cursor: string | null): Promise<SyncPage>;
 }
 
+/** A learned per-user rule: 'user' origin is a correction (law), 'ai' the scribe's memory. */
+export interface UserRule {
+  readonly category: Category;
+  readonly origin: "ai" | "user";
+}
+
 export type CategorizeFn = (
   detailed: string | null,
   primary: string | null,
   merchant: string | null,
   description: string,
-) => Category;
+) => { category: Category; source: CategorySource };

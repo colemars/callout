@@ -1,7 +1,7 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { AccountId, TransactionId, UserId } from "../ids.js";
 import type { Money } from "../money/money.js";
-import type { Category } from "./category.js";
+import type { Category, CategorySource } from "./category.js";
 
 export type TransactionSource = "plaid" | "apple_csv" | "csv" | "manual";
 
@@ -20,6 +20,8 @@ export interface Transaction {
   readonly amount: Money;
   readonly pending: boolean;
   readonly category: Category;
+  /** Who decided the category — 'user' overrides survive every re-sync. */
+  readonly categorySource: CategorySource;
   /** The provider's raw category, kept for re-categorization. */
   readonly sourceCategory?: string;
 }

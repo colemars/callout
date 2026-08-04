@@ -8,7 +8,7 @@ export type {
   SyncPage,
   TransactionProvider,
 } from "./types.js";
-export { createCategorizer } from "./categorizer.js";
+export { createCategorizer, normalizeMatchKey } from "./categorizer.js";
 export type { PlaidConfig, PlaidHttp } from "./plaid/client.js";
 export { createPlaidClient, PlaidError } from "./plaid/client.js";
 export { createPlaidProvider, dollarsToMinor } from "./plaid/provider.js";

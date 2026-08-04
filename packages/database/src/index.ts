@@ -14,4 +14,5 @@ export {
   productState,
   providerConnections,
   transactions,
+  userCategoryRules,
 } from "./schema.js";

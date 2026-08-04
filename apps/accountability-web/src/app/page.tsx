@@ -2,13 +2,46 @@
 
 import { Amount, Section, Table, fmtMoney, useDashboardData } from "@platform/ui";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clients, supabase } from "../lib/clients";
 import { translate } from "../lib/translate";
+
+const CATEGORIES = [
+  "groceries",
+  "dining",
+  "delivery",
+  "coffee",
+  "transport",
+  "shopping",
+  "subscriptions",
+  "entertainment",
+  "travel",
+  "health",
+  "housing",
+  "debt_payment",
+  "income",
+  "transfer",
+  "other",
+] as const;
+type CategoryOption = (typeof CATEGORIES)[number];
 
 export default function Dashboard() {
   const router = useRouter();
   const state = useDashboardData(clients);
+  // Optimistic category corrections, applied over the fetched rows.
+  const [corrected, setCorrected] = useState<Record<string, CategoryOption>>({});
+
+  async function recategorize(id: string, category: CategoryOption) {
+    setCorrected((c) => ({ ...c, [id]: category }));
+    // Fire-and-forget: the correction is law server-side; a failure simply
+    // shows again as the old category on the next load.
+    await clients.api
+      .PATCH("/api/v1/transactions/{id}", {
+        params: { path: { id } },
+        body: { category },
+      })
+      .catch(() => {});
+  }
 
   useEffect(() => {
     if (state.status === "unauthenticated") router.replace("/login");
@@ -162,16 +195,37 @@ export default function Dashboard() {
 
       <Section title="Recent transactions">
         <Table
-          rows={data.transactions.map((t) => [
-            <span key={t.id} className="text-zinc-500">
-              {t.postedAt.slice(5)}
-            </span>,
-            <div key={`${t.id}-what`} className="whitespace-normal">
-              <div>{t.merchant ?? t.description}</div>
-              <div className="text-xs text-zinc-500">{t.category}</div>
-            </div>,
-            <Amount key={`${t.id}-amt`} m={t.amount} signed />,
-          ])}
+          rows={data.transactions.map((t) => {
+            const category = corrected[t.id] ?? t.category;
+            const isUser = corrected[t.id] !== undefined || t.categorySource === "user";
+            return [
+              <span key={t.id} className="text-zinc-500">
+                {t.postedAt.slice(5)}
+              </span>,
+              <div key={`${t.id}-what`} className="whitespace-normal">
+                <div>{t.merchant ?? t.description}</div>
+                <div className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
+                  <select
+                    value={category}
+                    onChange={(e) => recategorize(t.id, e.target.value as CategoryOption)}
+                    className="rounded border border-zinc-200 bg-transparent px-1 py-0.5 text-xs dark:border-zinc-700"
+                    aria-label="Category"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  {isUser && <span title="Corrected by you — survives every sync">✎</span>}
+                  {t.categorySource === "ai" && !isUser && (
+                    <span title="Categorized by the scribes (AI)">✦</span>
+                  )}
+                </div>
+              </div>,
+              <Amount key={`${t.id}-amt`} m={t.amount} signed />,
+            ];
+          })}
           empty="No transactions yet."
         />
       </Section>

@@ -95,6 +95,8 @@ export const transactions = platform.table(
     currency: text("currency").notNull().default("USD"),
     pending: boolean("pending").notNull().default(false),
     category: text("category").notNull().default("other"),
+    /** Who decided the category: 'rule' (regex/table) | 'ai' (scribe) | 'user' (override — law). */
+    categorySource: text("category_source").notNull().default("rule"),
     sourceCategory: text("source_category"),
   },
   (t) => [
@@ -229,4 +231,22 @@ export const productState = platform.table(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.product] })],
+);
+
+/**
+ * Per-user learned categorization rules. origin 'user' rows are law (a
+ * correction the user made); origin 'ai' rows are the scribe's memory so each
+ * novel merchant is classified once. AI never overwrites a user row.
+ */
+export const userCategoryRules = platform.table(
+  "user_category_rules",
+  {
+    userId: uuid("user_id").notNull(),
+    source: text("source").notNull(),
+    matchKey: text("match_key").notNull(),
+    category: text("category").notNull(),
+    origin: text("origin").notNull(), // 'ai' | 'user'
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.source, t.matchKey] })],
 );

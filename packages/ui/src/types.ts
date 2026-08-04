@@ -24,6 +24,8 @@ export interface Txn {
   merchant?: string;
   amount: ApiMoney;
   category: string;
+  /** Who decided the category: rule | ai | user. */
+  categorySource?: string;
   pending: boolean;
 }
 

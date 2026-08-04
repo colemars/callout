@@ -7,6 +7,7 @@ import { budgets as budgetsTable, goals as goalsTable, schema } from "@platform/
 import type { NewTransaction } from "@platform/financial-core";
 import { accountId, isoDate, money, userId } from "@platform/financial-core";
 import { computeMetrics, defaultEngineConfig, deriveEvents } from "@platform/insight-engine";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -336,5 +337,90 @@ describe("ProductStateStore", () => {
     await store.put(OTHER_USER, "kingdom", { theirs: true });
     expect((await store.get(USER, "kingdom"))?.data).toEqual({ hello: 4 });
     expect(await store.get(USER, "billing")).toBeNull();
+  });
+});
+
+describe("category provenance", () => {
+  it("re-sync never clobbers a user correction; rule/ai rows still update", async () => {
+    const accountRepo = createAccountRepository(db);
+    const account = await accountRepo.upsertByExternalId(USER, {
+      userId: USER,
+      source: "plaid",
+      externalId: "plaid-acct-prov",
+      name: "Checking",
+      institution: "Test Bank",
+      kind: "depository",
+      balance: money(10_000),
+      isActive: true,
+    });
+
+    const repo = createTransactionRepository(db);
+    const base = {
+      userId: USER,
+      accountId: account.id,
+      source: "plaid" as const,
+      postedAt: isoDate("2026-08-01"),
+      description: "MYSTERY VAULT LLC",
+      pending: false,
+    };
+    await repo.upsertMany(USER, [
+      {
+        ...base,
+        sourceTxnId: "prov-1",
+        amount: money(-50_00),
+        category: "other",
+        categorySource: "rule",
+      },
+    ]);
+
+    // Simulate the user's correction landing directly (as the PATCH route will).
+    const { transactions: txnTable } = schema;
+    await db
+      .update(txnTable)
+      .set({ category: "transfer", categorySource: "user" })
+      .where(eq(txnTable.sourceTxnId, "prov-1"));
+
+    // Plaid re-sends the transaction ("modified") with a rule-computed category.
+    await repo.upsertMany(USER, [
+      {
+        ...base,
+        sourceTxnId: "prov-1",
+        amount: money(-51_00),
+        category: "other",
+        categorySource: "rule",
+      },
+    ]);
+
+    const rows = await repo.findByUser(USER, {
+      from: isoDate("2026-08-01"),
+      to: isoDate("2026-08-01"),
+    });
+    const row = rows.find((t) => t.sourceTxnId === "prov-1");
+    expect(row?.amount).toEqual(money(-51_00)); // non-category fields DO update
+    expect(row?.category).toBe("transfer"); // the correction is law
+    expect(row?.categorySource).toBe("user");
+
+    // A rule-sourced row updates normally on re-sync.
+    await repo.upsertMany(USER, [
+      {
+        ...base,
+        sourceTxnId: "prov-2",
+        amount: money(-1_00),
+        category: "other",
+        categorySource: "rule",
+      },
+    ]);
+    await repo.upsertMany(USER, [
+      {
+        ...base,
+        sourceTxnId: "prov-2",
+        amount: money(-1_00),
+        category: "transfer",
+        categorySource: "ai",
+      },
+    ]);
+    const row2 = (await repo.findByUser(USER)).find((t) => t.sourceTxnId === "prov-2");
+    expect(row2?.category).toBe("transfer");
+    expect(row2?.categorySource).toBe("ai");
   });
 });

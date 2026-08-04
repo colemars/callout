@@ -143,6 +143,8 @@ export interface paths {
                             };
                             pending: boolean;
                             category: string;
+                            /** @enum {string} */
+                            categorySource: "rule" | "ai" | "user";
                             source: string;
                         }[];
                     };
@@ -460,6 +462,99 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        category: "groceries" | "dining" | "delivery" | "coffee" | "transport" | "shopping" | "subscriptions" | "entertainment" | "travel" | "health" | "housing" | "debt_payment" | "income" | "transfer" | "other";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            accountId: string;
+                            postedAt: string;
+                            authorizedAt?: string;
+                            description: string;
+                            merchant?: string;
+                            amount: {
+                                amountMinor: number;
+                                currency: string;
+                            };
+                            pending: boolean;
+                            category: string;
+                            /** @enum {string} */
+                            categorySource: "rule" | "ai" | "user";
+                            source: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/products/{product}/state": {
