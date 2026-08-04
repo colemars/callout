@@ -2,7 +2,7 @@ import type { ISODate } from "../dates/local-date.js";
 import type { AccountId, ConnectionId, UserId } from "../ids.js";
 import type { Money } from "../money/money.js";
 
-export type AccountKind = "depository" | "credit" | "loan" | "investment";
+export type AccountKind = "depository" | "credit" | "loan" | "investment" | "other";
 
 export type AccountSource = "plaid" | "apple_csv" | "csv" | "manual";
 

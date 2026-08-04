@@ -21,6 +21,34 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  apps/worker:
+    dependencies:
+      '@platform/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@platform/financial-core':
+        specifier: workspace:*
+        version: link:../../packages/financial-core
+      '@platform/ingestion':
+        specifier: workspace:*
+        version: link:../../packages/ingestion
+      '@platform/insight-engine':
+        specifier: workspace:*
+        version: link:../../packages/insight-engine
+      '@platform/repositories':
+        specifier: workspace:*
+        version: link:../../packages/repositories
+      drizzle-orm:
+        specifier: ^0.44.2
+        version: 0.44.7(@electric-sql/pglite@0.3.16)(postgres@3.4.9)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/database:
     dependencies:
       drizzle-orm:
@@ -39,6 +67,22 @@ importers:
 
   packages/financial-core:
     devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7(@types/node@22.20.1)(tsx@4.23.5)
+
+  packages/ingestion:
+    dependencies:
+      '@platform/financial-core':
+        specifier: workspace:*
+        version: link:../financial-core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.1
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -70,6 +114,9 @@ importers:
       '@platform/financial-core':
         specifier: workspace:*
         version: link:../financial-core
+      '@platform/ingestion':
+        specifier: workspace:*
+        version: link:../ingestion
       '@platform/insight-engine':
         specifier: workspace:*
         version: link:../insight-engine

@@ -1,0 +1,33 @@
+name: Daily platform sync
+
+on:
+  schedule:
+    - cron: "30 9 * * *" # daily 09:30 UTC (legacy pg_cron sync runs 09:00; they coexist)
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PLATFORM_USER_ID: ${{ secrets.PLATFORM_USER_ID }}
+      PLAID_CLIENT_ID: ${{ secrets.PLAID_CLIENT_ID }}
+      PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
+      PLAID_ENV: ${{ vars.PLAID_ENV || 'sandbox' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter @platform/worker
+      - name: Sync + insights
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$PLATFORM_USER_ID" ]; then
+            echo "::notice::DATABASE_URL / PLATFORM_USER_ID secrets not configured yet — skipping."
+            exit 0
+          fi
+          node apps/worker/dist/cli.js sync
+          node apps/worker/dist/cli.js insights

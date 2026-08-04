@@ -12,7 +12,7 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
   Zero-runtime-dependency domain package: Money (integer minor units, signed, half-even rounding, exact allocation), LocalDate helpers, branded-ID entities, `FinancialEvent` discriminated union with explainable payloads, repository ports. Purity enforced by package.json guard + `"types": []` + dependency-cruiser.
 - [x] **Phase 3 — `packages/insight-engine`** (M) — *done 2026-08-03*
   Pure `computeMetrics(state, config, asOf)` / `deriveEvents(prev, curr)` / `project(...)`. Ports the proven SQL-view logic (`v_budget_status` pace math, `v_recurring_candidates` detection, `v_debt_trajectory` deltas) plus net cash flow and emergency runway. Golden fixture tests + fast-check property tests (purity, permutation-invariance, `deriveEvents(m, m) === []`).
-- [ ] **Phase 4 — Database + repositories + ingestion** (L, 2 PRs)
+- [x] **Phase 4 — Database + repositories + ingestion** (L, 2 PRs) — *done 2026-08-03*
   4a: `packages/database` (Drizzle-owned `platform.*` schema in the same Supabase project — accounts, transactions, provider_connections, goals, balance_snapshots, category_rules, metric_snapshots, events; `user_id` + RLS from day one) + `packages/repositories` (port implementations, integration-tested).
   4b: `packages/ingestion` (`TransactionProvider` interface, `runSync` orchestrator ported from `supabase/functions/plaid-sync`, Plaid + Apple-CSV providers, `Categorizer` ported verbatim) + `apps/worker` CLI (`sync` / `import-csv` / `backfill` with reconciliation) run by GitHub Actions cron. Old pg_cron sync keeps running in parallel.
 - [ ] **Phase 5 — API + Auth + SDK** (L)
