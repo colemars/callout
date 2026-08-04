@@ -1,0 +1,81 @@
+import { z } from "zod";
+
+/**
+ * API-boundary schemas. Zod lives here, not in financial-core (the domain has
+ * zero runtime deps). The serializer validates AND strips: fields not listed
+ * (userId, vault ids, connection internals) never leave the API.
+ */
+
+export const moneySchema = z.object({
+  amountMinor: z.number().int(),
+  currency: z.string(),
+});
+
+export const accountSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  institution: z.string(),
+  kind: z.enum(["depository", "credit", "loan", "investment", "other"]),
+  subtype: z.string().optional(),
+  mask: z.string().optional(),
+  balance: moneySchema,
+  creditLimit: moneySchema.optional(),
+  balanceAsOf: z.string().optional(),
+  isActive: z.boolean(),
+});
+
+export const transactionSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  postedAt: z.string(),
+  authorizedAt: z.string().optional(),
+  description: z.string(),
+  merchant: z.string().optional(),
+  amount: moneySchema,
+  pending: z.boolean(),
+  category: z.string(),
+  source: z.string(),
+});
+
+export const goalSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["savings_net_flow", "balance_target", "debt_paydown"]),
+  accountId: z.string().optional(),
+  targetAmount: moneySchema,
+  targetDate: z.string().optional(),
+  startedAt: z.string().optional(),
+  baselineAmount: moneySchema.optional(),
+  note: z.string().optional(),
+  active: z.boolean(),
+});
+
+export const budgetSchema = z.object({
+  category: z.string(),
+  monthlyCap: moneySchema,
+  active: z.boolean(),
+});
+
+export const eventSchema = z.object({
+  type: z.string(),
+  occurredOn: z.string(),
+  payload: z.record(z.unknown()),
+});
+
+export const dateRangeQuery = z.object({
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+
+export const limitQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+export const errorSchema = z.object({
+  error: z.string(),
+});

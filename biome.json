@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["supabase/**", "web/**", "**/dist/**", "**/node_modules/**", ".turbo/**"]
+    "ignore": [
+      "supabase/**",
+      "web/**",
+      "**/dist/**",
+      "**/node_modules/**",
+      ".turbo/**",
+      "**/src/generated/**",
+      "**/openapi.json"
+    ]
   },
   "formatter": {
     "enabled": true,
