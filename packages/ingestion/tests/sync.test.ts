@@ -291,4 +291,54 @@ describe("runSync with the Investments product", () => {
     expect(reports[0]?.status).toBe("ok"); // main sync unaffected
     expect(reports[0]?.investments).toBe("unsupported");
   });
+
+  it("treats missing investments consent as unsupported (pre-consent legacy items)", async () => {
+    const fakes = makeFakes();
+    const investments = {
+      provider: {
+        async fetchActivity(): Promise<never> {
+          throw new PlaidError({
+            error_code: "ADDITIONAL_CONSENT_REQUIRED",
+            error_message: "consent",
+          });
+        },
+      },
+      repo: {
+        async upsertMany() {},
+        async findByUser() {
+          return [];
+        },
+      },
+    };
+    const reports = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      investments,
+    });
+    expect(reports[0]?.investments).toBe("unsupported");
+    expect(reports[0]?.message).toBeUndefined();
+  });
+
+  it("surfaces the Plaid error code when investments fails unexpectedly", async () => {
+    const fakes = makeFakes();
+    const investments = {
+      provider: {
+        async fetchActivity(): Promise<never> {
+          throw new PlaidError({ error_code: "RATE_LIMIT", error_message: "slow down" });
+        },
+      },
+      repo: {
+        async upsertMany() {},
+        async findByUser() {
+          return [];
+        },
+      },
+    };
+    const reports = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      investments,
+    });
+    expect(reports[0]?.status).toBe("ok"); // still never fails the connection
+    expect(reports[0]?.investments).toBe("error");
+    expect(reports[0]?.message).toBe("investments: RATE_LIMIT");
+  });
 });

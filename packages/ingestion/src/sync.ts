@@ -150,6 +150,7 @@ async function syncConnection(
   // Its failures never fail the whole connection sync.
   let investments: SyncReport["investments"];
   let investmentActivityCount: number | undefined;
+  let investmentsMessage: string | undefined;
   if (deps.investments !== undefined) {
     try {
       const activity = await deps.investments.provider.fetchActivity(
@@ -185,11 +186,14 @@ async function syncConnection(
           "PRODUCT_NOT_READY",
           "NO_INVESTMENT_ACCOUNTS",
           "INVALID_PRODUCT",
+          // Items linked before investments consent existed can't grant it retroactively.
+          "ADDITIONAL_CONSENT_REQUIRED",
         ].includes(error.code)
       ) {
         investments = "unsupported";
       } else {
         investments = "error";
+        investmentsMessage = `investments: ${error instanceof PlaidError ? error.code : String(error)}`;
       }
     }
   }
@@ -207,6 +211,7 @@ async function syncConnection(
     removed,
     ...(investments === undefined ? {} : { investments }),
     ...(investmentActivityCount === undefined ? {} : { investmentActivityCount }),
+    ...(investmentsMessage === undefined ? {} : { message: investmentsMessage }),
   };
 }
 
