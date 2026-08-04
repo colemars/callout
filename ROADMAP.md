@@ -19,8 +19,9 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
   `apps/api`: Fastify 5 + `fastify-type-provider-zod` → OpenAPI 3.1, `buildApp()` factory, Pino, helmet/cors/rate-limit. `packages/auth`: `jose` JWKS verification against Supabase Auth (prereq: migrate project to asymmetric signing keys). `packages/api-client`: `openapi-typescript` + `openapi-fetch` generated from the emitted spec.
 - [ ] **Phase 6 — Financial Accountability + callout cutover** (L)
   `apps/accountability-web`: Next.js + Tailwind + `@supabase/ssr` (auth only; data via api-client), event-translation layer. Cutover: parallel-run ~2 weeks → `cron.unschedule('plaid-sync-daily')` → `web/` becomes a redirect → edge functions frozen, dropped months later.
-- [ ] **Phase 7 — Infra: cheap-first AWS via CDK** (M)
+- [x] **Phase 7 — Infra: cheap-first AWS via CDK** (M) — *done 2026-08-03*
   `infra/cdk`: Lambda (Node, arm64) + API Gateway HTTP API + Secrets Manager + OIDC deploy workflow. ~$0/month at current traffic. ECS later = Dockerfile targeting the existing `server.ts`; no app changes.
+  Live: https://ohf5w7ank0.execute-api.us-west-2.amazonaws.com (us-west-2, colocated with the Supabase DB). Done out of order (before Phase 6) so the first product has an API to talk to.
 - [ ] **Phase 8 — Financial Kingdom** (M–L)
   `apps/kingdom-web` + extract `packages/ui` (only now — a second consumer exists). Same api-client, same events, different translation table.
 - [ ] **Phase 9 — Workers, queues, notifications** (M)
