@@ -23,9 +23,9 @@ importers:
 
   apps/accountability-web:
     dependencies:
-      '@platform/api-client':
+      '@platform/ui':
         specifier: workspace:*
-        version: link:../../packages/api-client
+        version: link:../../packages/ui
       '@supabase/supabase-js':
         specifier: ^2.48.1
         version: 2.112.0
@@ -121,6 +121,43 @@ importers:
       vitest:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.5)(yaml@2.9.0)
+
+  apps/kingdom-web:
+    dependencies:
+      '@platform/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      next:
+        specifier: ^15.1.6
+        version: 15.5.22(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.0.3
+        version: 4.3.3
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.8
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.3
+        version: 19.2.4(@types/react@19.2.18)
+      postcss:
+        specifier: ^8.5.1
+        version: 8.5.25
+      tailwindcss:
+        specifier: ^4.0.3
+        version: 4.3.3
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
   apps/worker:
     dependencies:
@@ -303,6 +340,25 @@ importers:
       vitest:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.5)(yaml@2.9.0)
+
+  packages/ui:
+    dependencies:
+      '@platform/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@supabase/supabase-js':
+        specifier: ^2.48.1
+        version: 2.112.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.8
+        version: 19.2.18
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
 packages:
 

@@ -23,8 +23,8 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
 - [x] **Phase 7 — Infra: cheap-first AWS via CDK** (M) — *done 2026-08-03*
   `infra/cdk`: Lambda (Node, arm64) + API Gateway HTTP API + Secrets Manager + OIDC deploy workflow. ~$0/month at current traffic. ECS later = Dockerfile targeting the existing `server.ts`; no app changes.
   Live: https://ohf5w7ank0.execute-api.us-west-2.amazonaws.com (us-west-2, colocated with the Supabase DB). Done out of order (before Phase 6) so the first product has an API to talk to.
-- [ ] **Phase 8 — Financial Kingdom** (M–L)
-  `apps/kingdom-web` + extract `packages/ui` (only now — a second consumer exists). Same api-client, same events, different translation table.
+- [x] **Phase 8 — Financial Kingdom** (M–L) — *done 2026-08-03*
+  `apps/kingdom-web` (Pages at /callout/kingdom/) + extracted `packages/ui` (clients, dashboard hook, types, primitives). Same api-client, same events, different translation table — the platform never learned kingdoms exist.
 - [ ] **Phase 9 — Workers, queues, notifications** (M)
   EventBridge Scheduler → sync → engine → `platform.events` → SQS → notifier (replaces the old `notify` edge function for good).
 - [ ] **Phase 10 — Production hardening** (ongoing)

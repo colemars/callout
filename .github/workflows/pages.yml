@@ -6,6 +6,7 @@ on:
     paths:
       - "web/**"
       - "apps/accountability-web/**"
+      - "apps/kingdom-web/**"
       - "packages/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -33,13 +34,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build --filter @platform/accountability-web
-      - name: Assemble site (legacy dashboard at /, Accountability at /app)
+      - run: pnpm turbo run build --filter @platform/accountability-web --filter @platform/kingdom-web
+      - name: Assemble site (legacy at /, Accountability at /app, Kingdom at /kingdom)
         run: |
-          mkdir -p site
+          mkdir -p site site/app site/kingdom
           cp -r web/* site/
-          mkdir -p site/app
           cp -r apps/accountability-web/out/* site/app/
+          cp -r apps/kingdom-web/out/* site/kingdom/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

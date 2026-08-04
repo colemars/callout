@@ -1,73 +1,65 @@
-import type { ApiMoney } from "./format";
-import { fmtMoney } from "./format";
+import type { ApiEvent, TranslatedEvent } from "@platform/ui";
+import { absMoney, asMoney, asNum, asStr } from "@platform/ui";
 
 /**
  * The product-translation layer (ARCHITECTURE.md "Product Translation"):
- * normalized platform events become Accountability's plain, direct voice.
- * The platform never knows this voice exists.
+ * normalized platform events in Accountability's plain, direct voice.
  */
-interface ApiEvent {
-  type: string;
-  occurredOn: string;
-  payload: Record<string, unknown>;
-}
-
-const m = (v: unknown): string => fmtMoney(v as ApiMoney);
-const s = (v: unknown): string => String(v ?? "");
-const n = (v: unknown): number => Number(v ?? 0);
-
-export function translate(event: ApiEvent): { headline: string; tone: "good" | "bad" | "info" } {
+export function translate(event: ApiEvent): TranslatedEvent {
   const p = event.payload;
   switch (event.type) {
     case "GOAL_OFF_TRACK":
       return {
         tone: "bad",
-        headline: `You're behind on a goal: expected ${m(p.expected)} by now, you're at ${m(p.actual)} — ${m(p.shortfall)} short.`,
+        headline: `You're behind on a goal: expected ${asMoney(p.expected)} by now, you're at ${asMoney(p.actual)} — ${asMoney(p.shortfall)} short.`,
       };
     case "GOAL_ON_TRACK":
-      return { tone: "good", headline: `Goal on track — ${m(p.surplus)} ahead of schedule.` };
+      return { tone: "good", headline: `Goal on track — ${asMoney(p.surplus)} ahead of schedule.` };
     case "MONTHLY_SPENDING_INCREASED":
       return {
         tone: "bad",
-        headline: `${s(p.category)} spending jumped ${n(p.deltaPct)}% in ${s(p.month)}: ${m(p.previous)} → ${m(p.current)}.`,
+        headline: `${asStr(p.category)} spending jumped ${asNum(p.deltaPct)}% in ${asStr(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
       };
     case "MONTHLY_SPENDING_DECREASED":
       return {
         tone: "good",
-        headline: `${s(p.category)} spending down ${n(p.deltaPct)}% in ${s(p.month)}: ${m(p.previous)} → ${m(p.current)}.`,
+        headline: `${asStr(p.category)} spending down ${asNum(p.deltaPct)}% in ${asStr(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
       };
     case "RECURRING_EXPENSE_ADDED":
       return {
         tone: "info",
-        headline: `New subscription detected: ${s(p.merchant)} (~${m(p.estimatedMonthly)}/mo).`,
+        headline: `New subscription detected: ${asStr(p.merchant)} (~${asMoney(p.estimatedMonthly)}/mo).`,
       };
     case "RECURRING_EXPENSE_REMOVED":
       return {
         tone: "info",
-        headline: `${s(p.merchant)} looks cancelled — last charged ${s(p.lastSeen)}.`,
+        headline: `${asStr(p.merchant)} looks cancelled — last charged ${asStr(p.lastSeen)}.`,
       };
     case "HIGH_INTEREST_DEBT_INCREASED":
       return {
         tone: "bad",
-        headline: `High-interest debt grew ${m(p.delta)} to ${m(p.current)}.`,
+        headline: `High-interest debt grew ${asMoney(p.delta)} to ${asMoney(p.current)}.`,
       };
     case "HIGH_INTEREST_DEBT_DECREASED":
       return {
         tone: "good",
-        headline: `You paid high-interest debt down ${m(p.delta)} to ${m(p.current)}.`,
+        headline: `You paid high-interest debt down ${asMoney(p.delta)} to ${asMoney(p.current)}.`,
       };
     case "NET_CASH_FLOW_NEGATIVE":
       return {
         tone: "bad",
-        headline: `${s(p.month)}: you spent ${m({ amountMinor: Math.abs(n((p.netFlow as ApiMoney)?.amountMinor)), currency: "USD" })} more than you made.`,
+        headline: `${asStr(p.month)}: you spent ${absMoney(p.netFlow)} more than you made.`,
       };
     case "NET_CASH_FLOW_POSITIVE":
-      return { tone: "good", headline: `${s(p.month)}: ${m(p.netFlow)} net positive.` };
+      return { tone: "good", headline: `${asStr(p.month)}: ${asMoney(p.netFlow)} net positive.` };
     case "PASSIVE_INCOME_INCREASED":
-      return { tone: "good", headline: `Passive income up: ${m(p.previous)} → ${m(p.current)}.` };
+      return {
+        tone: "good",
+        headline: `Passive income up: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
+      };
     case "EMERGENCY_RUNWAY_CHANGED": {
-      const prev = n(p.previousMonths);
-      const curr = n(p.currentMonths);
+      const prev = asNum(p.previousMonths);
+      const curr = asNum(p.currentMonths);
       return {
         tone: curr < prev ? "bad" : "good",
         headline: `Emergency runway ${curr < prev ? "shrank" : "grew"}: ${prev} → ${curr} months.`,

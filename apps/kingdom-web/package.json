@@ -1,16 +1,15 @@
 {
-  "name": "@platform/accountability-web",
+  "name": "@platform/kingdom-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3002",
     "build": "next build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@platform/ui": "workspace:*",
-    "@supabase/supabase-js": "^2.48.1",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

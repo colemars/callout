@@ -6,7 +6,10 @@ import { useEffect } from "react";
 import { clients, supabase } from "../lib/clients";
 import { translate } from "../lib/translate";
 
-export default function Dashboard() {
+const heading = "mb-3 font-serif text-lg font-semibold text-amber-900 dark:text-amber-200";
+const border = "border-amber-900/15 dark:border-amber-200/15";
+
+export default function ThroneRoom() {
   const router = useRouter();
   const state = useDashboardData(clients);
 
@@ -20,10 +23,10 @@ export default function Dashboard() {
   }
 
   if (state.status === "error") {
-    return <main className="p-8 text-red-600">Something broke: {state.message}</main>;
+    return <main className="p-8 text-red-700">A raven brings ill news: {state.message}</main>;
   }
   if (state.status !== "ready") {
-    return <main className="p-8 text-zinc-500">Loading…</main>;
+    return <main className="p-8 text-stone-500">The scribes are tallying…</main>;
   }
 
   const { data } = state;
@@ -36,23 +39,25 @@ export default function Dashboard() {
     <main className="mx-auto max-w-3xl px-6 py-8">
       <header className="flex items-baseline justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Accountability</h1>
-          <p className="text-sm text-zinc-500">Your money, told straight.</p>
+          <h1 className="font-serif text-2xl font-bold tracking-tight">🏰 Financial Kingdom</h1>
+          <p className="text-sm text-stone-500 dark:text-amber-200/60">
+            Rule your realm's treasury.
+          </p>
         </div>
         <button
           type="button"
           onClick={signOut}
-          className="text-sm text-zinc-500 underline hover:text-zinc-800 dark:hover:text-zinc-200"
+          className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
         >
-          sign out
+          abdicate
         </button>
       </header>
 
-      {/* The event feed IS the product: platform events in Accountability's voice. */}
-      <Section title="What needs your attention">
+      {/* Same platform events, the Kingdom's voice. */}
+      <Section title="Tidings from the realm" headingClassName={heading}>
         {data.events.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            Nothing to call out yet. Events appear as the daily sync learns your patterns.
+          <p className="text-sm text-stone-500 dark:text-amber-200/60">
+            The realm is quiet. Ravens arrive as the royal scribes learn the kingdom's rhythms.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -63,41 +68,42 @@ export default function Dashboard() {
                   key={`${e.type}-${e.occurredOn}-${i}`}
                   className={`rounded-lg border px-3 py-2 text-sm ${
                     t.tone === "bad"
-                      ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950"
+                      ? "border-red-800/40 bg-red-100 dark:bg-red-950"
                       : t.tone === "good"
-                        ? "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950"
-                        : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                        ? "border-emerald-800/40 bg-emerald-100 dark:bg-emerald-950"
+                        : `${border} bg-white dark:bg-stone-900`
                   }`}
                 >
                   {t.headline}
-                  <span className="ml-2 text-xs text-zinc-400">{e.occurredOn}</span>
+                  <span className="ml-2 text-xs opacity-50">{e.occurredOn}</span>
                 </li>
               );
             })}
           </ul>
         )}
         {runway != null && (
-          <p className="mt-3 text-sm text-zinc-500">
-            Emergency runway:{" "}
-            <span className="font-medium text-zinc-800 dark:text-zinc-200">{runway} months</span>
+          <p className="mt-3 text-sm text-stone-500 dark:text-amber-200/60">
+            Siege stores:{" "}
+            <span className="font-medium text-stone-800 dark:text-amber-100">{runway} moons</span>
           </p>
         )}
       </Section>
 
-      <Section title="Accounts">
+      <Section title="The Royal Ledger" headingClassName={heading}>
         <Table
+          borderClassName={border}
           rows={data.accounts.map((a) => [
             a.institution,
             `${a.name}${a.mask ? ` ···${a.mask}` : ""}`,
             a.kind,
             <Amount key={a.id} m={a.balance} />,
           ])}
-          empty="No accounts yet — link a bank first."
+          empty="No vaults sworn to the crown yet."
         />
       </Section>
 
       {budgets.length > 0 && (
-        <Section title="Budgets (month to date)">
+        <Section title="Royal spending decrees" headingClassName={heading}>
           <ul className="flex flex-col gap-2">
             {budgets.map((b) => (
               <li key={b.category} className="text-sm">
@@ -107,9 +113,9 @@ export default function Dashboard() {
                     {fmtMoney(b.spentMtd)} / {fmtMoney(b.monthlyCap)}
                   </span>
                 </div>
-                <div className="mt-1 h-2 rounded bg-zinc-200 dark:bg-zinc-800">
+                <div className="mt-1 h-2 rounded bg-amber-900/10 dark:bg-amber-200/10">
                   <div
-                    className={`h-2 rounded ${b.overPace ? "bg-red-500" : "bg-emerald-500"}`}
+                    className={`h-2 rounded ${b.overPace ? "bg-red-600" : "bg-amber-600"}`}
                     style={{ width: `${Math.min(100, b.pctOfMonthlyCap)}%` }}
                   />
                 </div>
@@ -120,8 +126,9 @@ export default function Dashboard() {
       )}
 
       {debts.length > 0 && (
-        <Section title="Debt (30-day change)">
+        <Section title="Debts to the moneylenders" headingClassName={heading}>
           <Table
+            borderClassName={border}
             rows={debts.map((d) => [
               `${d.institution} ${d.name}`,
               <Amount key={d.accountId} m={d.currentBalance} />,
@@ -130,7 +137,7 @@ export default function Dashboard() {
               ) : (
                 <span
                   key={`${d.accountId}-delta`}
-                  className={d.delta30d.amountMinor > 0 ? "text-red-600" : "text-emerald-600"}
+                  className={d.delta30d.amountMinor > 0 ? "text-red-700" : "text-emerald-700"}
                 >
                   {d.delta30d.amountMinor > 0 ? "▲" : "▼"} {fmtMoney(d.delta30d)}
                 </span>
@@ -142,27 +149,29 @@ export default function Dashboard() {
       )}
 
       {recurring.length > 0 && (
-        <Section title="Subscriptions & recurring">
+        <Section title="Standing tithes" headingClassName={heading}>
           <Table
+            borderClassName={border}
             rows={recurring.map((r) => [
               r.merchant,
-              `~${fmtMoney(r.averageAmount)} every ${Math.round(r.averageGapDays)}d`,
-              `last: ${r.lastSeen}`,
+              `~${fmtMoney(r.averageAmount)} each moon`,
+              `last paid: ${r.lastSeen}`,
             ])}
             empty=""
           />
         </Section>
       )}
 
-      <Section title="Recent transactions">
+      <Section title="Ledger entries" headingClassName={heading}>
         <Table
+          borderClassName={border}
           rows={data.transactions.map((t) => [
             t.postedAt,
             t.merchant ?? t.description,
             t.category,
-            <Amount key={t.id} m={t.amount} signed />,
+            <Amount key={t.id} m={t.amount} signed positiveClassName="text-emerald-700" />,
           ])}
-          empty="No transactions yet."
+          empty="The ledger awaits its first entry."
         />
       </Section>
     </main>

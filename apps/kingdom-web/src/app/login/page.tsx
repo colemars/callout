@@ -26,36 +26,38 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <h1 className="text-3xl font-bold tracking-tight">Accountability</h1>
-      <p className="mt-1 text-sm text-zinc-500">Your money, told straight.</p>
+      <h1 className="font-serif text-3xl font-bold tracking-tight">🏰 Financial Kingdom</h1>
+      <p className="mt-1 text-sm text-stone-500 dark:text-amber-200/60">
+        Rule your realm's treasury.
+      </p>
 
       <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-3">
         <input
           type="email"
           required
-          placeholder="Email"
+          placeholder="Sovereign's email"
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-lg border border-amber-800/30 bg-white px-3 py-2 dark:border-amber-200/20 dark:bg-stone-900"
         />
         <input
           type="password"
           required
-          placeholder="Password"
+          placeholder="Royal seal (password)"
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="rounded-lg border border-amber-800/30 bg-white px-3 py-2 dark:border-amber-200/20 dark:bg-stone-900"
         />
         <button
           type="submit"
           disabled={busy}
-          className="mt-2 rounded-lg bg-zinc-900 px-3 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="mt-2 rounded-lg bg-amber-700 px-3 py-2 font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
         >
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? "Unbarring the gates…" : "Enter the keep"}
         </button>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700 dark:text-red-400">{error}</p>}
       </form>
     </main>
   );
