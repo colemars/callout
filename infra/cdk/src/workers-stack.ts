@@ -50,7 +50,8 @@ export class PlatformWorkersStack extends Stack {
         DATABASE_URL: "{{resolve:secretsmanager:platform/database-url}}",
         PLAID_CLIENT_ID: "{{resolve:secretsmanager:platform/plaid-client-id}}",
         PLAID_SECRET: "{{resolve:secretsmanager:platform/plaid-secret}}",
-        PLAID_ENV: "sandbox",
+        // Flipped by the deploy workflow's PLAID_ENV (repo variable); sandbox otherwise.
+        PLAID_ENV: process.env.PLAID_ENV === "production" ? "production" : "sandbox",
         PLATFORM_USER_ID,
         EVENTS_QUEUE_URL: eventsQueue.queueUrl,
         NODE_OPTIONS: "--enable-source-maps",

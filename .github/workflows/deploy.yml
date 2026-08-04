@@ -51,4 +51,6 @@ jobs:
           echo "secrets upserted"
       - name: CDK deploy
         working-directory: infra/cdk
+        env:
+          PLAID_ENV: ${{ vars.PLAID_ENV || 'sandbox' }}
         run: pnpm exec cdk deploy PlatformApi PlatformWorkers --require-approval never

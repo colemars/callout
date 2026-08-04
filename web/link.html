@@ -54,26 +54,46 @@ async function load() {
   ).join("") || "<li><small>None yet.</small></li>";
 }
 
-async function start(updateItemId) {
-  msg("");
-  const r = await api({ action: "create_link_token", update_item_id: updateItemId });
-  if (r.error) { msg("Error: " + r.error); return; }
+// OAuth banks bounce through the institution's site and return here with
+// ?oauth_state_id=…; Link must then be re-initialized with the SAME link
+// token and the full return URL. sessionStorage carries both across the hop.
+function openLink(linkToken, updateItemId, receivedRedirectUri) {
   const handler = Plaid.create({
-    token: r.link_token,
+    token: linkToken,
+    ...(receivedRedirectUri ? { receivedRedirectUri } : {}),
     onSuccess: async (public_token, metadata) => {
+      sessionStorage.removeItem("callout_oauth_link");
       if (updateItemId) await api({ action: "relinked", item_id: updateItemId });
       else await api({ action: "exchange", public_token, institution: metadata.institution && metadata.institution.name });
       msg("Linked.");
       load();
     },
     onExit: (err) => {
+      sessionStorage.removeItem("callout_oauth_link");
       if (err) msg("Exited: " + (err.display_message || err.error_code));
     },
   });
   handler.open();
 }
 
+async function start(updateItemId) {
+  msg("");
+  const r = await api({ action: "create_link_token", update_item_id: updateItemId });
+  if (r.error) { msg("Error: " + r.error); return; }
+  sessionStorage.setItem("callout_oauth_link", JSON.stringify({ link_token: r.link_token, update_item_id: updateItemId ?? null }));
+  openLink(r.link_token, updateItemId);
+}
+
+function resumeOauth() {
+  if (!new URLSearchParams(location.search).has("oauth_state_id")) return;
+  const saved = sessionStorage.getItem("callout_oauth_link");
+  if (!saved) { msg("OAuth return without a pending link session — start again."); return; }
+  const { link_token, update_item_id } = JSON.parse(saved);
+  openLink(link_token, update_item_id ?? undefined, window.location.href);
+}
+
 load();
+resumeOauth();
 </script>
 </body>
 </html>
