@@ -19,6 +19,9 @@ export function createDb(connectionString: string, options?: CreateDbOptions): P
     max: options?.max ?? 10,
     // Supabase's transaction-mode pooler does not support prepared statements.
     prepare: false,
+    // Close idle sockets promptly — keeps Lambda containers and the pooler tidy.
+    idle_timeout: 20,
+    connect_timeout: 10,
   });
   return drizzle(sql, { schema });
 }

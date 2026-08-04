@@ -12,4 +12,6 @@ const app = await buildApp({
   corsOrigins: config.CORS_ORIGINS,
 });
 
-export const handler = awsLambdaFastify(app);
+// Don't wait for the event loop to drain: the postgres pool keeps sockets
+// open between invocations (that's the point of a pool).
+export const handler = awsLambdaFastify(app, { callbackWaitsForEmptyEventLoop: false });
