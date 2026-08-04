@@ -69,10 +69,21 @@ double-granting on re-sync.
 | Goal completed | `GOAL_ON_TRACK` at target / goal reached (milestone event) | |
 | Savings-rate tier reached | savings rate crosses 5/10/20/30% (milestone event) | One-time per tier |
 
-**Unverifiable today — advisors may NOT promise these** (they unlock as data
-sources grow): 401k contribution *changes* (contributions are invisible to
-us), income raises as deliberate acts, insurance purchases, "learning
-something." The Council only speaks in promises the engine can check.
+**Unverifiable today — advisors may NOT promise these until their data source
+lands:**
+
+- **Retirement contributions** — verifiable via **Plaid's Investments product**
+  (`/investments/transactions`), which reports contributions as explicit typed
+  records (separate from market movement — balance deltas alone can never be
+  used, since a rally isn't behavior). This is a planned ingestion slice:
+  request the product at Link, map contribution records, derive
+  `RETIREMENT_CONTRIBUTION_MADE` / `_INCREASED` events. It also surfaces
+  dividends → real passive-income measurement (fixing the Age 4 proxy).
+  Until integrated, the Guildmaster stays quiet on contributions.
+  (Caveats: re-link may be needed on existing items; custodian coverage
+  varies; separately priced per investment account in production.)
+- Income raises as deliberate acts, insurance purchases, "learning something"
+  — no data source on the horizon; the Council never speaks of them.
 
 New platform event vocabulary this requires (future phase): milestone tiers
 (`EMERGENCY_FUND_MILESTONE`, `SAVINGS_RATE_MILESTONE`), `DEBT_ELIMINATED`,
@@ -206,8 +217,10 @@ That's the FI screenshot people share.
 - True passive-income measurement for Age 4 (4%-rule proxy today)
 - CPI-based Winter (own-spend proxy today)
 - Stone trend arrows (needs asset balance history from engine snapshots)
-- 401k-contribution and income-raise verification (needs new data sources —
-  until then the Council stays silent on them)
+- **Plaid Investments integration** (contribution + dividend records → the
+  Guildmaster's voice, real passive income, true Stone growth) — the most
+  valuable data slice on this list
+- Income-raise and insurance verification (no data source on the horizon)
 - The map itself — graphics after the meta-game proves out in text
 - The calendar view (`/api/v1/insights/history` + `/events?since=` exist to
   feed it)
