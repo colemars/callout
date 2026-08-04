@@ -29,17 +29,28 @@ export default function LoginPage() {
       <h1 className="text-3xl font-bold tracking-tight">Accountability</h1>
       <p className="mt-1 text-sm text-zinc-500">Your money, told straight.</p>
 
-      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-3">
+      {/* id/name/autocomplete are what password managers key off — keep them. */}
+      <form onSubmit={onSubmit} method="post" className="mt-8 flex flex-col gap-3">
+        <label htmlFor="email" className="sr-only">
+          Email
+        </label>
         <input
+          id="email"
+          name="email"
           type="email"
           required
           placeholder="Email"
-          autoComplete="email"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
         />
+        <label htmlFor="password" className="sr-only">
+          Password
+        </label>
         <input
+          id="password"
+          name="password"
           type="password"
           required
           placeholder="Password"

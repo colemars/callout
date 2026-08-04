@@ -50,19 +50,31 @@ export default function LoginPage() {
         Rule your realm's treasury.
       </p>
 
-      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-3">
+      {/* id/name/autocomplete are what password managers key off — keep them. */}
+      <form onSubmit={onSubmit} method="post" className="mt-8 flex flex-col gap-3">
+        <label htmlFor="email" className="sr-only">
+          Email
+        </label>
         <input
+          id="email"
+          name="email"
           type="email"
           required
           placeholder="Sovereign's email"
-          autoComplete="email"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="rounded-lg border border-amber-800/30 bg-white px-3 py-2 dark:border-amber-200/20 dark:bg-stone-900"
         />
+        <label htmlFor="password" className="sr-only">
+          Password
+        </label>
         <input
+          id="password"
+          name="password"
           type="password"
           required
+          minLength={8}
           placeholder="Royal seal (password)"
           autoComplete={mode === "signin" ? "current-password" : "new-password"}
           value={password}
