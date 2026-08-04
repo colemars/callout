@@ -1,13 +1,27 @@
-// Bank linking API (+ re-auth via Link update mode). JSON only — the UI lives
-// on GitHub Pages (web/link.html); supabase.co no longer serves HTML from
-// edge functions. Gate: x-app-token header or ?token= (app_config.app_token).
+// Bank linking API (+ re-auth via Link update mode). JSON only — the UI is
+// The Counting House (kingdom-web /banks). Auth: Supabase session JWT pinned
+// to the platform user; legacy x-app-token still honored as a fallback.
 import { db, plaid, requireToken } from "../_shared/plaid.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "x-app-token, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-app-token, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
+
+// Single-tenant: only the crown may swear vaults. Not a secret — just identity.
+const PLATFORM_USER = "4039c55f-bec0-421a-b764-11ce67406a5f";
+
+// Preferred auth: the product's Supabase session JWT (the Counting House page).
+// Fallback: the legacy x-app-token shared secret, until every caller migrates.
+async function requireAuth(req: Request): Promise<Response | null> {
+  const bearer = req.headers.get("authorization");
+  if (bearer?.startsWith("Bearer ")) {
+    const { data, error } = await db.auth.getUser(bearer.slice(7));
+    if (!error && data.user?.id === PLATFORM_USER) return null;
+  }
+  return await requireToken(req, "app_token");
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -84,7 +98,7 @@ async function handlePost(body: Record<string, unknown>): Promise<Response> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
-  const unauth = await requireToken(req, "app_token");
+  const unauth = await requireAuth(req);
   if (unauth) return new Response("Unauthorized", { status: 401, headers: cors });
 
   if (req.method === "POST") {

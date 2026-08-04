@@ -1,6 +1,7 @@
 "use client";
 
 import { Amount, Table, fmtMoney } from "@platform/ui";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -65,13 +66,21 @@ export default function ThroneRoom() {
             Your kingdom is your balance sheet.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={signOut}
-          className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
-        >
-          abdicate
-        </button>
+        <div className="flex items-baseline gap-4">
+          <Link
+            href="/banks/"
+            className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
+          >
+            🏦 counting house
+          </Link>
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
+          >
+            abdicate
+          </button>
+        </div>
       </header>
 
       {kingdom.surveying && (
