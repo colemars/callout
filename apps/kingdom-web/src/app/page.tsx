@@ -82,10 +82,16 @@ export default function ThroneRoom() {
           <Table
             borderClassName="border-amber-900/15 dark:border-amber-200/15"
             rows={state.input.accounts.map((a) => [
-              a.institution,
-              `${a.name}${a.mask ? ` ···${a.mask}` : ""}`,
-              a.kind,
-              <Amount key={a.id} m={a.balance} />,
+              <div key={a.id} className="whitespace-normal">
+                <div>
+                  {a.name}
+                  {a.mask ? ` ···${a.mask}` : ""}
+                </div>
+                <div className="text-xs text-stone-500 dark:text-amber-200/60">
+                  {a.institution} · {a.kind}
+                </div>
+              </div>,
+              <Amount key={`${a.id}-balance`} m={a.balance} />,
             ])}
             empty="No vaults sworn to the crown yet."
           />
@@ -93,10 +99,17 @@ export default function ThroneRoom() {
           <Table
             borderClassName="border-amber-900/15 dark:border-amber-200/15"
             rows={state.input.transactions.slice(0, 20).map((t) => [
-              t.postedAt,
-              t.merchant ?? t.description,
-              t.category,
-              <span key={t.id} className="tabular-nums">
+              <span key={t.id} className="text-stone-500 dark:text-amber-200/60">
+                {t.postedAt.slice(5)}
+              </span>,
+              <div key={`${t.id}-what`} className="whitespace-normal">
+                <div>{t.merchant ?? t.description}</div>
+                <div className="text-xs text-stone-500 dark:text-amber-200/60">{t.category}</div>
+              </div>,
+              <span
+                key={`${t.id}-amt`}
+                className={t.amount.amountMinor > 0 ? "text-emerald-700 dark:text-emerald-400" : ""}
+              >
                 {fmtMoney(t.amount)}
               </span>,
             ])}

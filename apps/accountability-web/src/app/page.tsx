@@ -87,10 +87,16 @@ export default function Dashboard() {
       <Section title="Accounts">
         <Table
           rows={data.accounts.map((a) => [
-            a.institution,
-            `${a.name}${a.mask ? ` ···${a.mask}` : ""}`,
-            a.kind,
-            <Amount key={a.id} m={a.balance} />,
+            <div key={a.id} className="whitespace-normal">
+              <div>
+                {a.name}
+                {a.mask ? ` ···${a.mask}` : ""}
+              </div>
+              <div className="text-xs text-zinc-500">
+                {a.institution} · {a.kind}
+              </div>
+            </div>,
+            <Amount key={`${a.id}-balance`} m={a.balance} />,
           ])}
           empty="No accounts yet — link a bank first."
         />
@@ -157,10 +163,14 @@ export default function Dashboard() {
       <Section title="Recent transactions">
         <Table
           rows={data.transactions.map((t) => [
-            t.postedAt,
-            t.merchant ?? t.description,
-            t.category,
-            <Amount key={t.id} m={t.amount} signed />,
+            <span key={t.id} className="text-zinc-500">
+              {t.postedAt.slice(5)}
+            </span>,
+            <div key={`${t.id}-what`} className="whitespace-normal">
+              <div>{t.merchant ?? t.description}</div>
+              <div className="text-xs text-zinc-500">{t.category}</div>
+            </div>,
+            <Amount key={`${t.id}-amt`} m={t.amount} signed />,
           ])}
           empty="No transactions yet."
         />

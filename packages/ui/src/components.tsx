@@ -54,12 +54,25 @@ export function Table({
         {rows.map((cells, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: display-only rows
           <tr key={i} className={`border-b last:border-0 ${borderClassName}`}>
-            {cells.map((c, j) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: display-only cells
-              <td key={j} className={`py-2 pr-3 ${j === cells.length - 1 ? "text-right" : ""}`}>
-                {c}
-              </td>
-            ))}
+            {cells.map((c, j) => {
+              const last = j === cells.length - 1;
+              const first = j === 0;
+              return (
+                <td
+                  // biome-ignore lint/suspicious/noArrayIndexKey: display-only cells
+                  key={j}
+                  className={`py-2 align-top ${
+                    last
+                      ? "w-px whitespace-nowrap pl-6 text-right tabular-nums"
+                      : first
+                        ? "whitespace-nowrap pr-6"
+                        : "pr-6"
+                  }`}
+                >
+                  {c}
+                </td>
+              );
+            })}
           </tr>
         ))}
       </tbody>
