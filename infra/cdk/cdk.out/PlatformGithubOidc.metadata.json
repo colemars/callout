@@ -1,0 +1,145 @@
+{
+  "/PlatformGithubOidc": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/Custom::AWSCDKOpenIdConnectProviderCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/PlatformGithubOidc/DeployRoleArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployRoleArn"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:59:5)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "....pnpm...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "....pnpm...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/Custom::AWSCDKOpenIdConnectProviderCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomAWSCDKOpenIdConnectProviderCustomResourceProviderRole517FED65"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new OpenIdConnectProvider2 in .pnpm...",
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:22:22)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/Custom::AWSCDKOpenIdConnectProviderCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomAWSCDKOpenIdConnectProviderCustomResourceProviderHandlerF2C543E0"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new OpenIdConnectProvider2 in .pnpm...",
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:22:22)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/DeployRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployRole885297C3"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Role2 in .pnpm...",
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:27:18)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "....pnpm, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/GithubProvider/Resource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "GithubProvider1CDE27EB"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new OpenIdConnectProvider2 in .pnpm...",
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:22:22)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/PlatformGithubOidc/DeployRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployRoleDefaultPolicyDC930F96"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in .pnpm...",
+        "new GithubOidcStack (/Users/colemarsteller/projects/callout/infra/cdk/src/oidc-stack.ts:40:10)",
+        "<anonymous> (/Users/colemarsteller/projects/callout/infra/cdk/src/main.ts:16:1)",
+        "...node internals..."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": "54.0.0",
+  "files": {
+    "5eb9cfd3e21f621745338d2564bdb68010143128cb64e8d1ff3d3f9ae3115357": {
+      "displayName": "ApiHandler/Code",
+      "source": {
+        "path": "asset.5eb9cfd3e21f621745338d2564bdb68010143128cb64e8d1ff3d3f9ae3115357",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "897052629493-us-west-2-ece42d87": {
+          "bucketName": "cdk-hnb659fds-assets-897052629493-us-west-2",
+          "objectKey": "5eb9cfd3e21f621745338d2564bdb68010143128cb64e8d1ff3d3f9ae3115357.zip",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::897052629493:role/cdk-hnb659fds-file-publishing-role-897052629493-us-west-2"
+        }
+      }
+    },
+    "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d": {
+      "displayName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Code",
+      "source": {
+        "path": "asset.2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "897052629493-us-west-2-8cb4891a": {
+          "bucketName": "cdk-hnb659fds-assets-897052629493-us-west-2",
+          "objectKey": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::897052629493:role/cdk-hnb659fds-file-publishing-role-897052629493-us-west-2"
+        }
+      }
+    },
+    "938773fd3dba7648decf78afddac4f7ebd408792a5ca569c1881a2cc0139aa29": {
+      "displayName": "PlatformApi Template",
+      "source": {
+        "path": "PlatformApi.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "897052629493-us-west-2-1abaf534": {
+          "bucketName": "cdk-hnb659fds-assets-897052629493-us-west-2",
+          "objectKey": "938773fd3dba7648decf78afddac4f7ebd408792a5ca569c1881a2cc0139aa29.json",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::897052629493:role/cdk-hnb659fds-file-publishing-role-897052629493-us-west-2"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

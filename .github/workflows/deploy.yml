@@ -1,0 +1,48 @@
+name: Deploy platform API
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/api/**", "packages/**", "infra/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-west-2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::897052629493:role/github-platform-deploy
+          aws-region: us-west-2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build # workspace dists must exist for the Lambda bundle
+      - name: Upsert database-url secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL repo secret is not set"; exit 1
+          fi
+          aws secretsmanager describe-secret --secret-id platform/database-url >/dev/null 2>&1 \
+            && aws secretsmanager put-secret-value --secret-id platform/database-url --secret-string "$DATABASE_URL" >/dev/null \
+            || aws secretsmanager create-secret --name platform/database-url --secret-string "$DATABASE_URL" >/dev/null
+          echo "secret upserted"
+      - name: CDK deploy
+        working-directory: infra/cdk
+        run: pnpm exec cdk deploy PlatformApi --require-approval never
