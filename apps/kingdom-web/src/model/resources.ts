@@ -91,7 +91,7 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     displayValue:
       flow === null
         ? "the first moon has not closed"
-        : `${flow >= 0 ? "+" : "−"}${fmtMinor(Math.abs(flow))} this moon · ${
+        : `${flow >= 0 ? "+" : "−"}${fmtMinor(Math.abs(flow))} ${provisional ? "this moon (so far)" : "last moon"} · ${
             builders > 0
               ? `${builders} builder${builders === 1 ? " arrives" : "s arrive"}`
               : builders < 0

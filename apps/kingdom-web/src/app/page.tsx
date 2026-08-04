@@ -34,15 +34,26 @@ export default function ThroneRoom() {
     [state],
   );
 
-  // "While you were away": diff against what THIS device last rendered, then
-  // persist the new snapshot as the next baseline.
+  // "While you were away": diff against what THIS device last rendered for
+  // THIS user, but only when they were actually away — a same-day logout/login
+  // is not an absence worth narrating. The baseline still advances every view.
+  const REPLAY_MIN_GAP_MS = 24 * 60 * 60 * 1000;
   useEffect(() => {
     if (kingdom === null || kingdom.surveying) return;
-    const lastSeen = loadLastSeen();
-    if (lastSeen !== null) {
-      setReplay(computeKingdomDiff(lastSeen, kingdom));
-    }
-    saveLastSeen(kingdom);
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user.id;
+      if (uid === undefined || cancelled) return;
+      const lastSeen = loadLastSeen(uid);
+      if (lastSeen !== null && Date.now() - lastSeen.savedAt >= REPLAY_MIN_GAP_MS) {
+        setReplay(computeKingdomDiff(lastSeen.state, kingdom));
+      }
+      saveLastSeen(uid, kingdom);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [kingdom]);
 
   async function signOut() {
