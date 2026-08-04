@@ -7,7 +7,10 @@ import {
 } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
-const REPO = "colemars/callout";
+// GitHub's unique-ID subject format (repos on the new claim format embed
+// owner/repo ids): repo:OWNER@OWNER_ID/REPO@REPO_ID:ref:... Pinning the ids is
+// stronger than names — immune to owner/repo name reuse.
+const REPO_SUBJECTS = ["repo:colemars@42340374/callout@1322262155:*", "repo:colemars/callout:*"];
 
 /**
  * One-time stack (deployed from a developer machine): lets GitHub Actions on
@@ -32,7 +35,7 @@ export class GithubOidcStack extends Stack {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
         },
         StringLike: {
-          "token.actions.githubusercontent.com:sub": `repo:${REPO}:*`,
+          "token.actions.githubusercontent.com:sub": REPO_SUBJECTS,
         },
       }),
     });

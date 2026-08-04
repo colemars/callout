@@ -21,10 +21,6 @@ jobs:
       AWS_REGION: us-west-2
     steps:
       - uses: actions/checkout@v4
-      - name: Debug OIDC claims
-        run: |
-          TOKEN_JSON=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
-          echo "$TOKEN_JSON" | jq -r .value | cut -d. -f2 | tr '_-' '/+' | { read p; pad=$(( (4 - ${#p} % 4) % 4 )); printf '%s' "$p"; printf '=%.0s' $(seq 1 $pad); } | base64 -d | jq '{iss, aud, sub}'
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::897052629493:role/github-platform-deploy
