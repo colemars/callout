@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev --port 3002",
     "build": "next build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@platform/ui": "workspace:*",
@@ -21,6 +22,7 @@
     "@types/react-dom": "^19.0.3",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }
