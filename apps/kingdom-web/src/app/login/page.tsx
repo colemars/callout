@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { supabase } from "../../lib/clients";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,12 +18,14 @@ export default function LoginPage() {
     setNotice(null);
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
       if (error) {
+        setBusy(false);
         setError(error.message);
         return;
       }
-      router.push("/");
+      // Full navigation (not router.push) — a real page load after submit is
+      // what makes password managers reliably offer to save the credentials.
+      window.location.assign("../");
       return;
     }
     const { data, error } = await supabase.auth.signUp({ email, password });
@@ -40,7 +40,7 @@ export default function LoginPage() {
       setMode("signin");
       return;
     }
-    router.push("/");
+    window.location.assign("../");
   }
 
   return (
