@@ -14,6 +14,7 @@ import {
   createGoalRepository,
   createInvestmentActivityRepository,
   createMetricSnapshotStore,
+  createProductStateStore,
   createTransactionRepository,
 } from "@platform/repositories";
 import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest } from "fastify";
@@ -34,6 +35,10 @@ import {
   goalSchema,
   historyQuery,
   investmentActivitySchema,
+  productParams,
+  productStateSchema,
+  putStateBody,
+  putStateResultSchema,
   snapshotSchema,
   syncRunSchema,
   transactionSchema,
@@ -228,6 +233,50 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             asOf: m.asOf as string,
             metrics: m as unknown as Record<string, unknown>,
           }));
+        },
+      );
+
+      v1.get(
+        "/products/:product/state",
+        {
+          schema: {
+            params: productParams,
+            response: { 200: productStateSchema, 401: errorSchema, 404: errorSchema },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const record = await createProductStateStore(deps.db).get(userId, request.params.product);
+          if (record === null) return reply.status(404).send({ error: "no state" });
+          return record as { product: string; version: number; data: Record<string, unknown> };
+        },
+      );
+
+      v1.put(
+        "/products/:product/state",
+        {
+          bodyLimit: 131_072,
+          schema: {
+            params: productParams,
+            body: putStateBody,
+            response: {
+              200: putStateResultSchema,
+              400: errorSchema,
+              401: errorSchema,
+              409: errorSchema,
+            },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const result = await createProductStateStore(deps.db).put(
+            userId,
+            request.params.product,
+            request.body.data,
+            request.body.baseVersion,
+          );
+          if (result === "conflict") return reply.status(409).send({ error: "version conflict" });
+          return result;
         },
       );
 

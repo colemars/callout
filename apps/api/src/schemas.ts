@@ -129,3 +129,25 @@ export const syncRunSchema = z.object({
   reports: z.array(syncReportSchema),
   newEvents: z.number(),
 });
+
+/** Products with server-held state; extend as products gain a server side. */
+export const productParams = z.object({ product: z.enum(["kingdom"]) });
+
+export const productStateSchema = z.object({
+  product: z.string(),
+  version: z.number().int(),
+  data: z.record(z.unknown()),
+});
+
+export const putStateBody = z
+  .object({
+    data: z.record(z.unknown()),
+    baseVersion: z.number().int().min(1).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (JSON.stringify(v.data).length > 64 * 1024) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "data exceeds 64KB" });
+    }
+  });
+
+export const putStateResultSchema = z.object({ version: z.number().int() });

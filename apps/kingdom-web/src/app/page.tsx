@@ -13,8 +13,8 @@ import {
   ThreatCards,
 } from "../components/kingdom";
 import { clients, supabase } from "../lib/clients";
-import { loadLastSeen, saveLastSeen } from "../lib/lastSeen";
 import { narrateDelta } from "../lib/replay";
+import { fetchLastSeen, saveLastSeen, shouldReplay } from "../lib/serverLastSeen";
 import { translate } from "../lib/translate";
 import { useKingdomData } from "../lib/useKingdomData";
 import { type KingdomDelta, computeKingdomDiff } from "../model/diff";
@@ -34,22 +34,20 @@ export default function ThroneRoom() {
     [state],
   );
 
-  // "While you were away": diff against what THIS device last rendered for
-  // THIS user, but only when they were actually away — a same-day logout/login
-  // is not an absence worth narrating. The baseline still advances every view.
-  const REPLAY_MIN_GAP_MS = 24 * 60 * 60 * 1000;
+  // "While you were away": diff against the server-held baseline (the state
+  // last acknowledged on ANY device), but only after a real absence — a
+  // same-day revisit is not worth narrating. The baseline advances on every
+  // view; a 409 on save means another device just advanced it — ignore.
   useEffect(() => {
     if (kingdom === null || kingdom.surveying) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user.id;
-      if (uid === undefined || cancelled) return;
-      const lastSeen = loadLastSeen(uid);
-      if (lastSeen !== null && Date.now() - lastSeen.savedAt >= REPLAY_MIN_GAP_MS) {
+      const lastSeen = await fetchLastSeen(clients.api).catch(() => null);
+      if (cancelled) return;
+      if (lastSeen !== null && shouldReplay(lastSeen.lastSeenAt, Date.now())) {
         setReplay(computeKingdomDiff(lastSeen.state, kingdom));
       }
-      saveLastSeen(uid, kingdom);
+      await saveLastSeen(clients.api, kingdom, lastSeen?.version).catch(() => {});
     })();
     return () => {
       cancelled = true;

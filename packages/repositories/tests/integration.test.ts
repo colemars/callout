@@ -16,6 +16,7 @@ import {
   createGoalRepository,
   createInvestmentActivityRepository,
   createMetricSnapshotStore,
+  createProductStateStore,
   createSnapshotRepository,
   createTransactionRepository,
   loadFinancialState,
@@ -302,5 +303,38 @@ describe("end-to-end: state -> engine -> stores", () => {
 
     // Round-tripped snapshot diffs cleanly: no phantom events.
     expect(deriveEvents(restored, metricSet, defaultEngineConfig)).toEqual([]);
+  });
+});
+
+describe("ProductStateStore", () => {
+  it("creates, reads, CAS-updates, and conflicts correctly", async () => {
+    const store = createProductStateStore(db);
+
+    expect(await store.get(USER, "kingdom")).toBeNull();
+
+    // First write without baseVersion creates at version 1.
+    expect(await store.put(USER, "kingdom", { hello: 1 })).toEqual({ version: 1 });
+    expect(await store.get(USER, "kingdom")).toEqual({
+      product: "kingdom",
+      version: 1,
+      data: { hello: 1 },
+    });
+
+    // CAS with the right baseVersion advances.
+    expect(await store.put(USER, "kingdom", { hello: 2 }, 1)).toEqual({ version: 2 });
+
+    // Stale baseVersion (or a claimed version on a missing row) conflicts.
+    expect(await store.put(USER, "kingdom", { hello: 3 }, 1)).toBe("conflict");
+    expect(await store.put(USER, "billing", { x: 1 }, 5)).toBe("conflict");
+
+    // Omitted baseVersion overwrites unconditionally (LWW) and still bumps.
+    expect(await store.put(USER, "kingdom", { hello: 4 })).toEqual({ version: 3 });
+    expect((await store.get(USER, "kingdom"))?.data).toEqual({ hello: 4 });
+
+    // Per-user and per-product isolation.
+    expect(await store.get(OTHER_USER, "kingdom")).toBeNull();
+    await store.put(OTHER_USER, "kingdom", { theirs: true });
+    expect((await store.get(USER, "kingdom"))?.data).toEqual({ hello: 4 });
+    expect(await store.get(USER, "billing")).toBeNull();
   });
 });

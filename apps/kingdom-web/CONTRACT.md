@@ -59,10 +59,12 @@ caravan, dividend/interest → estate yield), refId = activity id.
 - **Time travel**: `GET /api/v1/insights/history?from&to` (daily MetricSets,
   ≤180-day window) and `GET /api/v1/events?since=<ISO timestamp>` (cursor on
   `createdAt` — `occurredOn` is the described date, not insertion time).
-- **"While you were away"**: the reference baseline is per-device
-  (localStorage `kingdom_last_seen_state` = what this device last rendered).
-  Multi-device replay wants a server-side `last_seen_at` — future platform
-  slice.
+- **"While you were away"**: the reference baseline is server-held —
+  `GET/PUT /api/v1/products/kingdom/state` (platform `product_state`, opaque
+  blob `{lastSeenAt, lastSeen: KingdomState}` with an optimistic-concurrency
+  `version`). The baseline advances on any device's view; replay means "since
+  you last looked anywhere," gated client-side to absences ≥ 24h
+  (`src/lib/serverLastSeen.ts` is the reference implementation).
 - **External engine (Godot etc.)**: consuming `/api/v1` raw means
   reimplementing the model (drift risk), and serving computed `KingdomState`
   from the platform would move product logic server-side — an explicit

@@ -4,6 +4,7 @@ import {
   boolean,
   date,
   index,
+  integer,
   jsonb,
   pgSchema,
   primaryKey,
@@ -211,4 +212,21 @@ export const events = platform.table(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("events_user_created_ix").on(t.userId, t.createdAt)],
+);
+
+/**
+ * Per-user, per-product opaque state (kingdom last-seen, future Influence
+ * ledger, entitlements…). The blob keeps product-specific shapes out of the
+ * platform schema; `version` is an optimistic-concurrency counter.
+ */
+export const productState = platform.table(
+  "product_state",
+  {
+    userId: uuid("user_id").notNull(),
+    product: text("product").notNull(),
+    version: integer("version").notNull().default(1),
+    data: jsonb("data").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.product] })],
 );

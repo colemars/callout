@@ -15,6 +15,13 @@
       "when": 1785859416135,
       "tag": "0001_wealthy_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785885361099,
+      "tag": "0002_wise_mantis",
+      "breakpoints": true
     }
   ]
 }

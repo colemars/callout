@@ -11,6 +11,7 @@ export {
   investmentActivity,
   metricSnapshots,
   platform,
+  productState,
   providerConnections,
   transactions,
 } from "./schema.js";

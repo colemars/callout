@@ -252,3 +252,76 @@ describe("routes", () => {
     expect((await get("/api/v1/goals", GOOD_TOKEN)).json()).toEqual([]);
   });
 });
+
+describe("product state", () => {
+  const send = (method: "PUT", url: string, payload: unknown, token?: string) =>
+    app.inject({
+      method,
+      url,
+      payload: payload as Record<string, unknown>,
+      headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
+    });
+
+  it("requires auth and rejects unknown products", async () => {
+    expect((await get("/api/v1/products/kingdom/state")).statusCode).toBe(401);
+    expect((await get("/api/v1/products/nonsense/state", GOOD_TOKEN)).statusCode).toBe(400);
+  });
+
+  it("404s before any write, then round-trips with CAS semantics", async () => {
+    expect((await get("/api/v1/products/kingdom/state", GOOD_TOKEN)).statusCode).toBe(404);
+
+    const first = await send(
+      "PUT",
+      "/api/v1/products/kingdom/state",
+      {
+        data: { lastSeenAt: "2026-08-04T00:00:00Z" },
+      },
+      GOOD_TOKEN,
+    );
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ version: 1 });
+
+    const read = await get("/api/v1/products/kingdom/state", GOOD_TOKEN);
+    expect(read.statusCode).toBe(200);
+    expect(read.json()).toEqual({
+      product: "kingdom",
+      version: 1,
+      data: { lastSeenAt: "2026-08-04T00:00:00Z" },
+    });
+
+    const cas = await send(
+      "PUT",
+      "/api/v1/products/kingdom/state",
+      {
+        data: { lastSeenAt: "2026-08-05T00:00:00Z" },
+        baseVersion: 1,
+      },
+      GOOD_TOKEN,
+    );
+    expect(cas.statusCode).toBe(200);
+    expect(cas.json()).toEqual({ version: 2 });
+
+    const stale = await send(
+      "PUT",
+      "/api/v1/products/kingdom/state",
+      {
+        data: { lastSeenAt: "stale" },
+        baseVersion: 1,
+      },
+      GOOD_TOKEN,
+    );
+    expect(stale.statusCode).toBe(409);
+  });
+
+  it("rejects oversized state payloads", async () => {
+    const res = await send(
+      "PUT",
+      "/api/v1/products/kingdom/state",
+      {
+        data: { blob: "x".repeat(65 * 1024) },
+      },
+      GOOD_TOKEN,
+    );
+    expect(res.statusCode).toBe(400);
+  });
+});
