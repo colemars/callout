@@ -7,6 +7,13 @@ interface GoalBase {
   readonly userId: UserId;
   readonly targetAmount: Money;
   readonly targetDate?: ISODate;
+  /**
+   * Evaluation baseline: where the goal started and when. The insight engine
+   * interpolates expected progress linearly from (startedAt, baselineAmount)
+   * to (targetDate, targetAmount); goals missing these are not evaluated.
+   */
+  readonly startedAt?: ISODate;
+  readonly baselineAmount?: Money;
   readonly note?: string;
   readonly active: boolean;
 }

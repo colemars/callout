@@ -51,7 +51,7 @@ export type {
   Goal,
   SavingsNetFlowGoal,
 } from "./entities/goal.js";
-export type { BalanceSnapshot, Metric, RecurringExpense, User } from "./entities/misc.js";
+export type { BalanceSnapshot, Budget, Metric, RecurringExpense, User } from "./entities/misc.js";
 
 export type { FinancialEvent, FinancialEventType } from "./events/events.js";
 export { assertNever } from "./events/events.js";

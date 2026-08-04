@@ -10,7 +10,7 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
   pnpm workspace + Turborepo + Biome + dependency-cruiser + strict `tsconfig.base.json` + CI workflow + seed `packages/shared`. Coexists with `supabase/` and `web/` (both excluded from workspace/lint; Pages workflow untouched).
 - [x] **Phase 2 — `packages/financial-core`** (M) — *done 2026-08-03*
   Zero-runtime-dependency domain package: Money (integer minor units, signed, half-even rounding, exact allocation), LocalDate helpers, branded-ID entities, `FinancialEvent` discriminated union with explainable payloads, repository ports. Purity enforced by package.json guard + `"types": []` + dependency-cruiser.
-- [ ] **Phase 3 — `packages/insight-engine`** (M)
+- [x] **Phase 3 — `packages/insight-engine`** (M) — *done 2026-08-03*
   Pure `computeMetrics(state, config, asOf)` / `deriveEvents(prev, curr)` / `project(...)`. Ports the proven SQL-view logic (`v_budget_status` pace math, `v_recurring_candidates` detection, `v_debt_trajectory` deltas) plus net cash flow and emergency runway. Golden fixture tests + fast-check property tests (purity, permutation-invariance, `deriveEvents(m, m) === []`).
 - [ ] **Phase 4 — Database + repositories + ingestion** (L, 2 PRs)
   4a: `packages/database` (Drizzle-owned `platform.*` schema in the same Supabase project — accounts, transactions, provider_connections, goals, balance_snapshots, category_rules, metric_snapshots, events; `user_id` + RLS from day one) + `packages/repositories` (port implementations, integration-tested).

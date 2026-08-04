@@ -1,10 +1,19 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { AccountId, UserId } from "../ids.js";
 import type { Money } from "../money/money.js";
+import type { Category } from "./category.js";
 
 export interface User {
   readonly id: UserId;
   readonly email: string;
+}
+
+/** A monthly spending cap for one category. */
+export interface Budget {
+  readonly userId: UserId;
+  readonly category: Category;
+  readonly monthlyCap: Money;
+  readonly active: boolean;
 }
 
 export interface RecurringExpense {

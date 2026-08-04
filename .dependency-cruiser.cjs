@@ -29,12 +29,15 @@ module.exports = {
     },
     {
       // insight-engine may depend only on financial-core (and itself).
+      // Workspace imports resolve through node_modules/@platform/* symlinks,
+      // so match both the real-path and the symlinked form.
       name: "insight-engine-deps",
       severity: "error",
       from: { path: "^packages/insight-engine/src" },
       to: {
-        path: "^packages/",
-        pathNot: "^packages/(insight-engine|financial-core)/",
+        path: "((^|/)packages/|(^|/)node_modules/@platform/|^@platform/)",
+        pathNot:
+          "((^|/)packages/|(^|/)node_modules/@platform/|^@platform/)(insight-engine|financial-core)([/@.]|$)",
       },
     },
     {
@@ -46,9 +49,9 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
+    doNotFollow: { path: "(node_modules|/dist/)" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },
-    exclude: { path: "(\\.(test|spec)\\.ts$|/dist/|/node_modules/)" },
+    exclude: { path: "\\.(test|spec)\\.ts$" },
   },
 };
