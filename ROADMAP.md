@@ -17,8 +17,9 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
   4b: `packages/ingestion` (`TransactionProvider` interface, `runSync` orchestrator ported from `supabase/functions/plaid-sync`, Plaid + Apple-CSV providers, `Categorizer` ported verbatim) + `apps/worker` CLI (`sync` / `import-csv` / `backfill` with reconciliation) run by GitHub Actions cron. Old pg_cron sync keeps running in parallel.
 - [x] **Phase 5 — API + Auth + SDK** (L) — *done 2026-08-03*
   `apps/api`: Fastify 5 + `fastify-type-provider-zod` → OpenAPI 3.1, `buildApp()` factory, Pino, helmet/cors/rate-limit. `packages/auth`: `jose` JWKS verification against Supabase Auth (prereq: migrate project to asymmetric signing keys). `packages/api-client`: `openapi-typescript` + `openapi-fetch` generated from the emitted spec.
-- [ ] **Phase 6 — Financial Accountability + callout cutover** (L)
-  `apps/accountability-web`: Next.js + Tailwind + `@supabase/ssr` (auth only; data via api-client), event-translation layer. Cutover: parallel-run ~2 weeks → `cron.unschedule('plaid-sync-daily')` → `web/` becomes a redirect → edge functions frozen, dropped months later.
+- [x] **Phase 6 — Financial Accountability** (L) — *app shipped 2026-08-03; cutover pending parallel-run*
+  `apps/accountability-web`: Next.js + Tailwind, Supabase Auth password sign-in, data via api-client, event-translation layer. Static export on GitHub Pages at /callout/app/ (Vercel deferred — no SSR need yet).
+  - [ ] Cutover checklist (after ~2 weeks parallel-run): compare numbers → `cron.unschedule('plaid-sync-daily')` → `web/` becomes a redirect → edge functions frozen, dropped months later.
 - [x] **Phase 7 — Infra: cheap-first AWS via CDK** (M) — *done 2026-08-03*
   `infra/cdk`: Lambda (Node, arm64) + API Gateway HTTP API + Secrets Manager + OIDC deploy workflow. ~$0/month at current traffic. ECS later = Dockerfile targeting the existing `server.ts`; no app changes.
   Live: https://ohf5w7ank0.execute-api.us-west-2.amazonaws.com (us-west-2, colocated with the Supabase DB). Done out of order (before Phase 6) so the first product has an API to talk to.

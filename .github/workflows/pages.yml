@@ -1,9 +1,13 @@
-name: Deploy dashboard to GitHub Pages
+name: Deploy web (GitHub Pages)
 
 on:
   push:
     branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
+    paths:
+      - "web/**"
+      - "apps/accountability-web/**"
+      - "packages/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,9 +27,22 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter @platform/accountability-web
+      - name: Assemble site (legacy dashboard at /, Accountability at /app)
+        run: |
+          mkdir -p site
+          cp -r web/* site/
+          mkdir -p site/app
+          cp -r apps/accountability-web/out/* site/app/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
