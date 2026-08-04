@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const to = Deno.env.get("EMAIL_TO") ?? "cole@twoboxes.com";
+  const to = Deno.env.get("EMAIL_TO") ?? "cole@colemars.dev";
   const from = Deno.env.get("EMAIL_FROM") ?? "callout <onboarding@resend.dev>";
   if (!apiKey) {
     console.warn(`notify: RESEND_API_KEY not set; skipping email for report ${record.id}`);

@@ -17,7 +17,7 @@ beforeAll(async () => {
     getKey: createLocalJWKSet({ keys: [{ ...jwk, alg: "ES256", use: "sig" }] }),
   });
   sign = async (mutate = (j) => j, sub = "4039c55f-bec0-421a-b764-11ce67406a5f") => {
-    const jwt = new SignJWT({ email: "cole@twoboxes.com" })
+    const jwt = new SignJWT({ email: "cole@colemars.dev" })
       .setProtectedHeader({ alg: "ES256" })
       .setSubject(sub)
       .setIssuer(ISSUER)
@@ -32,7 +32,7 @@ describe("createSupabaseJwtVerifier", () => {
   it("accepts a valid token and extracts user id + email", async () => {
     const user = await verifier.verify(await sign());
     expect(user.userId).toBe("4039c55f-bec0-421a-b764-11ce67406a5f");
-    expect(user.email).toBe("cole@twoboxes.com");
+    expect(user.email).toBe("cole@colemars.dev");
   });
 
   it("rejects a wrong issuer", async () => {

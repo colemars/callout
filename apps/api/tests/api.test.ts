@@ -22,7 +22,7 @@ const GOOD_TOKEN = "good-token";
 const fakeVerifier: JwtVerifier = {
   async verify(token) {
     if (token !== GOOD_TOKEN) throw new AuthError("bad token");
-    return { userId: USER, email: "cole@twoboxes.com" };
+    return { userId: USER, email: "cole@colemars.dev" };
   },
 };
 
