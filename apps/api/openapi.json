@@ -694,6 +694,120 @@
         }
       }
     },
+    "/api/v1/sync": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "institution": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "login_required",
+                              "error"
+                            ]
+                          },
+                          "added": {
+                            "type": "number"
+                          },
+                          "modified": {
+                            "type": "number"
+                          },
+                          "removed": {
+                            "type": "number"
+                          },
+                          "investments": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "unsupported",
+                              "error"
+                            ]
+                          },
+                          "investmentActivityCount": {
+                            "type": "number"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "institution",
+                          "status",
+                          "added",
+                          "modified",
+                          "removed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "newEvents": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "reports",
+                    "newEvents"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events": {
       "get": {
         "parameters": [

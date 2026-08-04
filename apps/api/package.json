@@ -19,6 +19,7 @@
     "@platform/auth": "workspace:*",
     "@platform/database": "workspace:*",
     "@platform/financial-core": "workspace:*",
+    "@platform/ingestion": "workspace:*",
     "@platform/insight-engine": "workspace:*",
     "@platform/repositories": "workspace:*",
     "fastify": "^5.2.1",

@@ -87,6 +87,9 @@ importers:
       '@platform/financial-core':
         specifier: workspace:*
         version: link:../../packages/financial-core
+      '@platform/ingestion':
+        specifier: workspace:*
+        version: link:../../packages/ingestion
       '@platform/insight-engine':
         specifier: workspace:*
         version: link:../../packages/insight-engine

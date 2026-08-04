@@ -35,14 +35,18 @@ import {
   historyQuery,
   investmentActivitySchema,
   snapshotSchema,
+  syncRunSchema,
   transactionSchema,
 } from "./schemas.js";
+import type { UserSync } from "./sync.js";
 
 export interface AppDeps {
   readonly db: PlatformDb;
   readonly verifier: JwtVerifier;
   readonly corsOrigins?: string;
   readonly logger?: boolean;
+  /** On-demand sync for the calling user; absent when Plaid creds aren't configured. */
+  readonly sync?: UserSync;
 }
 
 declare module "fastify" {
@@ -224,6 +228,22 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             asOf: m.asOf as string,
             metrics: m as unknown as Record<string, unknown>,
           }));
+        },
+      );
+
+      v1.post(
+        "/sync",
+        {
+          schema: {
+            response: { 200: syncRunSchema, 401: errorSchema, 503: errorSchema },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          if (deps.sync === undefined) {
+            return reply.status(503).send({ error: "sync not configured" });
+          }
+          return await deps.sync(userId);
         },
       );
 

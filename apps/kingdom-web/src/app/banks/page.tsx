@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "../../lib/clients";
+import { clients, supabase } from "../../lib/clients";
 
 const LINK_API = "https://hkxerogzvowkyvdifbpn.supabase.co/functions/v1/plaid-link";
 // OAuth banks bounce through the institution's site and return here with
@@ -90,7 +90,22 @@ export default function CountingHouse() {
               public_token: publicToken,
               institution: institution?.name,
             });
-          setMessage("The vault is sworn to the crown.");
+          // Every new oath triggers an immediate census — no waiting for the
+          // daily worker to see the first numbers.
+          setMessage("The vault is sworn — the royal surveyors ride out…");
+          load();
+          try {
+            const { data } = await clients.api.POST("/api/v1/sync");
+            const added =
+              data?.reports.reduce((n: number, r: { added: number }) => n + r.added, 0) ?? 0;
+            setMessage(
+              `The census is complete — ${added} ledger line${added === 1 ? "" : "s"} recorded. The throne room awaits.`,
+            );
+          } catch {
+            setMessage(
+              "The vault is sworn, but the surveyors were delayed — the daily census will count it.",
+            );
+          }
           load();
         },
         onExit: (err) => {

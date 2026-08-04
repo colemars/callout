@@ -24,7 +24,9 @@ export class PlatformApiStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       architecture: Architecture.ARM_64,
       memorySize: 512,
-      timeout: Duration.seconds(15),
+      // A just-linked bank's first sync runs inside POST /api/v1/sync; API
+      // Gateway caps integrations at ~30s, so run right up to it.
+      timeout: Duration.seconds(29),
       logRetention: RetentionDays.ONE_MONTH,
       bundling: {
         format: OutputFormat.ESM,
@@ -40,6 +42,10 @@ export class PlatformApiStack extends Stack {
         SUPABASE_URL: "https://hkxerogzvowkyvdifbpn.supabase.co",
         DB_POOL_MAX: "1",
         CORS_ORIGINS: "*",
+        // Enables POST /api/v1/sync (link-time sync for the calling user).
+        PLAID_CLIENT_ID: "{{resolve:secretsmanager:platform/plaid-client-id}}",
+        PLAID_SECRET: "{{resolve:secretsmanager:platform/plaid-secret}}",
+        PLAID_ENV: process.env.PLAID_ENV === "production" ? "production" : "sandbox",
         NODE_OPTIONS: "--enable-source-maps",
       },
     });

@@ -113,3 +113,19 @@ export const investmentActivitySchema = z.object({
 export const errorSchema = z.object({
   error: z.string(),
 });
+
+export const syncReportSchema = z.object({
+  institution: z.string(),
+  status: z.enum(["ok", "login_required", "error"]),
+  added: z.number(),
+  modified: z.number(),
+  removed: z.number(),
+  investments: z.enum(["ok", "unsupported", "error"]).optional(),
+  investmentActivityCount: z.number().optional(),
+  message: z.string().optional(),
+});
+
+export const syncRunSchema = z.object({
+  reports: z.array(syncReportSchema),
+  newEvents: z.number(),
+});

@@ -4,12 +4,23 @@ import { createSupabaseJwtVerifier } from "@platform/auth";
 import { createDb } from "@platform/database";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { createUserSync } from "./sync.js";
 
 const config = loadConfig();
+const db = createDb(config.DATABASE_URL, { max: 1 }); // one connection per Lambda container
 const app = await buildApp({
-  db: createDb(config.DATABASE_URL, { max: 1 }), // one connection per Lambda container
+  db,
   verifier: createSupabaseJwtVerifier({ supabaseUrl: config.SUPABASE_URL }),
   corsOrigins: config.CORS_ORIGINS,
+  ...(config.PLAID_CLIENT_ID !== undefined && config.PLAID_SECRET !== undefined
+    ? {
+        sync: createUserSync(db, {
+          clientId: config.PLAID_CLIENT_ID,
+          secret: config.PLAID_SECRET,
+          env: config.PLAID_ENV,
+        }),
+      }
+    : {}),
 });
 
 // Don't wait for the event loop to drain: the postgres pool keeps sockets

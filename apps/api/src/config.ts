@@ -8,6 +8,10 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default("*"),
   /** postgres-js pool size; set 1 on Lambda. */
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
+  /** Plaid credentials — when present, POST /api/v1/sync is enabled. */
+  PLAID_CLIENT_ID: z.string().optional(),
+  PLAID_SECRET: z.string().optional(),
+  PLAID_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
 });
 
 export type ApiConfig = z.infer<typeof envSchema>;
