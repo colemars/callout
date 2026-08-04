@@ -100,6 +100,7 @@ describe("TransactionRepository", () => {
       merchant: "Blue Bottle",
       pending: false,
       category: "coffee",
+      categorySource: "rule",
     };
     await repo.upsertMany(USER, [
       { ...base, sourceTxnId: "t1", postedAt: isoDate("2026-08-01"), amount: money(-6_50) },

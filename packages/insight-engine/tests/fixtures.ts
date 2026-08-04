@@ -32,6 +32,7 @@ export function txn(
     amount: money(amountMinor),
     pending: false,
     category: "other" as Category,
+    categorySource: "rule" as const,
     ...rest,
   };
 }

@@ -47,6 +47,9 @@ function makeFakes() {
     async findByUser() {
       throw new Error("not used");
     },
+    async setCategoryByUser() {
+      throw new Error("not used");
+    },
     async deleteBySourceIds(_u, source, ids) {
       let n = 0;
       for (const id of ids) {

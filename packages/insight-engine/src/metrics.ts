@@ -95,6 +95,14 @@ export interface MetricSet {
   readonly emergencyRunwayMonths: number | null;
   /** Plaid Investments summary (contributions + passive income). */
   readonly investments: InvestmentSummary;
+  /** Money the categorizer couldn't place — miscategorization must be loud. */
+  readonly uncategorized: UncategorizedSummary;
+}
+
+export interface UncategorizedSummary {
+  readonly completedMonthCount: number;
+  /** Magnitude of the completed month's net 'other' flow. */
+  readonly completedMonthNet: Money;
 }
 
 export interface InvestmentSummary {

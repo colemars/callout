@@ -1152,6 +1152,42 @@
                     },
                     "newEvents": {
                       "type": "number"
+                    },
+                    "scribe": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ok",
+                            "skipped",
+                            "error"
+                          ]
+                        },
+                        "examined": {
+                          "type": "number"
+                        },
+                        "updated": {
+                          "type": "number"
+                        },
+                        "rulesLearned": {
+                          "type": "number"
+                        },
+                        "unresolved": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "examined",
+                        "updated",
+                        "rulesLearned",
+                        "unresolved"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [

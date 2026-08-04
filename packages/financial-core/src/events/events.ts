@@ -93,6 +93,13 @@ export type FinancialEvent = EventBase &
         readonly current: Money;
       }
     | {
+        readonly type: "UNCATEGORIZED_FUNDS";
+        readonly month: ISOMonth;
+        readonly count: number;
+        /** Magnitude of the month's net uncategorized flow. */
+        readonly amount: Money;
+      }
+    | {
         readonly type: "EMERGENCY_RUNWAY_CHANGED";
         readonly previousMonths: number;
         readonly currentMonths: number;

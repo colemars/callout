@@ -725,6 +725,15 @@ export interface paths {
                                 message?: string;
                             }[];
                             newEvents: number;
+                            scribe?: {
+                                /** @enum {string} */
+                                status: "ok" | "skipped" | "error";
+                                examined: number;
+                                updated: number;
+                                rulesLearned: number;
+                                unresolved: number;
+                                message?: string;
+                            };
                         };
                     };
                 };

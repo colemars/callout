@@ -127,9 +127,20 @@ export const syncReportSchema = z.object({
   message: z.string().optional(),
 });
 
+export const scribeReportSchema = z.object({
+  status: z.enum(["ok", "skipped", "error"]),
+  examined: z.number(),
+  updated: z.number(),
+  rulesLearned: z.number(),
+  unresolved: z.number(),
+  message: z.string().optional(),
+});
+
 export const syncRunSchema = z.object({
   reports: z.array(syncReportSchema),
   newEvents: z.number(),
+  /** Present only when the AI scribe is configured. */
+  scribe: scribeReportSchema.optional(),
 });
 
 /** Products with server-held state; extend as products gain a server side. */

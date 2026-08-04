@@ -1,5 +1,5 @@
 import type { ISODate } from "@platform/financial-core";
-import { monthOf } from "@platform/financial-core";
+import { money, monthOf } from "@platform/financial-core";
 import type { EngineConfig } from "./config.js";
 import { computeBudgetStatus } from "./internal/budget.js";
 import { computeDebtTrajectory, totalHighInterestDebt } from "./internal/debt.js";
@@ -52,5 +52,18 @@ export function computeMetrics(
     ),
     emergencyRunwayMonths: computeRunwayMonths(state.accounts, state.transactions, asOf, config),
     investments: summarizeInvestments(state.investmentActivity, asOf, config),
+    uncategorized: summarizeUncategorized(state, completedMonth),
   };
+}
+
+/** Net 'other' flow of the completed month — money the categorizer couldn't place. */
+function summarizeUncategorized(
+  state: FinancialState,
+  completedMonth: string,
+): MetricSet["uncategorized"] {
+  const rows = state.transactions.filter(
+    (t) => t.category === "other" && monthOf(t.postedAt) === completedMonth,
+  );
+  const net = rows.reduce((sum, t) => sum + t.amount.amountMinor, 0);
+  return { completedMonthCount: rows.length, completedMonthNet: money(Math.abs(net)) };
 }

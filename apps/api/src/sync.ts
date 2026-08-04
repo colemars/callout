@@ -6,12 +6,14 @@ import type { PlatformDb } from "@platform/database";
 import { categoryRules } from "@platform/database";
 import type { UserId } from "@platform/financial-core";
 import { isoDate } from "@platform/financial-core";
-import type { SyncReport } from "@platform/ingestion";
+import type { ScribeReport, SyncReport } from "@platform/ingestion";
 import {
+  createAnthropicClient,
   createCategorizer,
   createPlaidClient,
   createPlaidInvestmentsProvider,
   createPlaidProvider,
+  runScribe,
   runSync,
 } from "@platform/ingestion";
 import { computeMetrics, defaultEngineConfig, deriveEvents } from "@platform/insight-engine";
@@ -21,6 +23,7 @@ import {
   createEventStore,
   createInvestmentActivityRepository,
   createMetricSnapshotStore,
+  createScribeStore,
   createSnapshotRepository,
   createTransactionRepository,
   createUserCategoryRuleStore,
@@ -32,6 +35,8 @@ import { eq } from "drizzle-orm";
 export interface UserSyncResult {
   readonly reports: SyncReport[];
   readonly newEvents: number;
+  /** Present only when the AI scribe is configured. */
+  readonly scribe?: ScribeReport;
 }
 
 export type UserSync = (userId: UserId) => Promise<UserSyncResult>;
@@ -39,8 +44,17 @@ export type UserSync = (userId: UserId) => Promise<UserSyncResult>;
 export function createUserSync(
   db: PlatformDb,
   plaid: { clientId: string; secret: string; env: "sandbox" | "production" },
+  anthropic?: { apiKey: string },
 ): UserSync {
   const client = createPlaidClient(plaid);
+  // This runs inside POST /sync's 29s API Gateway budget — a hung model call
+  // must not eat it. Timeout = unresolved; the nightly worker catches up.
+  const ai =
+    anthropic === undefined
+      ? undefined
+      : createAnthropicClient({ apiKey: anthropic.apiKey }, (url, init) =>
+          fetch(url, { ...init, signal: AbortSignal.timeout(8000) }),
+        );
   return async (userId) => {
     const rules = await db.select().from(categoryRules).where(eq(categoryRules.source, "plaid"));
     const userRules = await createUserCategoryRuleStore(db).listForUser(userId, "plaid");
@@ -65,9 +79,21 @@ export function createUserSync(
       now: () => new Date(),
     });
 
+    // The scribe runs BEFORE the insights refresh so recategorizations land
+    // in the snapshot the kingdom renders next.
+    const asOf = isoDate(new Date().toISOString().slice(0, 10));
+    const scribe =
+      ai === undefined
+        ? undefined
+        : await runScribe(userId, {
+            ai,
+            store: createScribeStore(db),
+            rules: createUserCategoryRuleStore(db),
+            today: asOf,
+          });
+
     // Refresh insights so the kingdom shows the new data without waiting for
     // the daily run. Same once-per-day event idempotence as the worker.
-    const asOf = isoDate(new Date().toISOString().slice(0, 10));
     const metricStore = createMetricSnapshotStore(db);
     const state = await loadFinancialState(db, userId);
     const previous = await metricStore.latest(userId);
@@ -77,6 +103,6 @@ export function createUserSync(
     await metricStore.save(current);
     await createEventStore(db).insertMany(events);
 
-    return { reports, newEvents: events.length };
+    return { reports, newEvents: events.length, ...(scribe === undefined ? {} : { scribe }) };
   };
 }

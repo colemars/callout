@@ -71,6 +71,7 @@ beforeAll(async () => {
       amount: money(-6_33),
       pending: false,
       category: "coffee",
+      categorySource: "rule",
     },
     {
       userId: USER,
@@ -82,6 +83,7 @@ beforeAll(async () => {
       amount: money(250_000),
       pending: false,
       category: "income",
+      categorySource: "rule",
     },
   ]);
   await db.insert(budgets).values({ userId: USER, category: "coffee", monthlyCapMinor: 80_00 });

@@ -107,6 +107,24 @@ export function deriveEvents(
       }
     }
 
+    // Uncategorized funds: judged on the month roll — money the categorizer
+    // couldn't place must announce itself, not silently skew cash flow.
+    // (Runtime-guarded like investments: older snapshots lack the field.)
+    const uncat = current.uncategorized as MetricSet["uncategorized"] | undefined;
+    if (
+      previous.month !== current.month &&
+      uncat !== undefined &&
+      uncat.completedMonthNet.amountMinor >= config.uncategorizedThresholdMinor
+    ) {
+      events.push({
+        ...base,
+        type: "UNCATEGORIZED_FUNDS",
+        month: current.completedMonth.month,
+        count: uncat.completedMonthCount,
+        amount: uncat.completedMonthNet,
+      });
+    }
+
     // Recurring merchants: set difference between snapshots.
     const prevMerchants = new Set(previous.recurringCandidates.map((c) => c.merchant));
     const currMerchants = new Set(current.recurringCandidates.map((c) => c.merchant));
@@ -234,6 +252,8 @@ function sortKey(e: FinancialEvent): string {
     case "RETIREMENT_CONTRIBUTION_MADE":
     case "RETIREMENT_CONTRIBUTION_INCREASED":
       return `6:${e.month}:${e.type}`;
+    case "UNCATEGORIZED_FUNDS":
+      return `8:${e.month}:${e.type}`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `7:${e.type}`;
   }

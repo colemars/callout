@@ -52,6 +52,11 @@ export function translate(event: ApiEvent): TranslatedEvent {
       };
     case "NET_CASH_FLOW_POSITIVE":
       return { tone: "good", headline: `${asStr(p.month)}: ${asMoney(p.netFlow)} net positive.` };
+    case "UNCATEGORIZED_FUNDS":
+      return {
+        tone: "bad",
+        headline: `${asStr(p.month)}: ${asNum(p.count)} uncategorized transactions worth ${asMoney(p.amount)} — fix the categories so the numbers mean something.`,
+      };
     case "RETIREMENT_CONTRIBUTION_MADE":
       return {
         tone: "good",

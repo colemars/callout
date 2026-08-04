@@ -71,6 +71,8 @@ describe("FinancialEvent", () => {
           return "retirement";
         case "EMERGENCY_RUNWAY_CHANGED":
           return "runway";
+        case "UNCATEGORIZED_FUNDS":
+          return "uncategorized";
         default:
           return assertNever(e); // compile error here if a variant is unhandled
       }

@@ -58,6 +58,11 @@ export function translate(event: ApiEvent): TranslatedEvent {
         tone: "good",
         headline: `The moon of ${asStr(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
       };
+    case "UNCATEGORIZED_FUNDS":
+      return {
+        tone: "bad",
+        headline: `The scribes cannot place ${asNum(p.count)} entries from ${asStr(p.month)} — ${asMoney(p.amount)} unaccounted in the rolls.`,
+      };
     case "RETIREMENT_CONTRIBUTION_MADE":
       return {
         tone: "good",

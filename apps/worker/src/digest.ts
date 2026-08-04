@@ -58,6 +58,8 @@ export function renderEventLine(e: Eventish): string {
       return `Retirement contributions increased: ${money(e.previous)} -> ${money(e.current)}/mo.`;
     case "PASSIVE_INCOME_INCREASED":
       return `Passive income up: ${money(e.previous)} -> ${money(e.current)}.`;
+    case "UNCATEGORIZED_FUNDS":
+      return `Uncategorized activity in ${s(e.month)}: ${n(e.count)} transactions, ${money(e.amount)} the ledger can't place.`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `Emergency runway changed: ${n(e.previousMonths)} -> ${n(e.currentMonths)} months.`;
     default:

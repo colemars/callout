@@ -14,11 +14,15 @@ const app = await buildApp({
   corsOrigins: config.CORS_ORIGINS,
   ...(config.PLAID_CLIENT_ID !== undefined && config.PLAID_SECRET !== undefined
     ? {
-        sync: createUserSync(db, {
-          clientId: config.PLAID_CLIENT_ID,
-          secret: config.PLAID_SECRET,
-          env: config.PLAID_ENV,
-        }),
+        sync: createUserSync(
+          db,
+          {
+            clientId: config.PLAID_CLIENT_ID,
+            secret: config.PLAID_SECRET,
+            env: config.PLAID_ENV,
+          },
+          config.ANTHROPIC_API_KEY === undefined ? undefined : { apiKey: config.ANTHROPIC_API_KEY },
+        ),
       }
     : {}),
 });

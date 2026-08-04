@@ -12,6 +12,8 @@ const envSchema = z.object({
   PLAID_CLIENT_ID: z.string().optional(),
   PLAID_SECRET: z.string().optional(),
   PLAID_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
+  /** When present, POST /api/v1/sync also runs the AI scribe. */
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 export type ApiConfig = z.infer<typeof envSchema>;

@@ -21,3 +21,13 @@ export type {
   ProviderInvestmentActivity,
 } from "./investments/provider.js";
 export { createPlaidInvestmentsProvider, mapPlaidInvestmentKind } from "./investments/provider.js";
+export type { AnthropicConfig, AnthropicHttp } from "./scribe/anthropic.js";
+export { AnthropicError, createAnthropicClient } from "./scribe/anthropic.js";
+export type {
+  ScribeDeps,
+  ScribeReport,
+  ScribeRuleStore,
+  ScribeStore,
+  UncategorizedTxn,
+} from "./scribe/scribe.js";
+export { runScribe } from "./scribe/scribe.js";

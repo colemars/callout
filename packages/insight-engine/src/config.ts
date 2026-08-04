@@ -11,6 +11,8 @@ export interface EngineConfig {
   /** Categories excluded from net cash flow (internal movements). */
   readonly nonCashFlowCategories: readonly Category[];
   /** Essential categories used for the emergency-runway denominator. */
+  /** UNCATEGORIZED_FUNDS fires when a completed month's net 'other' flow reaches this. */
+  readonly uncategorizedThresholdMinor: number;
   readonly essentialCategories: readonly Category[];
   /** Month-over-month spending change is reported only when BOTH thresholds pass. */
   readonly spendingDeltaThresholdPct: number;
@@ -35,6 +37,7 @@ export const defaultEngineConfig: EngineConfig = {
   currency: "USD",
   nonSpendingCategories: ["transfer", "debt_payment", "income"],
   nonCashFlowCategories: ["transfer", "debt_payment"],
+  uncategorizedThresholdMinor: 200_00,
   essentialCategories: ["groceries", "housing", "transport", "health"],
   spendingDeltaThresholdPct: 20,
   spendingDeltaThresholdMinor: 25_00,
