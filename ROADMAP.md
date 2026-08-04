@@ -37,7 +37,7 @@ Implementation roadmap for [ARCHITECTURE.md](ARCHITECTURE.md), following the ame
 - **Same Supabase project, new `platform` Postgres schema**, Drizzle-owned migrations. Legacy `public.*` and `supabase/migrations/` are never modified.
 - **Multi-tenant from day one**: `user_id uuid references auth.users(id)` on every table, user-leading indexes, RLS policies written with the first migration.
 - **Money**: integer minor units as `number` (`Number.isSafeInteger` asserted), **signed, negative = outflow** — the flip of Plaid's/callout's convention; normalized only in provider adapters.
-- **Hosting**: platform API on Lambda until traffic justifies ECS; product frontends on Vercel Hobby (products aren't platform compute).
+- **Hosting**: platform API on Lambda until traffic justifies ECS. Product frontends: static export on GitHub Pages today; graduate to S3+CloudFront (custom domain) or OpenNext-on-Lambda (if SSR ever needed) via the same CDK app. No Vercel — everything stays in AWS + GitHub.
 - **Plaid cursors are per-consumer**: the platform starts with a `null` cursor (full-history replay = free backfill); never copy `public.plaid_items.sync_cursor`. Vault access tokens are shared safely via the existing `get_plaid_token` RPC.
 
 ## Key risks and their mitigations
