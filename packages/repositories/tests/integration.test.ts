@@ -217,7 +217,35 @@ describe("end-to-end: state -> engine -> stores", () => {
     await eventStore.insertMany(events);
     const recent = await eventStore.listRecent(USER, 10);
     expect(recent).toHaveLength(events.length);
-    expect(recent.map((e) => e.type).sort()).toEqual(events.map((e) => e.type).sort());
+    expect(recent.map((s) => s.event.type).sort()).toEqual(events.map((e) => e.type).sort());
+    // createdAt is a real ISO timestamp — the cursor clients advance on.
+    expect(Number.isNaN(Date.parse(recent[0]?.createdAt ?? ""))).toBe(false);
+
+    // listSince: strictly-after filtering on createdAt.
+    const all = await eventStore.listSince(USER, new Date(0), 10);
+    expect(all).toHaveLength(events.length);
+    const afterAll = await eventStore.listSince(
+      USER,
+      new Date(
+        recent
+          .map((s) => Date.parse(s.createdAt))
+          .sort()
+          .at(-1) ?? 0,
+      ),
+      10,
+    );
+    expect(afterAll).toHaveLength(0);
+
+    // listRange: the snapshot timeline, ascending and user-scoped.
+    const secondDay = { ...metricSet, asOf: isoDate("2026-08-16") };
+    await metricStore.save(secondDay);
+    const range = await metricStore.listRange(USER, isoDate("2026-08-15"), isoDate("2026-08-16"));
+    expect(range.map((m) => m.asOf)).toEqual(["2026-08-15", "2026-08-16"]);
+    const narrow = await metricStore.listRange(USER, isoDate("2026-08-16"), isoDate("2026-08-16"));
+    expect(narrow.map((m) => m.asOf)).toEqual(["2026-08-16"]);
+    expect(
+      await metricStore.listRange(OTHER_USER, isoDate("2026-08-01"), isoDate("2026-08-31")),
+    ).toEqual([]);
 
     // Round-tripped snapshot diffs cleanly: no phantom events.
     expect(deriveEvents(restored, metricSet, defaultEngineConfig)).toEqual([]);

@@ -62,11 +62,19 @@ export interface AgeState {
 
 export type ResourceKey = "gold" | "grain" | "stone" | "builders" | "happiness";
 
+/** Machine-readable unit for game/engine consumers (see CONTRACT.md). */
+export type ValueUnit = "minor" | "months" | "ratio" | "count" | "score";
+
 export interface ResourceState {
   key: ResourceKey;
   themeName: string;
   icon: string;
   level: 0 | 1 | 2 | 3 | 4 | 5;
+  /** Raw numeric value in `unit`; null when unmeasured. */
+  value: number | null;
+  /** The bound of the top tier (for meters); null when unbounded/unmeasured. */
+  max: number | null;
+  unit: ValueUnit;
   displayValue: string;
   basis: string;
   provisional: boolean;
@@ -91,6 +99,9 @@ export interface StructureState {
   icon: string;
   exists: boolean;
   level: 0 | 1 | 2 | 3 | 4 | 5;
+  /** Raw numeric value in `unit`; null when the structure has no natural number. */
+  value: number | null;
+  unit: ValueUnit;
   detail: string;
   lien?: boolean;
   locked?: boolean;
@@ -138,6 +149,8 @@ export interface ChronicleEntry {
 }
 
 export interface KingdomState {
+  /** Contract version for external consumers; bump on breaking shape changes. */
+  schemaVersion: 1;
   asOf: string;
   age: AgeState;
   resources: ResourceState[];

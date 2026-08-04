@@ -29,7 +29,10 @@ export interface Txn {
 
 export interface ApiEvent {
   type: string;
+  /** The date the event describes. */
   occurredOn: string;
+  /** Insertion time — cursor on this with /events?since=. */
+  createdAt?: string;
   payload: Record<string, unknown>;
 }
 

@@ -2,7 +2,7 @@
 
 import { Amount, Table, fmtMoney } from "@platform/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AgeBanner,
   Chronicle,
@@ -12,13 +12,17 @@ import {
   ThreatCards,
 } from "../components/kingdom";
 import { clients, supabase } from "../lib/clients";
+import { loadLastSeen, saveLastSeen } from "../lib/lastSeen";
+import { narrateDelta } from "../lib/replay";
 import { translate } from "../lib/translate";
 import { useKingdomData } from "../lib/useKingdomData";
+import { type KingdomDelta, computeKingdomDiff } from "../model/diff";
 import { kingdomModel } from "../model/kingdomModel";
 
 export default function ThroneRoom() {
   const router = useRouter();
   const state = useKingdomData(clients);
+  const [replay, setReplay] = useState<KingdomDelta[] | null>(null);
 
   useEffect(() => {
     if (state.status === "unauthenticated") router.replace("/login");
@@ -28,6 +32,17 @@ export default function ThroneRoom() {
     () => (state.status === "ready" ? kingdomModel(state.input, translate) : null),
     [state],
   );
+
+  // "While you were away": diff against what THIS device last rendered, then
+  // persist the new snapshot as the next baseline.
+  useEffect(() => {
+    if (kingdom === null || kingdom.surveying) return;
+    const lastSeen = loadLastSeen();
+    if (lastSeen !== null) {
+      setReplay(computeKingdomDiff(lastSeen, kingdom));
+    }
+    saveLastSeen(kingdom);
+  }, [kingdom]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -64,6 +79,35 @@ export default function ThroneRoom() {
           The royal surveyors have not yet mapped the realm — link a bank and let the first sync
           run.
         </p>
+      )}
+
+      {replay !== null && replay.length > 0 && (
+        <section className="mt-6 rounded-lg border border-amber-900/20 bg-amber-100/60 p-3 dark:border-amber-200/20 dark:bg-amber-950/40">
+          <h2 className="font-serif text-sm font-semibold text-amber-900 dark:text-amber-200">
+            While you were away
+          </h2>
+          <ul className="mt-2 flex flex-col gap-1">
+            {replay
+              .map((d) => narrateDelta(d))
+              .filter((n) => n !== null)
+              .slice(0, 8)
+              .map((n, i) => (
+                <li
+                  // biome-ignore lint/suspicious/noArrayIndexKey: display-only lines
+                  key={i}
+                  className={`text-sm ${
+                    n.tone === "good"
+                      ? "text-emerald-800 dark:text-emerald-300"
+                      : n.tone === "bad"
+                        ? "text-red-800 dark:text-red-300"
+                        : ""
+                  }`}
+                >
+                  {n.text}
+                </li>
+              ))}
+          </ul>
+        </section>
       )}
 
       <AgeBanner age={kingdom.age} />

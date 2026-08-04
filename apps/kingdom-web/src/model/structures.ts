@@ -39,6 +39,8 @@ export function computeStructures(
       name: "The Keep",
       icon: "🏰",
       exists: true,
+      value: age.current,
+      unit: "count" as const,
       level: asLevel(age.current + 1),
       detail: `Age ${age.current} — ${age.name}`,
     },
@@ -47,6 +49,8 @@ export function computeStructures(
       name: "The Granary",
       icon: "🌾",
       exists: true,
+      value: input.metrics?.emergencyRunwayMonths ?? null,
+      unit: "months" as const,
       level: resource("grain")?.level ?? 0,
       detail: resource("grain")?.displayValue ?? "unmeasured",
     },
@@ -55,6 +59,8 @@ export function computeStructures(
       name: "The Walls & Moat",
       icon: "🧱",
       exists: true,
+      value: moat.score,
+      unit: "score" as const,
       level: { dry: 1, narrow: 2, broad: 4, vast: 5 }[moat.tier] as Level,
       detail: `${moat.tierLabel} (${moat.score}/100)`,
     },
@@ -67,6 +73,8 @@ export function computeStructures(
       icon: "🏛️",
       exists: true,
       locked: true,
+      value: retirementMinor,
+      unit: "minor" as const,
       level: stoneTier(retirementMinor),
       detail: `${fmtMinor(retirementMinor)} · sealed until old age`,
     });
@@ -77,6 +85,8 @@ export function computeStructures(
       name: "Merchant Caravans",
       icon: "🐪",
       exists: true,
+      value: brokerageMinor,
+      unit: "minor" as const,
       level: stoneTier(brokerageMinor),
       detail: `${fmtMinor(brokerageMinor)} riding the trade winds`,
     });
@@ -87,6 +97,8 @@ export function computeStructures(
     name: "The Market Square",
     icon: "⚖️",
     exists: true,
+    value: resource("builders")?.value ?? null,
+    unit: "minor" as const,
     level: resource("builders")?.level ?? 0,
     detail: resource("builders")?.displayValue ?? "quiet",
   });
@@ -96,6 +108,8 @@ export function computeStructures(
     name: "The Festival Grounds",
     icon: "🎪",
     exists: true,
+    value: share,
+    unit: "ratio" as const,
     level: resource("happiness")?.level ?? 3,
     detail:
       share === null ? "awaiting the first festival" : (resource("happiness")?.displayValue ?? ""),
@@ -108,6 +122,8 @@ export function computeStructures(
       icon: "🏡",
       exists: true,
       lien: true,
+      value: mortgageMinor,
+      unit: "minor" as const,
       level: 2,
       detail: `pledged to the bank — ${fmtMinor(mortgageMinor)} remains`,
     });
@@ -118,6 +134,8 @@ export function computeStructures(
       name: "Guild of Scholars' Debt",
       icon: "📜",
       exists: true,
+      value: studentMinor,
+      unit: "minor" as const,
       level: 0,
       detail: `${fmtMinor(studentMinor)} owed for the crown's education`,
     });
@@ -128,6 +146,8 @@ export function computeStructures(
       name: "The Watchtowers",
       icon: "🗼",
       exists: true,
+      value: budgets.length,
+      unit: "count" as const,
       level: asLevel(Math.min(budgets.length, 5)),
       detail: `${budgets.length} decree(s) watched, ${budgets.filter((b) => b.overPace).length} breached`,
     });
@@ -139,6 +159,8 @@ export function computeStructures(
       icon: "⛺",
       exists: true,
       hostile: true,
+      value: highInterest,
+      unit: "minor" as const,
       level: asLevel(highInterest < 1_000_00 ? 1 : highInterest < 10_000_00 ? 2 : 3),
       detail: `${fmtMinor(highInterest)} claimed by raiders`,
     });

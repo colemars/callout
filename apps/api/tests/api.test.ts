@@ -169,18 +169,44 @@ describe("routes", () => {
     ]);
   });
 
-  it("GET /api/v1/events returns typed envelopes", async () => {
+  it("GET /api/v1/events returns typed envelopes with a createdAt cursor", async () => {
     const res = await get("/api/v1/events", GOOD_TOKEN);
     const [event] = res.json();
     expect(event.type).toBe("NET_CASH_FLOW_POSITIVE");
     expect(event.occurredOn).toBe("2026-08-01");
+    expect(Number.isNaN(Date.parse(event.createdAt))).toBe(false);
     expect(event.payload.netFlow).toEqual({ amountMinor: 100_000, currency: "USD" });
+  });
+
+  it("GET /api/v1/events?since= filters strictly after the cursor", async () => {
+    const [event] = (await get("/api/v1/events", GOOD_TOKEN)).json();
+    const before = new Date(Date.parse(event.createdAt) - 60_000).toISOString();
+    const after = new Date(Date.parse(event.createdAt) + 60_000).toISOString();
+    expect(
+      (await get(`/api/v1/events?since=${encodeURIComponent(before)}`, GOOD_TOKEN)).json(),
+    ).toHaveLength(1);
+    expect(
+      (await get(`/api/v1/events?since=${encodeURIComponent(after)}`, GOOD_TOKEN)).json(),
+    ).toHaveLength(0);
+    expect((await get("/api/v1/events?since=not-a-date", GOOD_TOKEN)).statusCode).toBe(400);
   });
 
   it("GET /api/v1/insights is null before any snapshot exists", async () => {
     const res = await get("/api/v1/insights", GOOD_TOKEN);
     expect(res.statusCode).toBe(200);
     expect(res.body === "null" || res.body === "").toBe(true);
+  });
+
+  it("GET /api/v1/insights/history returns the snapshot timeline", async () => {
+    // Empty before any snapshots exist.
+    expect((await get("/api/v1/insights/history?from=2026-08-01", GOOD_TOKEN)).json()).toEqual([]);
+    // Range guard: >180 days is rejected.
+    expect(
+      (await get("/api/v1/insights/history?from=2020-01-01&to=2026-01-01", GOOD_TOKEN)).statusCode,
+    ).toBe(400);
+    expect(
+      (await get("/api/v1/insights/history?from=2026-08-31&to=2026-08-01", GOOD_TOKEN)).statusCode,
+    ).toBe(400);
   });
 
   it("GET /api/v1/goals returns the empty list", async () => {

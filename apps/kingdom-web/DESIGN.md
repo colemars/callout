@@ -95,5 +95,9 @@ market days (notable spends). Every entry carries a refId to the raw line.
 - True passive-income measurement for Age 4 (4%-rule proxy today)
 - CPI-based Winter (own-spend proxy today)
 - Stone trend arrows (needs asset balance history from engine snapshots)
-- The map itself — graphics come after the text simulation proves the model
-- The calendar view ("taxes arrive, rent comes in, the kingdom lives")
+- The map itself — graphics come after the text simulation proves the model.
+  The data side is ready: see [CONTRACT.md](CONTRACT.md) for the
+  engine-agnostic KingdomState + KingdomDelta JSON contract.
+- The calendar view ("taxes arrive, rent comes in, the kingdom lives") —
+  `/api/v1/insights/history` + `/api/v1/events?since=` now exist to feed it
+

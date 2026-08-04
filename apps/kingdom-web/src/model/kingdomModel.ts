@@ -20,6 +20,7 @@ export function kingdomModel(
   const chronicle = buildChronicle(input, translateEvent);
 
   return {
+    schemaVersion: 1,
     asOf: input.today,
     age,
     resources,

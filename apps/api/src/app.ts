@@ -29,8 +29,10 @@ import {
   dateRangeQuery,
   errorSchema,
   eventSchema,
+  eventsQuery,
   goalSchema,
-  limitQuery,
+  historyQuery,
+  snapshotSchema,
   transactionSchema,
 } from "./schemas.js";
 
@@ -182,20 +184,49 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       );
 
       v1.get(
+        "/insights/history",
+        {
+          schema: {
+            querystring: historyQuery,
+            response: { 200: z.array(snapshotSchema), 400: errorSchema, 401: errorSchema },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const from = isoDate(request.query.from);
+          const to = isoDate(request.query.to ?? new Date().toISOString().slice(0, 10));
+          const rangeDays = (Date.parse(to) - Date.parse(from)) / 86_400_000;
+          if (rangeDays < 0 || rangeDays > 180) {
+            return reply.status(400).send({ error: "range must be 0-180 days" });
+          }
+          const sets = await createMetricSnapshotStore(deps.db).listRange(userId, from, to);
+          return sets.map((m) => ({
+            asOf: m.asOf as string,
+            metrics: m as unknown as Record<string, unknown>,
+          }));
+        },
+      );
+
+      v1.get(
         "/events",
         {
           schema: {
-            querystring: limitQuery,
+            querystring: eventsQuery,
             response: { 200: z.array(eventSchema), 401: errorSchema },
           },
         },
         async (request) => {
           const userId = await requireUser(request);
-          const events = await createEventStore(deps.db).listRecent(userId, request.query.limit);
-          return events.map((e) => ({
-            type: e.type,
-            occurredOn: e.occurredOn as string,
-            payload: e as unknown as Record<string, unknown>,
+          const store = createEventStore(deps.db);
+          const stored =
+            request.query.since === undefined
+              ? await store.listRecent(userId, request.query.limit)
+              : await store.listSince(userId, new Date(request.query.since), request.query.limit);
+          return stored.map((s) => ({
+            type: s.event.type,
+            occurredOn: s.event.occurredOn as string,
+            createdAt: s.createdAt,
+            payload: s.event as unknown as Record<string, unknown>,
           }));
         },
       );

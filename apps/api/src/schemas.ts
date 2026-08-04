@@ -57,8 +57,30 @@ export const budgetSchema = z.object({
 
 export const eventSchema = z.object({
   type: z.string(),
+  /** The date the event describes. */
   occurredOn: z.string(),
+  /** When the event was derived — cursor on THIS with ?since=. */
+  createdAt: z.string(),
   payload: z.record(z.unknown()),
+});
+
+export const eventsQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  /** ISO timestamp; returns events created strictly after it, ascending. */
+  since: z.string().datetime().optional(),
+});
+
+export const historyQuery = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+
+export const snapshotSchema = z.object({
+  asOf: z.string(),
+  metrics: z.record(z.unknown()),
 });
 
 export const dateRangeQuery = z.object({

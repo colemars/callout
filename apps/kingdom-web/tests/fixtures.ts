@@ -8,14 +8,14 @@ import type {
 
 export const usd = (amountMinor: number) => ({ amountMinor, currency: "USD" });
 
-let idCounter = 0;
+// Ids derive from content so repeated fixture builds are identical —
+// the diff engine tests depend on stable refIds across builds.
 export function account(
   overrides: Partial<KingdomAccount> & { kind: KingdomAccount["kind"]; balanceMinor: number },
 ): KingdomAccount {
   const { balanceMinor, ...rest } = overrides;
-  idCounter++;
   return {
-    id: rest.id ?? `acct-${idCounter}`,
+    id: rest.id ?? `acct-${(rest.name ?? "account").toLowerCase().replace(/\W+/g, "-")}`,
     name: rest.name ?? "Account",
     institution: "Tartan Bank",
     balance: usd(balanceMinor),
@@ -27,9 +27,12 @@ export function txn(
   overrides: Partial<KingdomTxn> & { postedAt: string; amountMinor: number },
 ): KingdomTxn {
   const { amountMinor, ...rest } = overrides;
-  idCounter++;
   return {
-    id: rest.id ?? `txn-${idCounter}`,
+    id:
+      rest.id ??
+      `txn-${overrides.postedAt}-${amountMinor}-${(rest.merchant ?? rest.description ?? "x")
+        .toLowerCase()
+        .replace(/\W+/g, "-")}`,
     description: rest.description ?? rest.merchant ?? "LEDGER LINE",
     amount: usd(amountMinor),
     category: rest.category ?? "other",

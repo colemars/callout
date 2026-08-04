@@ -22,6 +22,9 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     key: "gold",
     themeName: "Gold",
     icon: "🪙",
+    value: goldMinor,
+    max: 50_000_00,
+    unit: "minor",
     level:
       goldMonths !== null
         ? tier(goldMonths, [0.25, 0.5, 1, 3, 6])
@@ -40,6 +43,9 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     key: "grain",
     themeName: "Grain",
     icon: "🌾",
+    value: runway,
+    max: 24,
+    unit: "months",
     level: runway === null ? 0 : tier(runway, [1, 3, 6, 12, 24]),
     displayValue: runway === null ? "unmeasured" : `${runway} moons of grain`,
     basis: "emergency runway (liquid ÷ average essential spend, from the royal surveyors)",
@@ -54,6 +60,9 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     key: "stone",
     themeName: "Stone",
     icon: "🪨",
+    value: stoneMinor,
+    max: 1_000_000_00,
+    unit: "minor",
     level: tier(stoneMinor, [1, 10_000_00, 50_000_00, 250_000_00, 1_000_000_00]),
     displayValue: fmtMinor(stoneMinor),
     basis: `retirement ${fmtMinor(retirementMinor)} + caravans ${fmtMinor(brokerageMinor)} (home equity not yet surveyed)`,
@@ -75,6 +84,9 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     key: "builders",
     themeName: "Builders",
     icon: "🔨",
+    value: flow,
+    max: null,
+    unit: "minor",
     level: buildersLevel,
     displayValue:
       flow === null
@@ -117,6 +129,9 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     key: "happiness",
     themeName: "Happiness",
     icon: "🎉",
+    value: share,
+    max: 1,
+    unit: "ratio",
     level: happinessLevel,
     displayValue:
       share === null ? "unmeasured" : `${(share * 100).toFixed(0)}% of spending on joy — ${band}`,
