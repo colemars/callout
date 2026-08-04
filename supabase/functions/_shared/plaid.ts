@@ -19,14 +19,37 @@ export class PlaidError extends Error {
   }
 }
 
+// Plaid credentials: env vars win; app_config is the fallback so setup can be
+// done entirely through the database (keys: plaid_client_id/plaid_secret/plaid_env).
+let credsCache: { clientId: string; secret: string; env: string } | null = null;
+
+async function plaidCreds() {
+  if (credsCache) return credsCache;
+  const envId = Deno.env.get("PLAID_CLIENT_ID");
+  const envSecret = Deno.env.get("PLAID_SECRET");
+  if (envId && envSecret) {
+    credsCache = { clientId: envId, secret: envSecret, env: Deno.env.get("PLAID_ENV") ?? "sandbox" };
+    return credsCache;
+  }
+  const { data } = await db.from("app_config").select("key, value")
+    .in("key", ["plaid_client_id", "plaid_secret", "plaid_env"]);
+  const map = new Map((data ?? []).map((r) => [r.key, r.value]));
+  credsCache = {
+    clientId: map.get("plaid_client_id") ?? "",
+    secret: map.get("plaid_secret") ?? "",
+    env: Deno.env.get("PLAID_ENV") ?? map.get("plaid_env") ?? "sandbox",
+  };
+  return credsCache;
+}
+
 export async function plaid(path: string, body: Record<string, unknown>) {
-  const env = Deno.env.get("PLAID_ENV") ?? "sandbox";
-  const res = await fetch(`${PLAID_HOSTS[env]}${path}`, {
+  const creds = await plaidCreds();
+  const res = await fetch(`${PLAID_HOSTS[creds.env]}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: Deno.env.get("PLAID_CLIENT_ID"),
-      secret: Deno.env.get("PLAID_SECRET"),
+      client_id: creds.clientId,
+      secret: creds.secret,
       ...body,
     }),
   });
