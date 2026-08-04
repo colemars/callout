@@ -1,4 +1,4 @@
-# Financial Kingdom — Game Design
+# Financial Kingdom — Game Design (v2)
 
 > The hook is not "gamify budgeting." The hook is: **turn your real financial
 > life into a living kingdom that rewards resilience, not spending less.**
@@ -13,91 +13,201 @@ Every time the user opens the app: (1) something in the kingdom has changed,
 visibly improves. Opening the app isn't checking numbers — it's *"what
 happened in my kingdom while I was away?"*
 
-## The prime rule
+## The Prime Rule (amended in v2)
 
-**There is no XP. There is no fake currency. The kingdom is literally the
-balance sheet.** Every displayed number traces to a real statement line or a
-real served metric (the model carries a `basis` string for each). Where data
-is missing, the kingdom says nothing — never a false all-clear, never an
-invented estimate.
+The game has two layers with different laws:
 
-**And the corollary:** the app never punishes users for living their lives.
-Happiness spending is a *resource*, not a sin. The satisfying progression is
-not "spend nothing" — it's "every dollar you intentionally direct strengthens
-a different part of your kingdom." Strategy game, not guilt game.
+**The simulation layer is real.** Wealth, threats, the moat, the chronicle —
+every number traces to a real statement line or a served metric (each carries
+a machine-checkable `basis`). Nothing is estimated, nothing invented. Where
+data is missing the kingdom stays silent — never a false all-clear.
 
-## The Four Ages (financial maturity, not levels)
+**The meta layer is earned.** Influence and Progress are not money and never
+pretend to be. They form a **ledger of verified financial behavior**: every
+grant traces to a platform event the engine actually derived from statements.
+Influence cannot be bought — not with real money, not with rich balances.
 
-1. **🏕️ Survive the Winter** — emergency fund, stop high-interest debt, light
-   recurring obligations, positive cash flow. Tiny village, wooden palisade,
-   near-empty granary.
-2. **🏰 Fortify** — retirement investing begun, bad debt eliminated, 6-month
-   runway, ≥10% savings rate. Stone walls, watchtowers. Difficult to kill.
-3. **🌾 Expand** — every dollar has a job; productive assets produce daily.
-4. **👑 Prosperity** — holdings sustain essential spending indefinitely
-   (4%-rule proxy until true passive-income measurement exists), ≥30% savings
-   rate. The kingdom runs itself; storms barely register.
+**No engagement rewards.** Logging in, streaks of opening the app, watching
+content: worth zero. Showing up earns nothing; *behaving* earns everything.
+Scarcity is what makes Influence mean something.
 
-Gate policy for missing data: "prove the good thing" gates fail provisionally;
-"no evidence of harm" gates pass provisionally.
+**And never punish living.** Happiness spending is a resource, not a sin. The
+satisfying progression is not "spend nothing" — it's "every dollar you
+intentionally direct strengthens a different part of your kingdom."
 
-## The five resources
+## The three currencies
 
-| Resource | Meaning | Source of truth |
+| Currency | Nature | Source | Spendable? |
+|---|---|---|---|
+| **Wealth** | Real | Bank/investment/debt data — the simulation input (today's `KingdomState`) | Never in-game |
+| **Influence** | Earned | Verified financial behavior (see the earn table) | Yes — construction, upgrades, cosmetics |
+| **Progress** | Permanent | What Influence built + milestones unlocked | Never decreases |
+
+The pivotal design decision: **financial behavior → Influence → Kingdom**, not
+money → kingdom. Someone with $5M isn't handed a finished kingdom; someone
+starting from nothing gets real progression. A college student and a
+high-net-worth player both have a game.
+
+(The simulation still reflects Wealth — a rich player's *castle* is big. But
+their *kingdom's growth* — what gets built, unlocked, decorated — comes only
+from behavior. The moat already works this way: margin of safety, not size.)
+
+## The earn table (Influence)
+
+Every earn event must be **verifiable from platform data** and is granted by a
+deterministic fold over the event history — replayable, auditable, immune to
+double-granting on re-sync.
+
+| Behavior | Proof (platform event / metric) | Notes |
 |---|---|---|
-| 🪙 Gold | Liquidity | liquid depository balances |
-| 🌾 Grain | Winter survival | emergency runway (engine metric, verbatim) |
-| 🪨 Stone | Long-term assets | retirement + brokerage balances |
-| 🔨 Builders | Free cash flow | completed month's net cash flow (1 builder / $500) |
-| 🎉 Happiness | Quality of life | lifestyle share of spending (healthy band 15–35%; low is a *warning*, high stays warm) |
+| Month closes with positive cash flow | `NET_CASH_FLOW_POSITIVE` | Influence ∝ surplus, capped |
+| High-interest debt reduced | `HIGH_INTEREST_DEBT_DECREASED` (delta) | ∝ amount paid down |
+| High-interest debt eliminated | balance reaches 0 (milestone event) | Large one-time grant |
+| Emergency runway milestone crossed | runway crosses 1/3/6/12 months (milestone event) | One-time per tier |
+| Under-budget streak | N consecutive months all budgets on pace (streak event) | Grows with streak |
+| Standing tithe dropped | `RECURRING_EXPENSE_REMOVED` | The cancelled-Netflix moment |
+| Goal completed | `GOAL_ON_TRACK` at target / goal reached (milestone event) | |
+| Savings-rate tier reached | savings rate crosses 5/10/20/30% (milestone event) | One-time per tier |
 
-## The enemies
+**Unverifiable today — advisors may NOT promise these** (they unlock as data
+sources grow): 401k contribution *changes* (contributions are invisible to
+us), income raises as deliberate acts, insurance purchases, "learning
+something." The Council only speaks in promises the engine can check.
 
-| Enemy | Failure mode | Trigger |
-|---|---|---|
-| 🏴 Bandits | High-interest debt | credit balances > 0; the toll shown only from real interest/fee lines |
-| ❄️ Winter | Inflation | essential spend +8% MoM (own-spend proxy) |
-| 🍗 Royal feasts | Lifestyle creep | lifestyle-minus-travel jumps 25%+ AND share > 35% — a *jump*, never a level |
-| 🌵 Drought | Income loss | income −20% MoM |
-| 🔥 Castle fire | Unexpected expense | single txn ≥ max(40% of monthly spend, $500); the granary "absorbs" it when runway ≥ 3mo |
+New platform event vocabulary this requires (future phase): milestone tiers
+(`EMERGENCY_FUND_MILESTONE`, `SAVINGS_RATE_MILESTONE`), `DEBT_ELIMINATED`,
+`UNDER_BUDGET_STREAK`, `GOAL_COMPLETED`. All derived deterministically in the
+insight engine — same discipline as everything else it emits.
 
-## The moat = margin of safety (NOT wealth)
+## Never destroy
 
-A $5M portfolio with no cash keeps a narrow moat. Score 0–100: runway (30) +
-low leverage (30) + liquidity (20) + light obligations (20). **Bandit cap:**
-while high-interest debt exists the moat is held at 74 — bandits can bridge
-any moat. Insurance and income diversification belong here; no data source
-yet.
+A bad month never burns anything down. Instead:
 
-## Structures
+- Workers leave. Construction pauses. Fields idle. Raiders grow bolder.
+- Progress **never** decreases. Buildings stand. Unlocks stay unlocked.
+- Fix the finances → workers return, construction resumes.
 
-Keep (=age) · Granary · Walls & Moat · Royal Treasury (retirement, 🔒) ·
-Merchant Caravans (brokerage) · Market Square (cash flow) · Festival Grounds
-(happiness) · Manor (🏦 lien — equity never guessed) · Guild of Scholars' Debt
-(student loans) · Watchtowers (budgets) · hostile Bandit Camp.
+Everything simply *stops growing* until behavior recovers. This is
+psychologically right (strategy game, not guilt game) and operationally right:
+a Plaid outage or bad sync must never destroy a kingdom.
 
-## The chronicle
+## Workers & allocation (the strategy layer)
 
-Platform events + notable ledger lines, kingdom-voiced: tax collectors return
-(paychecks), tithes paid (subscriptions/recurring), bandit tolls (real
-interest/fee lines), caravans depart (investment transfers), the crown pays
-the moneylenders (debt payments), the court journeys afar (travel — cheerful),
-market days (notable spends). Every entry carries a refId to the raw line.
+Workers represent **available financial capacity**: monthly surplus ÷ $100.
+$400 surplus → 4 workers; $800 → 8. Negative months: workers drift away.
 
-## Punt list (deliberately not in v2)
+Allocation sliders direct capacity + banked Influence across projects — Farm
+30% · Walls 40% · Treasury 20% · Marketplace 10% — so real savings
+automatically convert into chosen kingdom growth. Assigning workers IS
+allocating attention to your financial plan; the sliders are where strategy
+begins. (The sliders never move real money — they direct the *game's*
+representation of your capacity.)
 
-- Insurance + income diversification in the moat
-- Rentals ("villages") and businesses ("workshops") — no data source
-- Home value / Manor equity (Zillow's API is partner-only; RentCast or manual
+## The tech tree
+
+Unlocks are **earned through financial milestones, never purchased**:
+
+| Milestone (verifiable) | Unlock |
+|---|---|
+| Emergency fund complete (3mo) | Windmill |
+| Runway 6 months | Deep Granary |
+| Credit utilization under 10% | Stone Walls |
+| No credit-card debt | Royal Mint |
+| Retirement vault exists & funded | Treasury Vaults |
+| First under-budget streak (3mo) | Bakery |
+| Positive cash flow 6 months running | Harbor |
+
+(Credit utilization is computable: card balances vs `creditLimit`, both
+served.) Milestones make users *want* the financial achievement — the unlock
+is the celebration, not the incentive to spend.
+
+## Quests
+
+The app generates quests automatically from engine output, in kingdom voice,
+with **measurable completion conditions**:
+
+> *"The kingdom spends too much on court feasts."* — feast spending fell 20%
+> vs last moon → **+300 Influence, unlock Bakery**
+
+> *"The moneylenders grow stronger."* — pay $500 toward the cards (visible as
+> `HIGH_INTEREST_DEBT_DECREASED` ≥ $500) → **raiders retreat, +500 Influence,
+> unlock Barracks**
+
+The quests ARE the financial plan, restated as strategy.
+
+## The Kingdom Council (signature feature)
+
+Weekly ritual. A handful of advisors meet — each proposes **one** actionable,
+engine-derived, verifiable recommendation. The player has attention for only
+one or two:
+
+- **The Treasurer** (cash flow & runway): "Save another $250 this month and we
+  complete the granary."
+- **The Master Builder** (spending & budgets): "End one standing tithe and we
+  finish the east wall." *(completion = `RECURRING_EXPENSE_REMOVED`)*
+- **The Captain of the Guard** (debt & threats): "Pay the raiders' ransom down
+  $500 and the roads grow safer."
+- **The Guildmaster** (investing & goals): speaks only when the data can back
+  the promise — today that's goal pacing and treasury balances, not
+  contribution percentages.
+
+Backing a proposal creates the week's active quest(s). Real financial actions,
+presented as strategic kingdom decisions — a decision loop, not a grind. This
+is what people come back for: not to watch numbers change, but to **decide the
+future of their kingdom.**
+
+## Cosmetic layer & endgame
+
+Cosmetics are where people *stay* (Animal Crossing's lesson): castle themes,
+seasons, lantern festivals, banners, bridges, pets — bought with Influence,
+kept forever (Progress). Never gameplay-relevant, never real-money.
+
+Endgame: zoom out. Villages, ports, roads, trade routes, windmills, harbors —
+an enormous kingdom that exists because of years of good financial decisions.
+That's the FI screenshot people share.
+
+## The simulation layer (carried forward from v1 — still canonical)
+
+- **Four Ages** of financial maturity with evidence-bearing gates: Survive the
+  Winter → Fortify → Expand → Prosperity (4%-rule proxy for FI).
+- **Five resources**: 🪙 Gold (liquidity) · 🌾 Grain (runway) · 🪨 Stone
+  (long-term assets) · 🔨 Builders (free cash flow) · 🎉 Happiness (lifestyle
+  share; low = gentle warning, high stays warm).
+- **Enemies**: 🏴 Bandits (high-interest debt) · ❄️ Winter (essential-cost
+  inflation) · 🍗 Feasts (lifestyle *jumps*, travel exempt) · 🌵 Drought
+  (income loss) · 🔥 Fires (outsized one-offs, absorbed by the granary).
+- **The Moat = margin of safety, not wealth** (runway/leverage/liquidity/
+  obligations; bandit cap at 74). Insurance & income diversification join when
+  data exists.
+- **The Chronicle**: real ledger lines and platform events in kingdom voice,
+  every entry refId-traceable.
+- Implementation: pure `kingdomModel` + `computeKingdomDiff` — see
+  [CONTRACT.md](CONTRACT.md) for the engine-agnostic JSON contract.
+
+## Architecture implications (design only — NOT yet built)
+
+1. **Platform**: milestone/streak events in the insight engine (deterministic,
+   explainable, same event-diff discipline); later, a generic per-user
+   per-product **state store** (opaque blob + version) so Progress/Influence
+   survive devices — products currently have no server-side persistence, and
+   the blob keeps product logic out of the platform.
+2. **Product (kingdom-web)**: the Influence fold over event history; quest &
+   Council generation from engine output; Progress state; allocation UI.
+3. **Build order**: milestone events → product-state store → Influence ledger
+   + text Council (works before any canvas) → quests/tech tree → allocation →
+   renderer (Phaser in-page, per CONTRACT.md).
+
+## Punt list
+
+- Insurance + income diversification in the moat (no data)
+- Rentals ("villages") and businesses ("workshops") (no data)
+- Home value / Manor equity (Zillow API is partner-only; RentCast or manual
   entry as a future platform slice)
-- Builder **allocation** interactivity (v2 is read-only observation; the
-  long-term vision is assigning workers = allocating savings)
 - True passive-income measurement for Age 4 (4%-rule proxy today)
 - CPI-based Winter (own-spend proxy today)
 - Stone trend arrows (needs asset balance history from engine snapshots)
-- The map itself — graphics come after the text simulation proves the model.
-  The data side is ready: see [CONTRACT.md](CONTRACT.md) for the
-  engine-agnostic KingdomState + KingdomDelta JSON contract.
-- The calendar view ("taxes arrive, rent comes in, the kingdom lives") —
-  `/api/v1/insights/history` + `/api/v1/events?since=` now exist to feed it
-
+- 401k-contribution and income-raise verification (needs new data sources —
+  until then the Council stays silent on them)
+- The map itself — graphics after the meta-game proves out in text
+- The calendar view (`/api/v1/insights/history` + `/events?since=` exist to
+  feed it)
