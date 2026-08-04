@@ -43,6 +43,9 @@ export default function CountingHouse() {
   const router = useRouter();
   const [items, setItems] = useState<LinkedItem[] | null>(null);
   const [message, setMessage] = useState("");
+  // In-flight work: null | 'opening' (link token) | 'swearing' (exchange) |
+  // 'surveying' (the census, up to ~30s). Anything non-null shows the spinner.
+  const [busy, setBusy] = useState<null | "opening" | "swearing" | "surveying">(null);
   const [plaidReady, setPlaidReady] = useState(false);
 
   const api = useCallback(
@@ -83,6 +86,8 @@ export default function CountingHouse() {
         onSuccess: async (publicToken, metadata) => {
           sessionStorage.removeItem(OAUTH_KEY);
           const institution = (metadata as { institution?: { name?: string } | null }).institution;
+          setBusy("swearing");
+          setMessage("Swearing the oath…");
           if (updateItemId) await api({ action: "relinked", item_id: updateItemId });
           else
             await api({
@@ -92,7 +97,8 @@ export default function CountingHouse() {
             });
           // Every new oath triggers an immediate census — no waiting for the
           // daily worker to see the first numbers.
-          setMessage("The vault is sworn — the royal surveyors ride out…");
+          setBusy("surveying");
+          setMessage("The royal surveyors are counting the vault — this takes a moment…");
           load();
           try {
             const { data } = await clients.api.POST("/api/v1/sync");
@@ -105,11 +111,14 @@ export default function CountingHouse() {
             setMessage(
               "The vault is sworn, but the surveyors were delayed — the daily census will count it.",
             );
+          } finally {
+            setBusy(null);
           }
           load();
         },
         onExit: (err) => {
           sessionStorage.removeItem(OAUTH_KEY);
+          setBusy(null);
           if (err) setMessage(`The envoy withdrew: ${err.display_message ?? err.error_code}`);
         },
       });
@@ -119,17 +128,26 @@ export default function CountingHouse() {
   );
 
   async function start(updateItemId?: string) {
+    if (busy !== null) return;
     setMessage("");
-    const r = await api({ action: "create_link_token", update_item_id: updateItemId });
-    if (r.error) {
-      setMessage(`Error: ${r.error}`);
-      return;
+    setBusy("opening");
+    setMessage("Summoning the envoy…");
+    try {
+      const r = await api({ action: "create_link_token", update_item_id: updateItemId });
+      if (r.error) {
+        setMessage(`Error: ${r.error}`);
+        return;
+      }
+      sessionStorage.setItem(
+        OAUTH_KEY,
+        JSON.stringify({ link_token: r.link_token, update_item_id: updateItemId ?? null }),
+      );
+      setMessage("");
+      openLink(r.link_token, updateItemId);
+    } finally {
+      // Plaid's modal takes over from here; onSuccess/onExit own the busy state.
+      setBusy((b) => (b === "opening" ? null : b));
     }
-    sessionStorage.setItem(
-      OAUTH_KEY,
-      JSON.stringify({ link_token: r.link_token, update_item_id: updateItemId ?? null }),
-    );
-    openLink(r.link_token, updateItemId);
   }
 
   useEffect(() => {
@@ -206,13 +224,23 @@ export default function CountingHouse() {
       <button
         type="button"
         onClick={() => start()}
-        disabled={!plaidReady}
+        disabled={!plaidReady || busy !== null}
         className="mt-6 rounded-lg bg-amber-800 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-700 disabled:opacity-50"
       >
-        Link a bank
+        {busy === null ? "Link a bank" : "Working…"}
       </button>
 
-      {message !== "" && <p className="mt-4 text-sm">{message}</p>}
+      {message !== "" && (
+        <p className="mt-4 flex items-center gap-2 text-sm" aria-live="polite">
+          {busy !== null && (
+            <span
+              aria-hidden
+              className="inline-block size-4 shrink-0 animate-spin rounded-full border-2 border-amber-700 border-t-transparent dark:border-amber-300 dark:border-t-transparent"
+            />
+          )}
+          {message}
+        </p>
+      )}
     </main>
   );
 }
