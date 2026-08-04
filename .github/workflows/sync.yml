@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      PLATFORM_USER_ID: ${{ secrets.PLATFORM_USER_ID }}
       PLAID_CLIENT_ID: ${{ secrets.PLAID_CLIENT_ID }}
       PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
       PLAID_ENV: ${{ vars.PLAID_ENV || 'sandbox' }}

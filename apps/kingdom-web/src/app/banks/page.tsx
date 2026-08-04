@@ -45,23 +45,26 @@ export default function CountingHouse() {
   const [message, setMessage] = useState("");
   const [plaidReady, setPlaidReady] = useState(false);
 
-  const api = useCallback(async (body?: Record<string, unknown>) => {
-    const { data } = await supabase.auth.getSession();
-    const jwt = data.session?.access_token;
-    if (jwt === undefined) {
-      router.replace("/login");
-      throw new Error("unauthenticated");
-    }
-    const res = await fetch(LINK_API, {
-      method: body ? "POST" : "GET",
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    });
-    return res.json();
-  }, [router]);
+  const api = useCallback(
+    async (body?: Record<string, unknown>) => {
+      const { data } = await supabase.auth.getSession();
+      const jwt = data.session?.access_token;
+      if (jwt === undefined) {
+        router.replace("/login");
+        throw new Error("unauthenticated");
+      }
+      const res = await fetch(LINK_API, {
+        method: body ? "POST" : "GET",
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          ...(body ? { "Content-Type": "application/json" } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      return res.json();
+    },
+    [router],
+  );
 
   const load = useCallback(async () => {
     const { items: linked } = await api();
@@ -146,7 +149,10 @@ export default function CountingHouse() {
           Swear your vaults to the crown — the realm only counts what the banks attest.
         </p>
         <p className="mt-2 text-sm">
-          <Link href="/" className="text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60">
+          <Link
+            href="/"
+            className="text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
+          >
             ← the throne room
           </Link>
         </p>
@@ -159,7 +165,9 @@ export default function CountingHouse() {
         {items === null ? (
           <p className="mt-2 text-sm text-stone-500">The scribes are checking the rolls…</p>
         ) : items.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-500">None yet — the treasury awaits its first oath.</p>
+          <p className="mt-2 text-sm text-stone-500">
+            None yet — the treasury awaits its first oath.
+          </p>
         ) : (
           <ul className="mt-2 flex flex-col gap-1">
             {items.map((i) => (

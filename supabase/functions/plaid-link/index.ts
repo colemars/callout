@@ -1,27 +1,14 @@
 // Bank linking API (+ re-auth via Link update mode). JSON only — the UI is
-// The Counting House (kingdom-web /banks). Auth: Supabase session JWT pinned
-// to the platform user; legacy x-app-token still honored as a fallback.
-import { db, plaid, requireToken } from "../_shared/plaid.ts";
+// The Counting House (kingdom-web /banks). Multi-tenant: every caller is a
+// Supabase-authenticated user; connections land in platform.provider_connections
+// under the caller's user id. No shared secrets, no hardwired users.
+import { db, plaid } from "../_shared/plaid.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-app-token, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
-
-// Single-tenant: only the crown may swear vaults. Not a secret — just identity.
-const PLATFORM_USER = "4039c55f-bec0-421a-b764-11ce67406a5f";
-
-// Preferred auth: the product's Supabase session JWT (the Counting House page).
-// Fallback: the legacy x-app-token shared secret, until every caller migrates.
-async function requireAuth(req: Request): Promise<Response | null> {
-  const bearer = req.headers.get("authorization");
-  if (bearer?.startsWith("Bearer ")) {
-    const { data, error } = await db.auth.getUser(bearer.slice(7));
-    if (!error && data.user?.id === PLATFORM_USER) return null;
-  }
-  return await requireToken(req, "app_token");
-}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -29,10 +16,20 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-async function handlePost(body: Record<string, unknown>): Promise<Response> {
+const connections = () => db.schema("platform").from("provider_connections");
+
+async function requireUser(req: Request): Promise<{ id: string } | null> {
+  const bearer = req.headers.get("authorization");
+  if (!bearer?.startsWith("Bearer ")) return null;
+  const { data, error } = await db.auth.getUser(bearer.slice(7));
+  if (error || !data.user) return null;
+  return { id: data.user.id };
+}
+
+async function handlePost(userId: string, body: Record<string, unknown>): Promise<Response> {
   if (body.action === "create_link_token") {
     const params: Record<string, unknown> = {
-      user: { client_user_id: "cole" },
+      user: { client_user_id: userId },
       client_name: "Penny Kingdom",
       language: "en",
       country_codes: ["US"],
@@ -46,9 +43,10 @@ async function handlePost(body: Record<string, unknown>): Promise<Response> {
     }
     if (redirectUri) params.redirect_uri = redirectUri;
     if (body.update_item_id) {
-      // Update mode: reuse the existing Item's access token.
-      const { data: item } = await db.from("plaid_items")
-        .select("access_token_secret_id").eq("id", body.update_item_id).single();
+      // Update mode: reuse the existing Item's access token — caller must own it.
+      const { data: item } = await connections()
+        .select("access_token_secret_id")
+        .eq("id", body.update_item_id).eq("user_id", userId).single();
       if (!item) return json({ error: "unknown item" }, 404);
       const { data: token } = await db.rpc("get_plaid_token", {
         p_secret_id: item.access_token_secret_id,
@@ -80,16 +78,25 @@ async function handlePost(body: Record<string, unknown>): Promise<Response> {
       p_token: resp.access_token,
     });
     if (error) return json({ error: error.message }, 500);
-    await db.from("plaid_items").insert({
-      plaid_item_id: resp.item_id,
-      institution_name: body.institution ?? "Unknown",
-      access_token_secret_id: secretId,
-    });
+    const { error: insertError } = await connections().upsert(
+      {
+        user_id: userId,
+        provider: "plaid",
+        external_item_id: resp.item_id,
+        institution_name: body.institution ?? "Unknown",
+        access_token_secret_id: secretId,
+        cursor: null,
+        status: "ok",
+      },
+      { onConflict: "user_id,provider,external_item_id" },
+    );
+    if (insertError) return json({ error: insertError.message }, 500);
     return json({ ok: true });
   }
 
   if (body.action === "relinked") {
-    await db.from("plaid_items").update({ status: "ok" }).eq("id", body.item_id);
+    await connections().update({ status: "ok" })
+      .eq("id", body.item_id).eq("user_id", userId);
     return json({ ok: true });
   }
   return json({ error: "unknown action" }, 400);
@@ -98,19 +105,21 @@ async function handlePost(body: Record<string, unknown>): Promise<Response> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
-  const unauth = await requireAuth(req);
-  if (unauth) return new Response("Unauthorized", { status: 401, headers: cors });
+  const user = await requireUser(req);
+  if (user === null) return new Response("Unauthorized", { status: 401, headers: cors });
 
   if (req.method === "POST") {
     try {
-      return await handlePost(await req.json());
+      return await handlePost(user.id, await req.json());
     } catch (err) {
       // Errors reach the page as JSON — never an opaque 500.
       return json({ error: err instanceof Error ? err.message : String(err) }, 500);
     }
   }
 
-  const { data: items } = await db.from("plaid_items")
-    .select("id, institution_name, status, last_synced_at").order("institution_name");
+  const { data: items } = await connections()
+    .select("id, institution_name, status, last_synced_at")
+    .eq("user_id", user.id)
+    .order("institution_name");
   return json({ items: items ?? [] });
 });

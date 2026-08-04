@@ -1,5 +1,7 @@
 import type { PlatformDb } from "@platform/database";
-import { categoryRules } from "@platform/database";
+import { categoryRules, providerConnections } from "@platform/database";
+import type { UserId } from "@platform/financial-core";
+import { userId } from "@platform/financial-core";
 import type { SyncReport } from "@platform/ingestion";
 import {
   createCategorizer,
@@ -17,11 +19,22 @@ import {
   createVaultTokenStore,
 } from "@platform/repositories";
 import { eq } from "drizzle-orm";
-import { platformUser, requireEnv, todayUtc } from "../env.js";
+import { requireEnv, todayUtc } from "../env.js";
 
-export async function runSyncCommand(db: PlatformDb): Promise<SyncReport[]> {
-  const user = platformUser();
+/** Every user with at least one provider connection — the sync roster. */
+export async function connectedUsers(db: PlatformDb): Promise<UserId[]> {
+  const rows = await db
+    .selectDistinct({ userId: providerConnections.userId })
+    .from(providerConnections);
+  return rows.map((r) => userId(r.userId));
+}
 
+export interface UserSyncReport {
+  readonly userId: UserId;
+  readonly reports: SyncReport[];
+}
+
+export async function runSyncCommand(db: PlatformDb): Promise<UserSyncReport[]> {
   const rules = await db.select().from(categoryRules).where(eq(categoryRules.source, "plaid"));
   const categorize = createCategorizer(new Map(rules.map((r) => [r.sourceCategory, r.category])));
 
@@ -33,7 +46,7 @@ export async function runSyncCommand(db: PlatformDb): Promise<SyncReport[]> {
   });
   const provider = createPlaidProvider(client);
 
-  return runSync(user, {
+  const deps = {
     provider,
     investments: {
       provider: createPlaidInvestmentsProvider(client),
@@ -47,5 +60,11 @@ export async function runSyncCommand(db: PlatformDb): Promise<SyncReport[]> {
     categorize,
     today: todayUtc(),
     now: () => new Date(),
-  });
+  };
+
+  const results: UserSyncReport[] = [];
+  for (const user of await connectedUsers(db)) {
+    results.push({ userId: user, reports: await runSync(user, deps) });
+  }
+  return results;
 }

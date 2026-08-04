@@ -11,7 +11,6 @@ import type { Construct } from "constructs";
 
 // Not a secret (it's a row key, RLS-guarded); baked per the platform's
 // bake-config-in convention.
-const PLATFORM_USER_ID = "4039c55f-bec0-421a-b764-11ce67406a5f";
 const EMAIL = "cole@colemars.dev";
 
 const bundling = {
@@ -52,7 +51,6 @@ export class PlatformWorkersStack extends Stack {
         PLAID_SECRET: "{{resolve:secretsmanager:platform/plaid-secret}}",
         // Flipped by the deploy workflow's PLAID_ENV (repo variable); sandbox otherwise.
         PLAID_ENV: process.env.PLAID_ENV === "production" ? "production" : "sandbox",
-        PLATFORM_USER_ID,
         EVENTS_QUEUE_URL: eventsQueue.queueUrl,
         NODE_OPTIONS: "--enable-source-maps",
       },

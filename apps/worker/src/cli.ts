@@ -28,9 +28,9 @@ async function main(): Promise<number> {
 
   switch (command) {
     case "sync": {
-      const reports = await runSyncCommand(db);
-      console.log(JSON.stringify({ reports }, null, 2));
-      return reports.some((r) => r.status === "error") ? 1 : 0;
+      const userReports = await runSyncCommand(db);
+      console.log(JSON.stringify({ userReports }, null, 2));
+      return userReports.some((u) => u.reports.some((r) => r.status === "error")) ? 1 : 0;
     }
     case "insights": {
       const summary = await runInsights(db);
