@@ -1,6 +1,7 @@
 import { App } from "aws-cdk-lib";
 import { PlatformApiStack } from "./api-stack.js";
 import { GithubOidcStack } from "./oidc-stack.js";
+import { PlatformWorkersStack } from "./workers-stack.js";
 
 const app = new App();
 
@@ -15,3 +16,4 @@ const env = {
 
 new GithubOidcStack(app, "PlatformGithubOidc", { env });
 new PlatformApiStack(app, "PlatformApi", { env });
+new PlatformWorkersStack(app, "PlatformWorkers", { env });
