@@ -189,108 +189,107 @@ export function computeStructures(
       basis: "student-loan balances (and rates where the bank reports them)",
     });
   }
-  if (budgets.length > 0) {
-    // Two distinct signals: an ALARM (spending outpaces the month — early
-    // warning) and a BREACH (the monthly cap itself is spent — the law broken).
+  const activeGoals = (input.goals ?? []).filter((g) => g.active);
+  if (budgets.length > 0 || activeGoals.length > 0) {
+    // Two distinct signals for decrees: an ALARM (spending outpaces the month
+    // — early warning) and a BREACH (the monthly cap itself is spent).
     const isBreached = (b: (typeof budgets)[number]) =>
       b.spentMtd.amountMinor > b.monthlyCap.amountMinor;
     const breached = budgets.filter(isBreached).length;
     const alarms = budgets.filter((b) => b.overPace && !isBreached(b)).length;
-    const summary = [
-      breached > 0 ? `${breached} breached` : null,
-      alarms > 0 ? `${alarms} alarm${alarms === 1 ? "" : "s"} sounding` : null,
-    ]
-      .filter((x) => x !== null)
-      .join(" · ");
-    structures.push({
-      key: "watchtowers",
-      name: "The Watchtowers",
-      icon: "🗼",
-      exists: true,
-      value: budgets.length,
-      unit: "count" as const,
-      level: asLevel(Math.min(budgets.length, 5)),
-      detail: `${budgets.length} decree${budgets.length === 1 ? "" : "s"} watched · ${
-        summary === "" ? "all quiet" : summary
-      }`,
-      basis:
-        "month-to-date spending vs your decreed caps; 'alarm' compares to even daily pace, 'breach' to the full cap",
-      lines: budgets.map((b): StructureLine => {
-        const spent = b.spentMtd.amountMinor;
-        const cap = b.monthlyCap.amountMinor;
-        const pace = b.proratedCap.amountMinor;
-        if (isBreached(b)) {
-          return {
-            label: b.category,
-            value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
-            note: "✗ breached — the monthly cap is spent",
-            tone: "bad",
-          };
-        }
-        if (b.overPace) {
-          return {
-            label: b.category,
-            value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
-            note: `⚠ alarm — ${Math.round((spent / cap) * 100)}% spent; even pace would be ${fmtMinor(pace)} by today`,
-            tone: "warn",
-          };
-        }
-        return {
-          label: b.category,
-          value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
-          note: "on pace",
-          tone: "good",
-        };
-      }),
-    });
-  }
-  const activeGoals = (input.goals ?? []).filter((g) => g.active);
-  if (activeGoals.length > 0) {
+
     const statuses = new Map((input.metrics?.goalStatuses ?? []).map((st) => [st.goalId, st]));
+    const straying = activeGoals.filter((g) => statuses.get(g.id)?.onTrack === false).length;
     const kindCopy: Record<string, string> = {
       savings_net_flow: "amass treasure",
       balance_target: "grow the vault",
       debt_paydown: "drive the raiders down",
     };
-    const onTrackCount = activeGoals.filter((g) => statuses.get(g.id)?.onTrack === true).length;
-    const strayCount = activeGoals.filter((g) => statuses.get(g.id)?.onTrack === false).length;
-    structures.push({
-      key: "oaths",
-      name: "The Hall of Oaths",
-      icon: "🛡️",
-      exists: true,
-      value: activeGoals.length,
-      unit: "count" as const,
-      level: asLevel(strayCount > 0 ? 2 : onTrackCount === activeGoals.length ? 5 : 3),
-      detail: `${activeGoals.length} oath${activeGoals.length === 1 ? "" : "s"} sworn · ${
-        strayCount > 0
-          ? `${strayCount} straying from pace`
-          : onTrackCount === activeGoals.length
-            ? "all on pace"
-            : "awaiting the surveyors"
-      }`,
-      lines: activeGoals.map((g) => {
-        const account = input.accounts.find((a) => a.id === g.accountId);
-        const st = statuses.get(g.id);
-        const what = `${kindCopy[g.kind] ?? g.kind} to ${fmtMinor(g.targetAmount.amountMinor)}${
-          g.targetDate === undefined ? "" : ` by ${g.targetDate}`
-        }${account === undefined ? "" : ` — ${account.institution} ${account.name}`}`;
-        if (st === undefined || !st.evaluable || st.onTrack === null) {
-          return { label: what, note: "not yet paceable" } satisfies StructureLine;
-        }
-        const actual = st.actual === null ? "" : fmtMinor(st.actual.amountMinor);
-        const expected = st.expected === null ? "" : fmtMinor(st.expected.amountMinor);
+
+    const summary = [
+      budgets.length > 0
+        ? `${budgets.length} decree${budgets.length === 1 ? "" : "s"} watched`
+        : null,
+      activeGoals.length > 0
+        ? `${activeGoals.length} oath${activeGoals.length === 1 ? "" : "s"} sworn`
+        : null,
+      breached > 0 ? `${breached} breached` : null,
+      alarms > 0 ? `${alarms} alarm${alarms === 1 ? "" : "s"}` : null,
+      straying > 0 ? `${straying} straying` : null,
+    ]
+      .filter((x) => x !== null)
+      .join(" · ");
+
+    const decreeLines: StructureLine[] = budgets.map((b): StructureLine => {
+      const spent = b.spentMtd.amountMinor;
+      const cap = b.monthlyCap.amountMinor;
+      const pace = b.proratedCap.amountMinor;
+      if (isBreached(b)) {
         return {
-          label: what,
-          value: actual,
-          note: st.onTrack
-            ? `on pace — ${expected} expected by today`
-            : `straying — ${expected} expected by today`,
-          tone: st.onTrack ? ("good" as const) : ("bad" as const),
+          label: b.category,
+          value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+          note: "✗ breached — the monthly cap is spent",
+          tone: "bad",
         };
-      }),
+      }
+      if (b.overPace) {
+        return {
+          label: b.category,
+          value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+          note: `⚠ alarm — ${Math.round((spent / cap) * 100)}% spent; even pace would be ${fmtMinor(pace)} by today`,
+          tone: "warn",
+        };
+      }
+      return {
+        label: b.category,
+        value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+        note: "on pace",
+        tone: "good",
+      };
+    });
+
+    const oathLines: StructureLine[] = activeGoals.map((g): StructureLine => {
+      const account = input.accounts.find((a) => a.id === g.accountId);
+      const st = statuses.get(g.id);
+      const what = `${kindCopy[g.kind] ?? g.kind} to ${fmtMinor(g.targetAmount.amountMinor)}${
+        g.targetDate === undefined ? "" : ` by ${g.targetDate}`
+      }${account === undefined ? "" : ` — ${account.institution} ${account.name}`}`;
+      if (st === undefined || !st.evaluable || st.onTrack === null) {
+        return { label: what, note: "not yet paceable" } satisfies StructureLine;
+      }
+      const actual = st.actual === null ? "" : fmtMinor(st.actual.amountMinor);
+      const expected = st.expected === null ? "" : fmtMinor(st.expected.amountMinor);
+      return {
+        label: what,
+        value: actual,
+        note: st.onTrack
+          ? `on pace — ${expected} expected by today`
+          : `straying — ${expected} expected by today`,
+        tone: st.onTrack ? ("good" as const) : ("bad" as const),
+      };
+    });
+
+    structures.push({
+      key: "watchtowers",
+      name: "The Watchtowers",
+      icon: "🗼",
+      exists: true,
+      value: budgets.length + activeGoals.length,
+      unit: "count" as const,
+      // Status-led pips: quiet towers glow; alarms and straying dim them;
+      // a breach darkens the sky.
+      level: asLevel(breached > 0 ? 1 : alarms + straying > 0 ? 3 : 5),
+      detail: summary === "" ? "the towers stand quiet" : summary,
+      lines: [
+        ...(decreeLines.length > 0
+          ? [{ label: "spending decrees", heading: true } satisfies StructureLine, ...decreeLines]
+          : []),
+        ...(oathLines.length > 0
+          ? [{ label: "sworn undertakings", heading: true } satisfies StructureLine, ...oathLines]
+          : []),
+      ],
       basis:
-        "the surveyors pace each oath linearly from its baseline to its target date; 'standing' is the vault balance or net savings since the oath",
+        "decrees: month-to-date spending vs your caps ('alarm' = ahead of even pace, 'breach' = cap spent). oaths: paced linearly from baseline to target date",
     });
   }
 

@@ -139,12 +139,13 @@ export type StructureKey =
   | "manor"
   | "guildDebt"
   | "watchtowers"
-  | "banditCamp"
-  | "oaths";
+  | "banditCamp";
 
 export interface StructureLine {
   /** What the row is about (a decree, a card, a vault). */
   label: string;
+  /** Section divider within a report (renders as a small heading). */
+  heading?: boolean;
   /** The headline figure, right-aligned. */
   value?: string;
   /** One-line explanation beneath, muted. */
