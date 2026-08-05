@@ -4,6 +4,7 @@ import { Amount, Table, fmtMoney } from "@platform/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { CouncilChamber } from "../components/council";
 import { type EconomyView, InfluenceChip, LedgerOfDeeds, ownedItems } from "../components/economy";
 import {
   AgeBanner,
@@ -25,8 +26,20 @@ import { narrateDelta } from "../lib/replay";
 import { fetchLastSeen, saveLastSeen, shouldReplay } from "../lib/serverLastSeen";
 import { translate } from "../lib/translate";
 import { useKingdomData } from "../lib/useKingdomData";
+import {
+  type KingdomMetaWithCouncil,
+  advanceCouncil,
+  backProposal,
+  isoWeekOf,
+} from "../model/council";
 import { type KingdomDelta, computeKingdomDiff } from "../model/diff";
-import { foldInfluence, influenceBalance, purchase } from "../model/economy";
+import {
+  type KingdomMeta,
+  type LedgerEvent,
+  foldInfluence,
+  influenceBalance,
+  purchase,
+} from "../model/economy";
 import { kingdomModel } from "../model/kingdomModel";
 
 /** Away this long, the crown is offered a fresh start alongside the replay. */
@@ -36,7 +49,9 @@ export default function ThroneRoom() {
   const router = useRouter();
   const state = useKingdomData(clients);
   const [replay, setReplay] = useState<KingdomDelta[] | null>(null);
-  const [economy, setEconomy] = useState<(EconomyView & { loaded: LoadedMeta }) | null>(null);
+  const [economy, setEconomy] = useState<
+    (EconomyView & { loaded: LoadedMeta; events: LedgerEvent[] }) | null
+  >(null);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [fleeOffered, setFleeOffered] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,21 +88,53 @@ export default function ThroneRoom() {
     };
   }, [kingdom]);
 
-  // The Influence economy: load (or found) the meta record, then fold the
-  // reign's events into the balance. Pure fold — full replay every open.
+  // The Influence economy: load (or found) the meta record, fold the reign's
+  // events into the balance, then hold a council session — judge active
+  // quests eagerly, roll the weekly slate. The council write happens only
+  // when something actually changed (first open of the week, a resolution).
   useEffect(() => {
     if (state.status !== "ready") return;
+    const { metrics, today } = state.input;
     let cancelled = false;
     (async () => {
       try {
-        const loaded = await loadOrFoundMeta(clients.api, state.input.metrics);
-        const events = await fetchEventsSince(clients.api, loaded.meta.epoch.epochSeq);
+        let current = await loadOrFoundMeta(clients.api, metrics);
+        const events = await fetchEventsSince(clients.api, current.meta.epoch.epochSeq);
+        const week = isoWeekOf(today);
+        const session = advanceCouncil(
+          (current.meta as KingdomMetaWithCouncil).council,
+          week,
+          metrics,
+          events,
+          today,
+          new Set(current.meta.questGrants.map((g) => g.questId)),
+        );
+        if (session.changed) {
+          const written = await updateMeta(clients.api, current, (m) => {
+            const mc = m as KingdomMetaWithCouncil;
+            const a = advanceCouncil(
+              mc.council,
+              week,
+              metrics,
+              events,
+              today,
+              new Set(mc.questGrants.map((g) => g.questId)),
+            );
+            return {
+              ...mc,
+              council: a.council,
+              questGrants: [...mc.questGrants, ...a.grants],
+            } as KingdomMeta;
+          });
+          if (written !== null) current = written;
+        }
         if (cancelled) return;
         setEconomy({
-          loaded,
-          meta: loaded.meta,
-          fold: foldInfluence(events, loaded.meta.epoch.epochSeq),
-          readOnly: loaded.readOnly,
+          loaded: current,
+          meta: current.meta,
+          fold: foldInfluence(events, current.meta.epoch.epochSeq),
+          events,
+          readOnly: current.readOnly,
         });
       } catch {
         // The economy failing to load never blocks the throne room.
@@ -97,6 +144,30 @@ export default function ThroneRoom() {
       cancelled = true;
     };
   }, [state]);
+
+  async function handleBack(proposalId: string) {
+    if (economy === null || state.status !== "ready" || busy) return;
+    setBusy(true);
+    try {
+      // The baseline pins NOW: the quest's window is every event after this.
+      const baselineSeq =
+        economy.events.length > 0
+          ? Math.max(...economy.events.map((e) => e.seq))
+          : economy.meta.epoch.epochSeq;
+      const today = state.input.today;
+      const result = await updateMeta(clients.api, economy.loaded, (m) => {
+        const mc = m as KingdomMetaWithCouncil;
+        if (mc.council === undefined) return null;
+        const next = backProposal(mc.council, proposalId, baselineSeq, today);
+        return next === null ? null : ({ ...mc, council: next } as KingdomMeta);
+      });
+      if (result !== null) {
+        setEconomy({ ...economy, loaded: result, meta: result.meta, readOnly: false });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handlePurchase(itemId: string) {
     if (economy === null || busy) return;
@@ -273,6 +344,20 @@ export default function ThroneRoom() {
       <ResourceBars resources={kingdom.resources} />
       <ThreatCards threats={kingdom.threats} transactions={state.input.transactions} />
       <MoatMeter moat={kingdom.moat} />
+      {economy !== null &&
+        (() => {
+          const council = (economy.meta as KingdomMetaWithCouncil).council;
+          return council === undefined ? null : (
+            <CouncilChamber
+              council={council}
+              metrics={state.input.metrics}
+              events={economy.events}
+              onBack={handleBack}
+              busy={busy}
+              readOnly={economy.readOnly}
+            />
+          );
+        })()}
       <StructureGrid structures={kingdom.structures} />
       <Chronicle entries={kingdom.chronicle} />
 
