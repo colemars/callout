@@ -114,6 +114,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         ],
         basis: "groceries + housing + transport + health, completed vs prior month",
         breakdown: categoryBreakdown(ref, prior, ESSENTIAL_CATEGORIES),
+        months: { current: ref.month, previous: prior.month },
       });
     } else {
       threats.push(dormant("winter", "Winter", "conditions-clear"));
@@ -139,6 +140,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         ],
         basis: "lifestyle spending excluding travel, completed vs prior month",
         breakdown: categoryBreakdown(ref, prior, FEAST_CATEGORIES),
+        months: { current: ref.month, previous: prior.month },
       });
     } else {
       threats.push(dormant("feast", "Royal feasts", "conditions-clear"));
@@ -168,6 +170,15 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
           },
         ],
         basis: "income ≈ net cash flow + spending, completed vs prior month",
+        breakdown: [
+          {
+            label: "income",
+            previousMinor: incomePrior,
+            currentMinor: incomeNow ?? 0,
+            deltaMinor: (incomeNow ?? 0) - incomePrior,
+          },
+        ],
+        months: { current: ref.month, previous: prior.month },
       });
     } else {
       threats.push(

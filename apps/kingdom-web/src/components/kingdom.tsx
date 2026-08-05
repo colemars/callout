@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import type {
   AgeState,
   ChronicleEntry,
+  KingdomTxn,
   MoatState,
   ResourceState,
   StructureState,
@@ -89,7 +91,100 @@ export function ResourceBars({ resources }: { resources: ResourceState[] }) {
   );
 }
 
-export function ThreatCards({ threats }: { threats: ThreatState[] }) {
+interface LedgerView {
+  category: string;
+  months: { current: string; previous: string };
+}
+
+/** The ledger behind a breakdown line: real transactions, month by month. */
+function LedgerModal({
+  view,
+  transactions,
+  onClose,
+}: {
+  view: LedgerView;
+  transactions: KingdomTxn[];
+  onClose: () => void;
+}) {
+  const inMonth = (month: string) =>
+    transactions
+      .filter((t) => t.category === view.category && t.postedAt.startsWith(month))
+      .sort((a, b) => Math.abs(b.amount.amountMinor) - Math.abs(a.amount.amountMinor));
+
+  const section = (month: string, label: string) => {
+    const rows = inMonth(month);
+    const total = rows.reduce((sum, t) => sum + t.amount.amountMinor, 0);
+    return (
+      <section className="mt-3">
+        <h4 className="flex justify-between text-xs font-semibold text-amber-900 dark:text-amber-200">
+          <span>
+            {label} ({month})
+          </span>
+          <span className="tabular-nums">{fmtUsd(Math.abs(total))}</span>
+        </h4>
+        {rows.length === 0 ? (
+          <p className={`mt-1 text-xs ${muted}`}>No ledger lines within the scrolls' reach.</p>
+        ) : (
+          <ul className="mt-1 flex flex-col gap-0.5 text-xs">
+            {rows.map((t) => (
+              <li key={t.id} className="flex justify-between gap-3">
+                <span className="min-w-0 truncate">
+                  <span className={muted}>{t.postedAt.slice(5)}</span> {t.merchant ?? t.description}
+                </span>
+                <span className="shrink-0 tabular-nums">{fmtUsd(t.amount.amountMinor)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close the ledger"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default bg-black/60"
+      />
+      <dialog
+        open
+        aria-label={`Ledger: ${view.category}`}
+        className="relative z-10 max-h-[80vh] w-full max-w-md overflow-y-auto rounded-lg border border-amber-900/20 bg-amber-50 p-4 text-inherit dark:border-amber-200/20 dark:bg-stone-900"
+      >
+        <div className="flex items-baseline justify-between">
+          <h3 className="font-serif text-base font-semibold text-amber-900 dark:text-amber-200">
+            The ledger: {view.category}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`text-sm underline ${muted}`}
+            aria-label="Close"
+          >
+            close
+          </button>
+        </div>
+        {section(view.months.current, "last moon")}
+        {section(view.months.previous, "the moon before")}
+        <p className={`mt-3 text-xs ${muted}`}>
+          The scrolls reach back ~70 days — the elder moon may be partly beyond them. Wrongly marked
+          lines can be corrected in the Accountability ledger.
+        </p>
+      </dialog>
+    </div>
+  );
+}
+
+export function ThreatCards({
+  threats,
+  transactions,
+}: {
+  threats: ThreatState[];
+  transactions: KingdomTxn[];
+}) {
+  const [ledger, setLedger] = useState<LedgerView | null>(null);
   const active = threats.filter((t) => t.active);
   if (active.length === 0) return null;
   return (
@@ -124,7 +219,23 @@ export function ThreatCards({ threats }: { threats: ThreatState[] }) {
                 <ul className="mt-1 flex flex-col gap-0.5 text-xs">
                   {t.breakdown.map((line) => (
                     <li key={line.label} className="flex justify-between gap-4 tabular-nums">
-                      <span>{line.label}</span>
+                      {t.months !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLedger({
+                              category: line.label,
+                              months: t.months as LedgerView["months"],
+                            })
+                          }
+                          className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-amber-800 dark:hover:text-amber-200"
+                          title="Open the ledger"
+                        >
+                          {line.label}
+                        </button>
+                      ) : (
+                        <span>{line.label}</span>
+                      )}
                       <span>
                         {fmtUsd(line.previousMinor)} → {fmtUsd(line.currentMinor)}{" "}
                         <span
@@ -145,6 +256,9 @@ export function ThreatCards({ threats }: { threats: ThreatState[] }) {
           </li>
         ))}
       </ul>
+      {ledger !== null && (
+        <LedgerModal view={ledger} transactions={transactions} onClose={() => setLedger(null)} />
+      )}
     </section>
   );
 }

@@ -130,7 +130,7 @@ export default function ThroneRoom() {
 
       <AgeBanner age={kingdom.age} />
       <ResourceBars resources={kingdom.resources} />
-      <ThreatCards threats={kingdom.threats} />
+      <ThreatCards threats={kingdom.threats} transactions={state.input.transactions} />
       <MoatMeter moat={kingdom.moat} />
       <StructureGrid structures={kingdom.structures} />
       <Chronicle entries={kingdom.chronicle} />

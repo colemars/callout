@@ -142,6 +142,8 @@ export interface ThreatState {
   basis: string;
   /** Optional per-line account of the comparison (e.g. Winter's categories). */
   breakdown?: ThreatBreakdownLine[];
+  /** The months a comparative threat judged (ISO YYYY-MM) — lets the UI open the ledger. */
+  months?: { current: string; previous: string };
 }
 
 export interface ThreatBreakdownLine {
