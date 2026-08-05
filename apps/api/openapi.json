@@ -2430,6 +2430,12 @@
                     "tokensDeleted": {
                       "type": "integer"
                     },
+                    "orphanedTokens": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "revokedAtPlaid": {
                       "type": "integer"
                     }
@@ -2437,6 +2443,7 @@
                   "required": [
                     "deleted",
                     "tokensDeleted",
+                    "orphanedTokens",
                     "revokedAtPlaid"
                   ],
                   "additionalProperties": false

@@ -159,6 +159,10 @@ describe("DELETE /api/v1/data", () => {
     expect(body.deleted.provider_connections).toBe(1);
     expect(body.revokedAtPlaid).toBe(0);
     expect(revoked).toEqual([]); // opt-in only — never called by default
+    // PGlite has no vault RPC, so the failure MUST surface as an orphan
+    // report, never a silent swallow.
+    expect(body.tokensDeleted).toBe(0);
+    expect(body.orphanedTokens).toHaveLength(1);
 
     // The other user's world is untouched.
     const rows = await db.select().from(providerConnections);

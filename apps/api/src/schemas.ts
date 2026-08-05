@@ -316,5 +316,7 @@ export const deleteDataBody = z.object({
 export const wipeReportSchema = z.object({
   deleted: z.record(z.number().int()),
   tokensDeleted: z.number().int(),
+  /** Vault secret ids that could not be deleted — non-empty means follow up. */
+  orphanedTokens: z.array(z.string()),
   revokedAtPlaid: z.number().int(),
 });

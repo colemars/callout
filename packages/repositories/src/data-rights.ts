@@ -1,10 +1,10 @@
 import type { PlatformDb } from "@platform/database";
 import {
-  events,
   accountLiabilities,
   accounts,
   balanceSnapshots,
   budgets,
+  events,
   goals,
   investmentActivity,
   metricSnapshots,
@@ -18,19 +18,23 @@ import { eq, sql } from "drizzle-orm";
 
 /**
  * Data rights (ARCHITECTURE.md "Security, Privacy & Trust"): the full wipe
- * behind DELETE /api/v1/data. Deletes every platform.* row belonging to the
- * user in FK-safe order and removes each connection's vault-held access
- * token via delete_plaid_token (an orphaned token is a live credential with
- * no owner). The auth user survives — they can relink and start fresh.
+ * behind DELETE /api/v1/data. Row deletion is ATOMIC — one transaction, so
+ * a mid-wipe failure leaves the account whole, never half-erased. Vault
+ * tokens are deleted after the commit; a failed vault delete is REPORTED
+ * (orphanedTokens), never swallowed — an unrecorded live credential is the
+ * worst kind of orphan. The auth user survives — they can relink.
  */
 export interface WipeReport {
   readonly deleted: Record<string, number>;
   /** Vault secrets removed (one per connection). */
   readonly tokensDeleted: number;
+  /** Vault secret ids that could NOT be deleted — surface these loudly. */
+  readonly orphanedTokens: readonly string[];
 }
 
 export async function deleteAllUserData(db: PlatformDb, userId: UserId): Promise<WipeReport> {
-  // Collect vault secret ids BEFORE deleting the rows that reference them.
+  // Collect vault secret ids BEFORE deleting the rows that reference them —
+  // once provider_connections is gone, these ids exist nowhere else.
   const connections = await db
     .select({ secretId: providerConnections.accessTokenSecretId })
     .from(providerConnections)
@@ -52,24 +56,26 @@ export async function deleteAllUserData(db: PlatformDb, userId: UserId): Promise
   ] as const;
 
   const deleted: Record<string, number> = {};
-  for (const [name, table] of tables) {
-    const rows = await db
-      .delete(table)
-      .where(eq(table.userId, userId))
-      .returning({ userId: table.userId });
-    deleted[name] = rows.length;
-  }
+  await db.transaction(async (tx) => {
+    for (const [name, table] of tables) {
+      const rows = await tx
+        .delete(table)
+        .where(eq(table.userId, userId))
+        .returning({ userId: table.userId });
+      deleted[name] = rows.length;
+    }
+  });
 
   let tokensDeleted = 0;
+  const orphanedTokens: string[] = [];
   for (const c of connections) {
-    // Best-effort: a missing secret is already the end state we want.
     try {
       await db.execute(sql`select public.delete_plaid_token(${c.secretId}::uuid)`);
       tokensDeleted++;
     } catch {
-      // The row is gone either way; an undeletable secret is logged upstream.
+      orphanedTokens.push(c.secretId);
     }
   }
 
-  return { deleted, tokensDeleted };
+  return { deleted, tokensDeleted, orphanedTokens };
 }

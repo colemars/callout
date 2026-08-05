@@ -701,6 +701,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             }
           }
           const report = await deleteAllUserData(deps.db, userId);
+          if (report.orphanedTokens.length > 0) {
+            // A live credential with no owning row must be loud, not silent.
+            request.log.warn({ orphanedTokens: report.orphanedTokens }, "vault delete failed");
+          }
           request.log.info({ userId, ...report.deleted }, "data wipe");
           return { ...report, revokedAtPlaid };
         },

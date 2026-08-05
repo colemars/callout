@@ -1261,6 +1261,7 @@ export interface paths {
                                 [key: string]: number;
                             };
                             tokensDeleted: number;
+                            orphanedTokens: string[];
                             revokedAtPlaid: number;
                         };
                     };
