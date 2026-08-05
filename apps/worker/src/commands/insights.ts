@@ -5,6 +5,7 @@ import { userId } from "@platform/financial-core";
 import { computeMetrics, defaultEngineConfig, deriveEvents } from "@platform/insight-engine";
 import {
   createEventStore,
+  createGoalRepository,
   createMetricSnapshotStore,
   loadFinancialState,
 } from "@platform/repositories";
@@ -48,6 +49,13 @@ export async function runInsights(db: PlatformDb): Promise<InsightsSummary> {
 
     await metricStore.save(current);
     await eventStore.insertMany(events);
+
+    // A fulfilled oath retires: completion deactivates the goal.
+    for (const e of events) {
+      if (e.type === "GOAL_COMPLETED") {
+        await createGoalRepository(db).update(user, e.goalId, { active: false });
+      }
+    }
 
     users.push({
       userId: user,

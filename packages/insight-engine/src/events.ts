@@ -20,6 +20,19 @@ export function deriveEvents(
   for (const g of current.goalStatuses) {
     if (!g.evaluable || g.onTrack === null || g.expected === null || g.actual === null) continue;
     const prev = previous?.goalStatuses.find((p) => p.goalId === g.goalId);
+    // Completion: strictly edge-triggered against the previous snapshot's
+    // status ("!== true" so snapshots persisted before the field existed
+    // still fire the transition once). No previous status = no edge.
+    if (g.completed && prev !== undefined && prev.completed !== true) {
+      events.push({
+        ...base,
+        type: "GOAL_COMPLETED",
+        goalId: g.goalId,
+        kind: g.kind,
+        target: g.target,
+      });
+      continue; // a completed goal has no pacing left to announce
+    }
     // g.onTrack is non-null here, so an equal prev.onTrack means "already announced".
     if (prev?.evaluable && prev.onTrack === g.onTrack) continue;
     if (g.onTrack) {
@@ -149,6 +162,17 @@ export function deriveEvents(
       }
     }
 
+    // Account-composition guard: when the linked account set differs between
+    // snapshots, debt/runway movement may be a link or unlink, not behavior.
+    // Delta events get flagged (folds ignore them); milestone events are
+    // suppressed outright — a phantom "debt eliminated" from unlinking a card
+    // must never chronicle. Runtime-guarded: snapshots persisted before the
+    // fingerprint existed compare as changed, which fails safe.
+    const prevFingerprint = previous.accountFingerprint as string | undefined;
+    const currFingerprint = current.accountFingerprint as string | undefined;
+    const setChanged = prevFingerprint !== currFingerprint;
+    const flag = setChanged ? ({ accountSetChanged: true } as const) : {};
+
     // High-interest debt: threshold-gated change between snapshots.
     const debtDelta = subtract(current.totalHighInterestDebt, previous.totalHighInterestDebt);
     if (Math.abs(debtDelta.amountMinor) >= config.debtDeltaThresholdMinor) {
@@ -161,7 +185,17 @@ export function deriveEvents(
         previous: previous.totalHighInterestDebt,
         current: current.totalHighInterestDebt,
         delta: abs(debtDelta),
+        ...flag,
       });
+    }
+
+    // The last of the debt is gone — a milestone, so guarded, not flagged.
+    if (
+      !setChanged &&
+      previous.totalHighInterestDebt.amountMinor > 0 &&
+      current.totalHighInterestDebt.amountMinor === 0
+    ) {
+      events.push({ ...base, type: "DEBT_ELIMINATED", previous: previous.totalHighInterestDebt });
     }
 
     // Emergency runway: threshold-gated change.
@@ -176,6 +210,57 @@ export function deriveEvents(
         type: "EMERGENCY_RUNWAY_CHANGED",
         previousMonths: previous.emergencyRunwayMonths,
         currentMonths: current.emergencyRunwayMonths,
+        ...flag,
+      });
+    }
+
+    // Emergency-fund milestones: strictly edge-triggered upward crossings;
+    // a jump across several tiers emits every tier crossed.
+    if (
+      !setChanged &&
+      previous.emergencyRunwayMonths !== null &&
+      current.emergencyRunwayMonths !== null
+    ) {
+      for (const tier of config.emergencyFundTiersMonths) {
+        if (previous.emergencyRunwayMonths < tier && current.emergencyRunwayMonths >= tier) {
+          events.push({ ...base, type: "EMERGENCY_FUND_MILESTONE", tier, month: current.month });
+        }
+      }
+    }
+
+    // Savings-rate milestones: judged only when the month rolls, against the
+    // trailing rate. (Runtime-guarded: older snapshots lack the field.)
+    const prevRate = (previous.savingsRate as MetricSet["savingsRate"] | undefined)?.pct ?? null;
+    const currRate = (current.savingsRate as MetricSet["savingsRate"] | undefined)?.pct ?? null;
+    if (!setChanged && previous.month !== current.month && prevRate !== null && currRate !== null) {
+      for (const tierPct of config.savingsRateTiersPct) {
+        if (prevRate < tierPct && currRate >= tierPct) {
+          events.push({
+            ...base,
+            type: "SAVINGS_RATE_MILESTONE",
+            tierPct,
+            month: current.completedMonth.month,
+          });
+        }
+      }
+    }
+
+    // Under-budget streak: announced on the month roll while it holds.
+    // (Runtime-guarded; suppressed across account-set changes — a newly
+    // linked account rewrites the spending history being judged.)
+    const streak = (current.underBudgetStreak as MetricSet["underBudgetStreak"] | undefined)
+      ?.months;
+    if (
+      !setChanged &&
+      previous.month !== current.month &&
+      streak !== undefined &&
+      streak >= config.underBudgetStreakMinMonths
+    ) {
+      events.push({
+        ...base,
+        type: "UNDER_BUDGET_STREAK",
+        months: streak,
+        month: current.completedMonth.month,
       });
     }
   }
@@ -243,6 +328,7 @@ function sortKey(e: FinancialEvent): string {
   switch (e.type) {
     case "GOAL_OFF_TRACK":
     case "GOAL_ON_TRACK":
+    case "GOAL_COMPLETED":
       return `1:${e.goalId}:${e.type}`;
     case "NET_CASH_FLOW_NEGATIVE":
     case "NET_CASH_FLOW_POSITIVE":
@@ -255,6 +341,7 @@ function sortKey(e: FinancialEvent): string {
       return `4:${e.merchant}:${e.type}`;
     case "HIGH_INTEREST_DEBT_INCREASED":
     case "HIGH_INTEREST_DEBT_DECREASED":
+    case "DEBT_ELIMINATED":
       return `5:${e.type}`;
     case "PASSIVE_INCOME_INCREASED":
       return `6:${e.type}`;
@@ -265,5 +352,11 @@ function sortKey(e: FinancialEvent): string {
       return `8:${e.month}:${e.type}`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `7:${e.type}`;
+    case "EMERGENCY_FUND_MILESTONE":
+      return `9:${e.tier}:${e.type}`;
+    case "SAVINGS_RATE_MILESTONE":
+      return `9:${e.tierPct}:${e.type}`;
+    case "UNDER_BUDGET_STREAK":
+      return `9:${e.month}:${e.type}`;
   }
 }

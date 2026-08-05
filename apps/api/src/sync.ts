@@ -22,6 +22,7 @@ import {
   createAccountRepository,
   createConnectionStore,
   createEventStore,
+  createGoalRepository,
   createInvestmentActivityRepository,
   createLiabilityRepository,
   createMetricSnapshotStore,
@@ -108,6 +109,13 @@ export function createUserSync(
     const events = alreadyRanToday ? [] : deriveEvents(previous, current, defaultEngineConfig);
     await metricStore.save(current);
     await createEventStore(db).insertMany(events);
+
+    // A fulfilled oath retires: completion deactivates the goal so it stops
+    // being paced (the event is already in the ledger).
+    const goalRepo = createGoalRepository(db);
+    for (const e of events) {
+      if (e.type === "GOAL_COMPLETED") await goalRepo.update(userId, e.goalId, { active: false });
+    }
 
     return { reports, newEvents: events.length, ...(scribe === undefined ? {} : { scribe }) };
   };

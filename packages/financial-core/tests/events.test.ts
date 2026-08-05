@@ -60,6 +60,7 @@ describe("FinancialEvent", () => {
           return "recurring";
         case "HIGH_INTEREST_DEBT_INCREASED":
         case "HIGH_INTEREST_DEBT_DECREASED":
+        case "DEBT_ELIMINATED":
           return "debt";
         case "NET_CASH_FLOW_NEGATIVE":
         case "NET_CASH_FLOW_POSITIVE":
@@ -70,9 +71,16 @@ describe("FinancialEvent", () => {
         case "RETIREMENT_CONTRIBUTION_INCREASED":
           return "retirement";
         case "EMERGENCY_RUNWAY_CHANGED":
+        case "EMERGENCY_FUND_MILESTONE":
           return "runway";
         case "UNCATEGORIZED_FUNDS":
           return "uncategorized";
+        case "SAVINGS_RATE_MILESTONE":
+          return "savings";
+        case "UNDER_BUDGET_STREAK":
+          return "budget";
+        case "GOAL_COMPLETED":
+          return "goal";
         default:
           return assertNever(e); // compile error here if a variant is unhandled
       }

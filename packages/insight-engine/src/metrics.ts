@@ -68,6 +68,9 @@ export interface GoalStatus {
   readonly onTrack: boolean | null;
   readonly expected: Money | null;
   readonly actual: Money | null;
+  /** The actual reached the target (≤ for paydown, ≥ otherwise). */
+  readonly completed: boolean;
+  readonly target: Money;
 }
 
 /**
@@ -99,6 +102,33 @@ export interface MetricSet {
   readonly uncategorized: UncategorizedSummary;
   /** Trailing income average — one hot or cold month is not a trend. */
   readonly incomeBaseline: IncomeBaseline;
+  /** Trailing savings rate — the share of income kept, over 3 full months. */
+  readonly savingsRate: SavingsRate;
+  /**
+   * Fingerprint of the active account set. When two snapshots differ here,
+   * debt/runway deltas may reflect linking or unlinking rather than behavior —
+   * milestone events are suppressed and delta events flagged across the gap.
+   */
+  readonly accountFingerprint: string;
+  /** Consecutive completed months every active budget held (post-issuance only). */
+  readonly underBudgetStreak: UnderBudgetStreak;
+}
+
+export interface SavingsRate {
+  /** Full months with activity that informed the rate (up to 3). */
+  readonly monthsCounted: number;
+  /** Σ net cash flow ÷ Σ income, as a percent; null under 2 months or non-positive income. */
+  readonly pct: number | null;
+}
+
+export interface UnderBudgetStreak {
+  /**
+   * Consecutive completed months (ending with the latest completed month) in
+   * which every active budget's category spend stayed at or under its cap.
+   * Only months strictly after the newest budget's creation month count —
+   * a streak must be earned under watch, never backdated.
+   */
+  readonly months: number;
 }
 
 export interface IncomeBaseline {

@@ -1,5 +1,5 @@
-import type { ISODate } from "@platform/financial-core";
-import { money, monthOf } from "@platform/financial-core";
+import type { ISODate, ISOMonth } from "@platform/financial-core";
+import { isoMonth, money, monthOf } from "@platform/financial-core";
 import type { EngineConfig } from "./config.js";
 import { computeBudgetStatus } from "./internal/budget.js";
 import { computeDebtTrajectory, totalHighInterestDebt } from "./internal/debt.js";
@@ -54,7 +54,96 @@ export function computeMetrics(
     investments: summarizeInvestments(state.investmentActivity, asOf, config),
     uncategorized: summarizeUncategorized(state, completedMonth),
     incomeBaseline: computeIncomeBaseline(state, config, asOf),
+    savingsRate: computeSavingsRate(state, config, asOf),
+    accountFingerprint: accountFingerprint(state),
+    underBudgetStreak: computeUnderBudgetStreak(state, config, completedMonth),
   };
+}
+
+/**
+ * Trailing savings rate over up to 3 completed months with activity:
+ * Σ net cash flow ÷ Σ income (net + spending). Null under 2 informative
+ * months or when income is non-positive — a rate needs a real denominator.
+ */
+function computeSavingsRate(
+  state: FinancialState,
+  config: EngineConfig,
+  asOf: ISODate,
+): MetricSet["savingsRate"] {
+  let saved = 0;
+  let income = 0;
+  let counted = 0;
+  for (const month of lastFullMonths(asOf, 3)) {
+    const summary = summarizeMonth(state.transactions, month, config);
+    if (summary.transactionCount === 0) continue;
+    saved += summary.netCashFlow.amountMinor;
+    income += summary.netCashFlow.amountMinor + summary.totalSpending.amountMinor;
+    counted++;
+  }
+  const pct = counted < 2 || income <= 0 ? null : Math.round((saved / income) * 1000) / 10;
+  return { monthsCounted: counted, pct };
+}
+
+/**
+ * Deterministic fingerprint of the active account set (FNV-1a over sorted
+ * ids). Snapshots with differing fingerprints must not be compared for
+ * debt/runway milestones — a linked or unlinked account is not behavior.
+ */
+function accountFingerprint(state: FinancialState): string {
+  const joined = state.accounts
+    .filter((a) => a.isActive)
+    .map((a) => a.id as string)
+    .sort()
+    .join("|");
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < joined.length; i++) {
+    hash ^= joined.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+/**
+ * Consecutive completed months, ending with the latest completed month, in
+ * which every active budget's category spend stayed at or under its cap.
+ * Judged against CURRENT caps; only months strictly after the newest budget's
+ * creation month count — the streak is earned under watch, never backdated.
+ */
+function computeUnderBudgetStreak(
+  state: FinancialState,
+  config: EngineConfig,
+  completedMonth: ISOMonth,
+): MetricSet["underBudgetStreak"] {
+  const active = state.budgets.filter((b) => b.active);
+  if (active.length === 0) return { months: 0 };
+  // A budget without a creation date can't anchor eligibility — no streak.
+  const createdMonths = active.map((b) =>
+    b.createdAt === undefined ? null : monthOf(b.createdAt),
+  );
+  if (createdMonths.includes(null)) return { months: 0 };
+  const eligibleAfter = (createdMonths as ISOMonth[]).sort().at(-1) as ISOMonth;
+
+  let months = 0;
+  let month = completedMonth;
+  const CAP = 24; // enough for any bragging-rights streak; bounds the walk
+  while (months < CAP && month > eligibleAfter) {
+    const summary = summarizeMonth(state.transactions, month, config);
+    const held = active.every((b) => {
+      const spent =
+        summary.spendingByCategory.find((s) => s.category === b.category)?.amount.amountMinor ?? 0;
+      return spent <= b.monthlyCap.amountMinor;
+    });
+    if (!held) break;
+    months++;
+    month = previousMonth(month);
+  }
+  return { months };
+}
+
+/** "2026-08" -> "2026-07" without Date arithmetic. */
+function previousMonth(month: ISOMonth): ISOMonth {
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  return isoMonth(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`);
 }
 
 /**

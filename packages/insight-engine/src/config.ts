@@ -31,6 +31,12 @@ export interface EngineConfig {
   readonly runwayChangeThresholdMonths: number;
   /** Full months of history used for the runway spending average. */
   readonly runwayLookbackMonths: number;
+  /** Runway tiers (months) that chronicle a milestone when crossed upward. */
+  readonly emergencyFundTiersMonths: readonly number[];
+  /** Savings-rate tiers (percent) that chronicle a milestone when crossed upward. */
+  readonly savingsRateTiersPct: readonly number[];
+  /** An under-budget streak announces itself from this many months on. */
+  readonly underBudgetStreakMinMonths: number;
 }
 
 export const defaultEngineConfig: EngineConfig = {
@@ -50,4 +56,7 @@ export const defaultEngineConfig: EngineConfig = {
   debtDeltaThresholdMinor: 100_00,
   runwayChangeThresholdMonths: 0.5,
   runwayLookbackMonths: 3,
+  emergencyFundTiersMonths: [1, 3, 6, 12],
+  savingsRateTiersPct: [5, 10, 20, 30],
+  underBudgetStreakMinMonths: 2,
 };

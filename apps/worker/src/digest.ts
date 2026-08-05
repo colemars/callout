@@ -81,6 +81,16 @@ export function renderEventLine(e: Eventish): string {
       return `Uncategorized activity in ${monthName(e.month)}: ${n(e.count)} transactions, ${money(e.amount)} the ledger can't place.`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `Emergency runway changed: ${n(e.previousMonths)} -> ${n(e.currentMonths)} months.`;
+    case "DEBT_ELIMINATED":
+      return `High-interest debt eliminated — the last ${money(e.previous)} is paid off.`;
+    case "EMERGENCY_FUND_MILESTONE":
+      return `Emergency fund milestone: ${n(e.tier)} month${n(e.tier) === 1 ? "" : "s"} of essentials covered.`;
+    case "SAVINGS_RATE_MILESTONE":
+      return `Savings rate milestone: keeping ${n(e.tierPct)}%+ of income.`;
+    case "UNDER_BUDGET_STREAK":
+      return `${n(e.months)} straight months with every budget held.`;
+    case "GOAL_COMPLETED":
+      return "Goal completed — target reached.";
     default:
       return `${e.type} (${e.occurredOn})`;
   }

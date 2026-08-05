@@ -51,12 +51,42 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "NET_CASH_FLOW_NEGATIVE":
       return {
         tone: "bad",
-        headline: `In the moon of ${monthName(p.month)}, the treasury bled ${absMoney(p.netFlow)}.`,
+        headline: `In ${monthName(p.month)}, the treasury bled ${absMoney(p.netFlow)}.`,
       };
     case "NET_CASH_FLOW_POSITIVE":
       return {
         tone: "good",
-        headline: `The moon of ${monthName(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
+        headline: `${monthName(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
+      };
+    case "DEBT_ELIMINATED":
+      return {
+        tone: "good",
+        headline: `The raiders are driven from the realm — the last ${asMoney(p.previous)} of their claim is repaid. The bandit camp stands empty.`,
+      };
+    case "EMERGENCY_FUND_MILESTONE": {
+      const tier = asNum(p.tier);
+      return {
+        tone: "good",
+        headline: `A milestone for the granary: the stores would now feed the realm for ${tier} ${tier === 1 ? "month" : "months"} under siege.`,
+      };
+    }
+    case "SAVINGS_RATE_MILESTONE":
+      return {
+        tone: "good",
+        headline: `The crown now keeps ${asNum(p.tierPct)} of every hundred coins that enter the realm. The treasury takes note.`,
+      };
+    case "UNDER_BUDGET_STREAK": {
+      const months = asNum(p.months);
+      return {
+        tone: "good",
+        headline: `${months} months running, every spending decree has held. The Hall of Oaths shines.`,
+      };
+    }
+    case "GOAL_COMPLETED":
+      return {
+        tone: "good",
+        headline:
+          "An oath fulfilled — the undertaking is complete, and hangs honored in the Hall of Oaths.",
       };
     case "UNCATEGORIZED_FUNDS":
       return {

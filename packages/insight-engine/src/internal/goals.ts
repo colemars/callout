@@ -45,6 +45,8 @@ function evaluate(
     onTrack: null,
     expected: null,
     actual: null,
+    completed: false,
+    target: goal.targetAmount,
   };
 
   const { startedAt, baselineAmount, targetDate } = goal;
@@ -67,8 +69,19 @@ function evaluate(
 
   const cmp = compare(actual, expected);
   const onTrack = goal.kind === "debt_paydown" ? cmp !== 1 : cmp !== -1;
+  const vsTarget = compare(actual, goal.targetAmount);
+  const completed = goal.kind === "debt_paydown" ? vsTarget !== 1 : vsTarget !== -1;
 
-  return { goalId: goal.id, kind: goal.kind, evaluable: true, onTrack, expected, actual };
+  return {
+    goalId: goal.id,
+    kind: goal.kind,
+    evaluable: true,
+    onTrack,
+    expected,
+    actual,
+    completed,
+    target: goal.targetAmount,
+  };
 }
 
 function actualValue(

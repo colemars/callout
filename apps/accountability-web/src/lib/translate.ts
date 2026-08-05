@@ -55,6 +55,28 @@ export function translate(event: ApiEvent): TranslatedEvent {
         tone: "good",
         headline: `${monthName(p.month)}: ${asMoney(p.netFlow)} net positive.`,
       };
+    case "DEBT_ELIMINATED":
+      return {
+        tone: "good",
+        headline: `High-interest debt eliminated — the last ${asMoney(p.previous)} is paid off.`,
+      };
+    case "EMERGENCY_FUND_MILESTONE":
+      return {
+        tone: "good",
+        headline: `Emergency fund milestone: ${asNum(p.tier)} month${asNum(p.tier) === 1 ? "" : "s"} of essential expenses covered.`,
+      };
+    case "SAVINGS_RATE_MILESTONE":
+      return {
+        tone: "good",
+        headline: `Savings rate milestone: you're now keeping ${asNum(p.tierPct)}%+ of your income.`,
+      };
+    case "UNDER_BUDGET_STREAK":
+      return {
+        tone: "good",
+        headline: `${asNum(p.months)} straight months with every budget held.`,
+      };
+    case "GOAL_COMPLETED":
+      return { tone: "good", headline: "Goal completed — target reached." };
     case "UNCATEGORIZED_FUNDS":
       return {
         tone: "bad",

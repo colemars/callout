@@ -58,12 +58,20 @@ export type FinancialEvent = EventBase &
         readonly previous: Money;
         readonly current: Money;
         readonly delta: Money;
+        /** The set of linked accounts changed between snapshots — the delta may reflect linking/unlinking, not behavior. Folds must ignore flagged events. */
+        readonly accountSetChanged?: true;
       }
     | {
         readonly type: "HIGH_INTEREST_DEBT_DECREASED";
         readonly previous: Money;
         readonly current: Money;
         readonly delta: Money;
+        readonly accountSetChanged?: true;
+      }
+    | {
+        /** The last of the high-interest debt is gone. */
+        readonly type: "DEBT_ELIMINATED";
+        readonly previous: Money;
       }
     | {
         readonly type: "NET_CASH_FLOW_NEGATIVE";
@@ -103,6 +111,32 @@ export type FinancialEvent = EventBase &
         readonly type: "EMERGENCY_RUNWAY_CHANGED";
         readonly previousMonths: number;
         readonly currentMonths: number;
+        readonly accountSetChanged?: true;
+      }
+    | {
+        /** Emergency runway crossed a tier upward (1, 3, 6, or 12 months). */
+        readonly type: "EMERGENCY_FUND_MILESTONE";
+        readonly tier: number;
+        readonly month: ISOMonth;
+      }
+    | {
+        /** Trailing savings rate crossed a tier upward (5, 10, 20, or 30%). */
+        readonly type: "SAVINGS_RATE_MILESTONE";
+        readonly tierPct: number;
+        readonly month: ISOMonth;
+      }
+    | {
+        /** Every active budget held for `months` consecutive completed months. */
+        readonly type: "UNDER_BUDGET_STREAK";
+        readonly months: number;
+        readonly month: ISOMonth;
+      }
+    | {
+        /** A goal's actual reached its target. */
+        readonly type: "GOAL_COMPLETED";
+        readonly goalId: GoalId;
+        readonly kind: "savings_net_flow" | "balance_target" | "debt_paydown";
+        readonly target: Money;
       }
   );
 
