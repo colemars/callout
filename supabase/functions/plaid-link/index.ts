@@ -52,23 +52,39 @@ async function handlePost(userId: string, body: Record<string, unknown>): Promis
         p_secret_id: item.access_token_secret_id,
       });
       params.access_token = token;
-      // A re-oath is the moment to gather consent the item was born without.
-      params.additional_consented_products = ["investments", "liabilities"];
     } else {
       params.products = ["transactions"];
       // Attach when the institution supports them; plain banks still link.
       params.optional_products = ["investments", "liabilities"];
     }
+    // A re-oath is the moment to gather consent the item was born without —
+    // but institutions differ: drop whichever product Plaid names as
+    // unsupported and retry, down to a plain re-oath if need be.
+    let consented: string[] | null = body.update_item_id ? ["investments", "liabilities"] : null;
     let resp: { link_token: string };
-    try {
-      resp = await plaid("/link/token/create", params);
-    } catch (err) {
-      // Until the redirect URI is registered in the Plaid dashboard allowlist,
-      // Plaid rejects it — retry without so linking keeps working (OAuth banks
-      // won't complete their return leg until registration; non-OAuth is fine).
-      if (params.redirect_uri === undefined) throw err;
-      delete params.redirect_uri;
-      resp = await plaid("/link/token/create", params);
+    for (;;) {
+      if (consented !== null) {
+        if (consented.length > 0) params.additional_consented_products = consented;
+        else delete params.additional_consented_products;
+      }
+      try {
+        resp = await plaid("/link/token/create", params);
+        break;
+      } catch (err) {
+        const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+        const unsupported = consented?.find((p) => msg.includes(p));
+        if (unsupported !== undefined && consented !== null) {
+          consented = consented.filter((p) => p !== unsupported);
+          continue;
+        }
+        // Until the redirect URI is registered in the Plaid dashboard
+        // allowlist, Plaid rejects it — retry without so linking keeps working.
+        if (params.redirect_uri !== undefined) {
+          delete params.redirect_uri;
+          continue;
+        }
+        throw err;
+      }
     }
     return json({ link_token: resp.link_token });
   }
