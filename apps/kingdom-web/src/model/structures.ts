@@ -206,19 +206,23 @@ export function computeStructures(
       debt_paydown: "drive the raiders down",
     };
 
-    const summary = [
+    // Entities and their conditions are different things: "1 decree · 1 oath
+    // — an alarm sounds" must never read as three items in the hall.
+    const entities = [
       budgets.length > 0
         ? `${budgets.length} decree${budgets.length === 1 ? "" : "s"} watched`
         : null,
       activeGoals.length > 0
         ? `${activeGoals.length} oath${activeGoals.length === 1 ? "" : "s"} sworn`
         : null,
-      breached > 0 ? `${breached} breached` : null,
-      alarms > 0 ? `${alarms} alarm${alarms === 1 ? "" : "s"}` : null,
+    ].filter((x) => x !== null);
+    const conditions = [
+      breached > 0 ? `${breached} cap${breached === 1 ? "" : "s"} breached` : null,
+      alarms > 0 ? (alarms === 1 ? "an alarm sounds" : `${alarms} alarms sound`) : null,
       straying > 0 ? `${straying} straying` : null,
-    ]
-      .filter((x) => x !== null)
-      .join(" · ");
+    ].filter((x) => x !== null);
+    const summary =
+      entities.join(" · ") + (conditions.length > 0 ? ` — ${conditions.join(", ")}` : "");
 
     const decreeLines: StructureLine[] = budgets.map((b): StructureLine => {
       const spent = b.spentMtd.amountMinor;
