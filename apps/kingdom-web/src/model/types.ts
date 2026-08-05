@@ -134,6 +134,8 @@ export interface StructureState {
   detail: string;
   /** Optional per-item account of the detail (e.g. one line per watched decree). */
   lines?: string[];
+  /** Where the numbers come from — the panel's provenance footnote. */
+  basis?: string;
   lien?: boolean;
   locked?: boolean;
   hostile?: boolean;
