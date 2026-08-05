@@ -190,6 +190,17 @@ describe("UNDER_BUDGET_STREAK", () => {
     expect(streaks[0]?.type === "UNDER_BUDGET_STREAK" && streaks[0].months).toBe(2);
   });
 
+  it("a month with no data at all ends the streak walk — no data is not discipline", () => {
+    const gappy = emptyState({
+      budgets: [decree("2026-03-01")],
+      // April is a data gap; May–July held. The walk stops at the gap.
+      transactions: monthlyDining(["2026-05", "2026-06", "2026-07"], 30_000),
+    });
+    expect(computeMetrics(gappy, cfg, isoDate("2026-08-01")).underBudgetStreak.months).toBe(3);
+    const allGap = emptyState({ budgets: [decree("2026-03-01")], transactions: [] });
+    expect(computeMetrics(allGap, cfg, isoDate("2026-08-01")).underBudgetStreak.months).toBe(0);
+  });
+
   it("a breached month breaks the streak; one held month stays silent", () => {
     const breached = emptyState({
       budgets: [decree("2026-04-01")],
@@ -235,6 +246,14 @@ describe("GOAL_COMPLETED", () => {
     expect(events.filter((e) => e.type === "GOAL_ON_TRACK")).toEqual([]);
     // Already-completed -> no re-announcement.
     expect(deriveEvents(paid, paid, cfg)).toEqual([]);
+  });
+
+  it("a goal already complete at its first evaluation fires (and can then retire)", () => {
+    // The previous snapshot exists but has never seen this goal.
+    const before = computeMetrics(emptyState(), cfg, isoDate("2026-08-14"));
+    const paid = computeMetrics(paydownGoal(0), cfg, isoDate("2026-08-15"));
+    const done = deriveEvents(before, paid, cfg).filter((e) => e.type === "GOAL_COMPLETED");
+    expect(done).toHaveLength(1);
   });
 });
 

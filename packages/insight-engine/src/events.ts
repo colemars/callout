@@ -20,10 +20,12 @@ export function deriveEvents(
   for (const g of current.goalStatuses) {
     if (!g.evaluable || g.onTrack === null || g.expected === null || g.actual === null) continue;
     const prev = previous?.goalStatuses.find((p) => p.goalId === g.goalId);
-    // Completion: strictly edge-triggered against the previous snapshot's
-    // status ("!== true" so snapshots persisted before the field existed
-    // still fire the transition once). No previous status = no edge.
-    if (g.completed && prev !== undefined && prev.completed !== true) {
+    // Completion: edge-triggered against the previous snapshot's status
+    // ("!== true" so snapshots persisted before the field existed still fire
+    // the transition once). A goal already complete at its FIRST evaluation
+    // (prev missing) also fires — like the baseline on/off-track
+    // announcements, and without it the goal would never retire.
+    if (g.completed && prev?.completed !== true) {
       events.push({
         ...base,
         type: "GOAL_COMPLETED",

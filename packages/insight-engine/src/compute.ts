@@ -128,6 +128,9 @@ function computeUnderBudgetStreak(
   const CAP = 24; // enough for any bragging-rights streak; bounds the walk
   while (months < CAP && month > eligibleAfter) {
     const summary = summarizeMonth(state.transactions, month, config);
+    // No data is not discipline: a month with no activity at all (sync gap,
+    // pre-history) can neither hold nor break a streak — it ends the walk.
+    if (summary.transactionCount === 0) break;
     const held = active.every((b) => {
       const spent =
         summary.spendingByCategory.find((s) => s.category === b.category)?.amount.amountMinor ?? 0;
