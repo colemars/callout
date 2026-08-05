@@ -117,7 +117,10 @@ export function ensureTextures(scene: Phaser.Scene, palette: VistaPalette): void
     const { w, h } = spec.px;
     const g = scene.add.graphics();
 
-    if (key.startsWith("tile:")) {
+    if (key === "fx:dot") {
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(w / 2, h / 2, w / 2 - 1);
+    } else if (key.startsWith("tile:")) {
       if (key === "tile:tree") {
         // Trunk + canopy prism
         g.fillStyle(spec.placeholder.roof, 1);

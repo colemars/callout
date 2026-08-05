@@ -250,7 +250,7 @@ fallback), placeholder "surveyor's sketch" art behind the assets.ts
 contract (ART.md is the generation brief; Cole approves the real sheet).
 
 - ~~**Stage 2**~~ — SHIPPED (2026-08-05): villagers wander the commons scaled by the builders level (deterministic by index — the same kingdom always bustles the same way); day/dusk follows the live color-scheme, rebooting the canvas on theme change
-- **Stage 3** — threat weather VFX (winter snow, drought parch, fire embers, bandit-camp smoke, feast banners)
+- ~~**Stage 3**~~ — SHIPPED (2026-08-05): active threats become atmosphere — winter snowfall, drought parches the land, fire embers over the market, bandit-camp smoke, feast confetti over the festival grounds; severity scales each effect, dormant threats render nothing
 - **Stage 4** — in-canvas Road Registry role picker; the DOM TheRoads section sheds
 - **Stage 5** — growth moments + "while you were away" replay cinematics driven by the KingdomDelta feed
 - **Stage 6** — Influence build-plots (spends raise structures on the reserved plots); real art atlas swap via assets.ts

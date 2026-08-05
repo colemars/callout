@@ -45,6 +45,8 @@ export function KingdomVista({
     let handle: VistaHandle | null = null;
     const parent = containerRef.current;
     if (parent === null) return;
+    // A theme-flip reboot must show the shimmer again, not an empty box.
+    setReady(false);
 
     (async () => {
       const { createVista } = await import("../scene/boot");

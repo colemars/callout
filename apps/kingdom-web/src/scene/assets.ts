@@ -92,6 +92,10 @@ export function buildManifest(): Record<AssetKey, AssetSpec> {
     px: { w: 64, h: 96 },
     placeholder: { body: 0x3f6212, roof: 0x8b5e34, height: 48 },
   };
+  manifest["fx:dot"] = {
+    px: { w: 8, h: 8 },
+    placeholder: { body: 0xffffff, roof: 0xffffff, height: 0 },
+  };
   manifest["badge:lock"] = {
     px: { w: 24, h: 24 },
     placeholder: { body: 0xf59e0b, roof: 0x78350f, height: 0 },

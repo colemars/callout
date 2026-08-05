@@ -25,6 +25,10 @@ export class VistaScene extends Phaser.Scene {
   private structureSprites = new Map<string, Phaser.GameObjects.Image>();
   private travelerSprites = new Map<string, Phaser.GameObjects.Image>();
   private ambientSprites: Phaser.GameObjects.Image[] = [];
+  private weatherFx = new Map<
+    string,
+    { severity: number; objects: Phaser.GameObjects.GameObject[] }
+  >();
   private model: SceneModel | null = null;
   private pendingModel: SceneModel | null = null;
   private panel: StewardPanel | null = null;
@@ -183,6 +187,108 @@ export class VistaScene extends Phaser.Scene {
     this.syncStructures(model.structures);
     this.syncTravelers(model.travelers);
     this.syncAmbient(model.ambientCount);
+    this.syncWeather(model.weather);
+  }
+
+  /**
+   * Threat weather (Stage 3): ACTIVE threats become atmosphere — mood, not
+   * UI. Winter snows, drought parches the ground, a spending fire sends
+   * embers over the market, the bandit camp smokes, a feast means confetti
+   * over the festival grounds. Dormant threats render NOTHING (contract).
+   */
+  private syncWeather(weather: SceneModel["weather"]): void {
+    // Remove ended weather AND weather whose severity shifted (rebuild).
+    for (const [kind, fx] of this.weatherFx) {
+      const now = (weather as Record<string, number | undefined>)[kind];
+      if (now === undefined || now !== fx.severity) {
+        for (const obj of fx.objects) obj.destroy();
+        this.weatherFx.delete(kind);
+      }
+    }
+    const b = mapBounds();
+    for (const [kind, severity] of Object.entries(weather) as Array<[string, 1 | 2 | 3]>) {
+      if (this.weatherFx.has(kind)) continue;
+      const objects: Phaser.GameObjects.GameObject[] = [];
+      if (kind === "winter") {
+        const snow = this.add.particles(0, 0, "fx:dot", {
+          x: { min: b.minX, max: b.maxX },
+          y: b.minY,
+          lifespan: 9000,
+          speedY: { min: 18, max: 40 },
+          speedX: { min: -8, max: 8 },
+          scale: { start: 0.5, end: 0.3 },
+          alpha: { start: 0.9, end: 0.4 },
+          quantity: severity,
+          frequency: 320 / severity,
+        });
+        snow.setDepth(100000);
+        objects.push(this.addWorld(snow));
+      } else if (kind === "drought") {
+        // Parch the land: a warm brown wash over the whole map diamond.
+        const parch = this.add.graphics();
+        parch.fillStyle(0x9a6b32, 0.12 * severity);
+        const corners = [
+          isoToScreen(0, 0),
+          isoToScreen(17, 0),
+          isoToScreen(17, 12),
+          isoToScreen(0, 12),
+        ];
+        parch.fillPoints(
+          corners.map((c) => new Phaser.Geom.Point(c.x, c.y)),
+          true,
+        );
+        parch.setDepth(1);
+        objects.push(this.addWorld(parch));
+      } else if (kind === "fire") {
+        const market = isoToScreen(6, 6);
+        const embers = this.add.particles(market.x, market.y, "fx:dot", {
+          x: { min: -120, max: 120 },
+          lifespan: 2600,
+          speedY: { min: -55, max: -25 },
+          speedX: { min: -12, max: 12 },
+          scale: { start: 0.4, end: 0 },
+          alpha: { start: 0.9, end: 0 },
+          tint: [0xf59e0b, 0xef4444, 0xfbbf24],
+          quantity: severity,
+          frequency: 260 / severity,
+        });
+        embers.setDepth(90000);
+        objects.push(this.addWorld(embers));
+      } else if (kind === "bandits") {
+        const slot = SLOTS.banditCamp;
+        const camp = isoToScreen(slot.tx + slot.w / 2, slot.ty + slot.h / 2);
+        const smoke = this.add.particles(camp.x, camp.y - 90, "fx:dot", {
+          x: { min: -10, max: 10 },
+          lifespan: 4200,
+          speedY: { min: -30, max: -16 },
+          speedX: { min: -6, max: 14 },
+          scale: { start: 0.6, end: 1.6 },
+          alpha: { start: 0.5, end: 0 },
+          tint: 0x57534e,
+          quantity: 1,
+          frequency: 520 / severity,
+        });
+        smoke.setDepth(90000);
+        objects.push(this.addWorld(smoke));
+      } else if (kind === "feast") {
+        const slot = SLOTS.festival;
+        const grounds = isoToScreen(slot.tx + slot.w / 2, slot.ty + slot.h / 2);
+        const confetti = this.add.particles(grounds.x, grounds.y - 140, "fx:dot", {
+          x: { min: -90, max: 90 },
+          lifespan: 3200,
+          speedY: { min: 14, max: 34 },
+          speedX: { min: -18, max: 18 },
+          scale: { start: 0.45, end: 0.2 },
+          alpha: { start: 1, end: 0.2 },
+          tint: [0xf59e0b, 0x34d399, 0x60a5fa, 0xf472b6],
+          quantity: severity,
+          frequency: 300 / severity,
+        });
+        confetti.setDepth(90000);
+        objects.push(this.addWorld(confetti));
+      }
+      if (objects.length > 0) this.weatherFx.set(kind, { severity, objects });
+    }
   }
 
   /**
