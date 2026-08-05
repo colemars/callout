@@ -1,8 +1,8 @@
 // The asset contract (ART.md is the human side of this file): every sprite
-// the vista draws has a logical key here. Today each key carries PLACEHOLDER
-// parameters (programmatic "surveyor's sketch" prisms drawn by textures.ts);
-// when Cole's approved atlas lands, each entry gains an atlas frame name —
-// frame names ARE these keys verbatim — and scene code changes not at all.
+// the vista draws has a logical key here. Each entry names its atlas frame
+// (frame names ARE these keys verbatim) and keeps PLACEHOLDER parameters —
+// the programmatic "surveyor's sketch" prisms textures.ts falls back to for
+// any frame the atlas fails to deliver (and for fx:dot, which never ships).
 
 import type { StructureKey } from "../model/types";
 import type { TravelerArchetype } from "./sceneModel";
@@ -57,6 +57,14 @@ const TRAVELER_COLORS: Record<TravelerArchetype, number> = {
 };
 
 export type AssetKey = string;
+
+// Where the shipped atlas lives (scripts/pack-art.mjs writes it). The path
+// carries the app's basePath — keep in lockstep with next.config.ts.
+export const ATLAS = {
+  key: "kingdom",
+  png: "/pennykingdom/kingdom/vista/kingdom.png",
+  json: "/pennykingdom/kingdom/vista/kingdom.json",
+} as const;
 
 export function buildManifest(): Record<AssetKey, AssetSpec> {
   const manifest: Record<AssetKey, AssetSpec> = {};
@@ -119,6 +127,11 @@ export function buildManifest(): Record<AssetKey, AssetSpec> {
     px: { w: 24, h: 24 },
     placeholder: { body: 0x78350f, roof: 0xfef3c7, height: 0 },
   };
+  // Every frame ships in the atlas under its own key — except fx:dot, which
+  // stays a programmatic particle.
+  for (const [key, spec] of Object.entries(manifest)) {
+    if (key !== "fx:dot") spec.frame = key;
+  }
   return manifest;
 }
 

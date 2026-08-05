@@ -18,7 +18,7 @@ import type {
   ReplayMoment,
   SceneModel,
 } from "./sceneModel";
-import { ensureTextures } from "./textures";
+import { ensureTextures, loadAtlas } from "./textures";
 
 const TWEEN_MS = 700;
 
@@ -54,6 +54,10 @@ export class VistaScene extends Phaser.Scene {
     this.palette = data.palette;
     this.callbacks = data.callbacks;
     this.pendingModel = data.model;
+  }
+
+  preload() {
+    loadAtlas(this);
   }
 
   create() {

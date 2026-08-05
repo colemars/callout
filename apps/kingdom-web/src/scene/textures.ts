@@ -1,11 +1,46 @@
-// Placeholder texture generation — the "surveyor's sketch" era. Every frame
-// in ASSET_MANIFEST is drawn programmatically (layered iso prisms with inked
-// outlines) until Cole's approved atlas replaces them via assets.ts frame
-// names. Deterministic from manifest params; no external files, no basePath.
+// Texture bootstrapping. The shipped atlas (public/vista, packed by
+// scripts/pack-art.mjs) supplies real art: ensureTextures aliases each
+// manifest key to its atlas frame. Any frame the atlas fails to deliver —
+// and fx:dot, which never ships — falls back to the programmatic
+// "surveyor's sketch" prisms, so a missing or stale sheet degrades visibly
+// but never breaks the scene.
 
 import type Phaser from "phaser";
-import { ASSET_MANIFEST } from "./assets";
+import { ASSET_MANIFEST, ATLAS } from "./assets";
 import type { VistaPalette } from "./palette";
+
+/** Queue the atlas download; called from the scene's preload. */
+export function loadAtlas(scene: Phaser.Scene): void {
+  // A 404 here is survivable: the loader logs an error, the atlas texture
+  // never comes to exist, and ensureTextures falls back to placeholders.
+  scene.load.atlas(ATLAS.key, ATLAS.png, ATLAS.json);
+}
+
+/**
+ * Register `key` as its own texture backed by the atlas frame's pixels.
+ * Scene code addresses textures by manifest key alone, so each frame gets
+ * re-registered standalone (a canvas crop — 50 small frames, negligible).
+ */
+function aliasAtlasFrame(scene: Phaser.Scene, key: string, frame: Phaser.Textures.Frame): boolean {
+  const canvas = document.createElement("canvas");
+  canvas.width = frame.cutWidth;
+  canvas.height = frame.cutHeight;
+  const ctx = canvas.getContext("2d");
+  if (ctx === null) return false;
+  ctx.drawImage(
+    frame.source.image as CanvasImageSource,
+    frame.cutX,
+    frame.cutY,
+    frame.cutWidth,
+    frame.cutHeight,
+    0,
+    0,
+    frame.cutWidth,
+    frame.cutHeight,
+  );
+  scene.textures.addCanvas(key, canvas);
+  return true;
+}
 
 function darken(color: number, factor: number): number {
   const r = Math.round(((color >> 16) & 0xff) * factor);
@@ -112,8 +147,16 @@ function drawTile(
 }
 
 export function ensureTextures(scene: Phaser.Scene, palette: VistaPalette): void {
+  const atlas = scene.textures.exists(ATLAS.key) ? scene.textures.get(ATLAS.key) : null;
   for (const [key, spec] of Object.entries(ASSET_MANIFEST)) {
     if (scene.textures.exists(key)) continue;
+    if (
+      spec.frame !== undefined &&
+      atlas?.has(spec.frame) &&
+      aliasAtlasFrame(scene, key, atlas.get(spec.frame))
+    ) {
+      continue;
+    }
     const { w, h } = spec.px;
     const g = scene.add.graphics();
 

@@ -7,3 +7,7 @@ cdk.out/
 .next/
 out/
 *.tsbuildinfo
+.env
+.env.*
+apps/kingdom-web/art/raw/
+apps/kingdom-web/art/frames/

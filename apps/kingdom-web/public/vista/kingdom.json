@@ -1,0 +1,1013 @@
+{
+  "frames": {
+    "structure:banditCamp:t3": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:caravans:t3": {
+      "frame": {
+        "x": 132,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:festival:t3": {
+      "frame": {
+        "x": 262,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:granary:t3": {
+      "frame": {
+        "x": 392,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:guildDebt:t3": {
+      "frame": {
+        "x": 522,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:keep:t3": {
+      "frame": {
+        "x": 652,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:manor:t3": {
+      "frame": {
+        "x": 782,
+        "y": 2,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:market:t3": {
+      "frame": {
+        "x": 2,
+        "y": 196,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:oaths:t3": {
+      "frame": {
+        "x": 132,
+        "y": 196,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:treasury:t3": {
+      "frame": {
+        "x": 262,
+        "y": 196,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "structure:walls:t3": {
+      "frame": {
+        "x": 392,
+        "y": 196,
+        "w": 128,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 192
+      }
+    },
+    "monument:stargazers": {
+      "frame": {
+        "x": 522,
+        "y": 196,
+        "w": 128,
+        "h": 184
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 184
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 184
+      }
+    },
+    "monument:founder": {
+      "frame": {
+        "x": 652,
+        "y": 196,
+        "w": 128,
+        "h": 168
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 168
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 168
+      }
+    },
+    "structure:banditCamp:t2": {
+      "frame": {
+        "x": 782,
+        "y": 196,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:caravans:t2": {
+      "frame": {
+        "x": 2,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:festival:t2": {
+      "frame": {
+        "x": 132,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:granary:t2": {
+      "frame": {
+        "x": 262,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:guildDebt:t2": {
+      "frame": {
+        "x": 392,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:keep:t2": {
+      "frame": {
+        "x": 522,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:manor:t2": {
+      "frame": {
+        "x": 652,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:market:t2": {
+      "frame": {
+        "x": 782,
+        "y": 390,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:oaths:t2": {
+      "frame": {
+        "x": 2,
+        "y": 552,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:treasury:t2": {
+      "frame": {
+        "x": 132,
+        "y": 552,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:walls:t2": {
+      "frame": {
+        "x": 262,
+        "y": 552,
+        "w": 128,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 160
+      }
+    },
+    "structure:banditCamp:t1": {
+      "frame": {
+        "x": 392,
+        "y": 552,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:caravans:t1": {
+      "frame": {
+        "x": 522,
+        "y": 552,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:festival:t1": {
+      "frame": {
+        "x": 652,
+        "y": 552,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:granary:t1": {
+      "frame": {
+        "x": 782,
+        "y": 552,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:guildDebt:t1": {
+      "frame": {
+        "x": 2,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:keep:t1": {
+      "frame": {
+        "x": 132,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:manor:t1": {
+      "frame": {
+        "x": 262,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:market:t1": {
+      "frame": {
+        "x": 392,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:oaths:t1": {
+      "frame": {
+        "x": 522,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:treasury:t1": {
+      "frame": {
+        "x": 652,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "structure:walls:t1": {
+      "frame": {
+        "x": 782,
+        "y": 714,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    "monument:wellspring": {
+      "frame": {
+        "x": 2,
+        "y": 844,
+        "w": 128,
+        "h": 120
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 120
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 120
+      }
+    },
+    "tile:tree": {
+      "frame": {
+        "x": 132,
+        "y": 844,
+        "w": 64,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 96
+      }
+    },
+    "tile:grass": {
+      "frame": {
+        "x": 198,
+        "y": 844,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "tile:plot": {
+      "frame": {
+        "x": 328,
+        "y": 844,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "tile:road": {
+      "frame": {
+        "x": 458,
+        "y": 844,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "tile:water": {
+      "frame": {
+        "x": 588,
+        "y": 844,
+        "w": 128,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 64
+      }
+    },
+    "traveler:courier": {
+      "frame": {
+        "x": 718,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:guard": {
+      "frame": {
+        "x": 760,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:guest": {
+      "frame": {
+        "x": 802,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:merchant": {
+      "frame": {
+        "x": 844,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:official": {
+      "frame": {
+        "x": 886,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:raider": {
+      "frame": {
+        "x": 928,
+        "y": 844,
+        "w": 40,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 56
+      }
+    },
+    "traveler:villager": {
+      "frame": {
+        "x": 970,
+        "y": 844,
+        "w": 26,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 26,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 26,
+        "h": 38
+      }
+    },
+    "badge:lien": {
+      "frame": {
+        "x": 998,
+        "y": 844,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      }
+    },
+    "badge:lock": {
+      "frame": {
+        "x": 2,
+        "y": 966,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      }
+    }
+  },
+  "meta": {
+    "app": "pack-art.mjs",
+    "image": "kingdom.png",
+    "size": {
+      "w": 1024,
+      "h": 992
+    },
+    "scale": "1"
+  }
+}
