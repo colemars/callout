@@ -91,8 +91,10 @@ export class PlatformWorkersStack extends Stack {
 
     // Roadmap Phase E: a broken nightly sync must page, not rot silently —
     // stale snapshots looked exactly like fresh ones until someone noticed.
+    // Alarms go to the gmail actually read day-to-day (the colemars.dev
+    // confirmation never surfaced); EMAIL stays for the SES digest identity.
     const alerts = new Topic(this, "OpsAlerts");
-    alerts.addSubscription(new EmailSubscription(EMAIL));
+    alerts.addSubscription(new EmailSubscription("cgm32547@gmail.com"));
 
     new Alarm(this, "SyncErrors", {
       metric: syncFn.metricErrors({ period: Duration.minutes(5) }),
