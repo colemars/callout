@@ -68,8 +68,14 @@ export function TheRoads({
                 )}
               </div>
               <p className={`mt-0.5 text-xs ${muted}`}>
-                {roleFor(t.role).name}
-                {t.roleAssigned ? "" : " (unnamed)"} · {t.cadence}
+                {/* A default role is the surveyors' presumption, not the
+                    crown's word — say so rather than claiming namelessness. */}
+                {t.roleAssigned ? (
+                  roleFor(t.role).name
+                ) : (
+                  <span className="italic">{roleFor(t.role).name}, presumed</span>
+                )}{" "}
+                · {t.cadence}
               </p>
               <p
                 className={`mt-0.5 text-xs ${
