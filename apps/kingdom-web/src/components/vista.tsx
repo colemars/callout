@@ -7,16 +7,19 @@
 // effect guards with a cancelled flag and destroys on cleanup.
 
 import { useEffect, useRef, useState } from "react";
+import type { RoleId } from "../model/roads";
 import type { VistaHandle } from "../scene/bridge";
 import type { SceneModel } from "../scene/sceneModel";
 
 export function KingdomVista({
   model,
-  onTravelerTap,
+  onAssignRole,
+  onClearRole,
   onFail,
 }: {
   model: SceneModel;
-  onTravelerTap: (travelerId: string) => void;
+  onAssignRole: (travelerId: string, roleId: RoleId) => void;
+  onClearRole: (travelerId: string) => void;
   onFail: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -54,7 +57,8 @@ export function KingdomVista({
         parent,
         modelRef.current,
         {
-          onTravelerTap,
+          onAssignRole,
+          onClearRole,
           onReady: () => {
             if (!cancelled) setReady(true);
           },
@@ -70,7 +74,9 @@ export function KingdomVista({
       // Models that changed during the engine load window would otherwise
       // be lost — flush the latest one now.
       h.update(modelRef.current);
-    })().catch(() => {
+    })().catch((err) => {
+      // The fallback grid takes over; the WHY must not vanish with it.
+      console.error("vista boot failed", err);
       if (!cancelled) onFail();
     });
 

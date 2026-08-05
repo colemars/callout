@@ -10,7 +10,7 @@ import type { StructureState } from "../model/types";
 import type { VistaCallbacks } from "./bridge";
 import { GATE, RESERVED_PLOTS, ROADS, SLOTS, isoToScreen, mapBounds, pathPoint } from "./layout";
 import { TONE_TINT, type VistaPalette } from "./palette";
-import { StewardPanel } from "./panels";
+import { RegistryPanel, StewardPanel } from "./panels";
 import type { PlacedStructure, PlacedTraveler, SceneModel } from "./sceneModel";
 import { ensureTextures } from "./textures";
 
@@ -31,7 +31,7 @@ export class VistaScene extends Phaser.Scene {
   >();
   private model: SceneModel | null = null;
   private pendingModel: SceneModel | null = null;
-  private panel: StewardPanel | null = null;
+  private panel: StewardPanel | RegistryPanel | null = null;
   private ready = false;
 
   constructor() {
@@ -188,6 +188,10 @@ export class VistaScene extends Phaser.Scene {
     this.syncTravelers(model.travelers);
     this.syncAmbient(model.ambientCount);
     this.syncWeather(model.weather);
+    // Containers render children in LIST order — child depth is ignored
+    // until the container is sorted. Without this, a traveler behind the
+    // keep paints in front of it.
+    this.worldLayer.sort("depth");
   }
 
   /**
@@ -210,16 +214,19 @@ export class VistaScene extends Phaser.Scene {
       if (this.weatherFx.has(kind)) continue;
       const objects: Phaser.GameObjects.GameObject[] = [];
       if (kind === "winter") {
+        // Area spawn + short life: flakes drift everywhere and fade out
+        // instead of dying visibly mid-fall. Alive count ~= lifespan /
+        // (frequency/severity) — ≤42 at severity 3, inside the budget.
         const snow = this.add.particles(0, 0, "fx:dot", {
           x: { min: b.minX, max: b.maxX },
-          y: b.minY,
-          lifespan: 9000,
-          speedY: { min: 18, max: 40 },
+          y: { min: b.minY, max: b.maxY },
+          lifespan: 3500,
+          speedY: { min: 16, max: 34 },
           speedX: { min: -8, max: 8 },
           scale: { start: 0.5, end: 0.3 },
-          alpha: { start: 0.9, end: 0.4 },
-          quantity: severity,
-          frequency: 320 / severity,
+          alpha: { start: 0, end: 0.85, ease: "Quad.easeOut" },
+          quantity: 1,
+          frequency: 250 / severity,
         });
         snow.setDepth(100000);
         objects.push(this.addWorld(snow));
@@ -350,7 +357,6 @@ export class VistaScene extends Phaser.Scene {
         repeat: -1,
         ease: "Sine.easeInOut",
         delay: (i * 211) % 900,
-        onUpdate: () => sprite.setDepth(sprite.y),
       });
     }
   }
@@ -459,13 +465,13 @@ export class VistaScene extends Phaser.Scene {
         duration: TWEEN_MS,
       });
       if (t.agitated) sprite.setTint(0xff8080);
-      const id = t.id;
       sprite.removeAllListeners("pointerup");
+      const placed = t;
       sprite.on(
         "pointerup",
         (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
           event.stopPropagation();
-          this.callbacks.onTravelerTap(id);
+          this.openRegistry(placed);
         },
       );
     }
@@ -502,6 +508,30 @@ export class VistaScene extends Phaser.Scene {
     );
     // Ignore-by-container only covers children present at call time — the
     // panel's children exist NOW, so exclude them from the world camera now.
+    this.cameras.main.ignore(this.panel.root);
+  }
+
+  /** Stage 4: the Road Registry opens in-world; naming flows back to React
+   * (CAS handlers), the fresh model re-renders tints, the panel closes on
+   * action as its feedback. */
+  private openRegistry(placed: PlacedTraveler): void {
+    this.closePanel();
+    this.panel = new RegistryPanel(
+      this,
+      this.uiLayer,
+      placed,
+      this.palette,
+      this.model?.registryReadOnly ?? true,
+      (roleId) => {
+        this.closePanel();
+        this.callbacks.onAssignRole(placed.id, roleId);
+      },
+      () => {
+        this.closePanel();
+        this.callbacks.onClearRole(placed.id);
+      },
+      () => this.closePanel(),
+    );
     this.cameras.main.ignore(this.panel.root);
   }
 

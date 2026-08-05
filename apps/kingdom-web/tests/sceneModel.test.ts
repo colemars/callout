@@ -159,6 +159,15 @@ describe("buildSceneModel", () => {
     expect(by.get("c")).toBe("guest");
   });
 
+  it("travelers carry their full state; registryReadOnly flows through", () => {
+    const t = traveler({});
+    const open = buildSceneModel(kingdom(), roads([t]), false);
+    expect(open.travelers[0]?.state).toEqual(t);
+    expect(open.registryReadOnly).toBe(false);
+    const sealed = buildSceneModel(kingdom({ surveying: true }), null, true);
+    expect(sealed.registryReadOnly).toBe(true);
+  });
+
   it("gate fan-out is deterministic and unique per road", () => {
     const m = buildSceneModel(
       kingdom(),

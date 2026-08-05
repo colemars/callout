@@ -14,7 +14,7 @@ import {
   StructureGrid,
   ThreatCards,
 } from "../components/kingdom";
-import { RoadRegistryModal, TheRoads } from "../components/roads";
+import { TheRoads } from "../components/roads";
 import { KingdomVista } from "../components/vista";
 import { clients, supabase } from "../lib/clients";
 import {
@@ -76,7 +76,6 @@ export default function ThroneRoom() {
   );
 
   const [vistaFailed, setVistaFailed] = useState(false);
-  const [vistaTraveler, setVistaTraveler] = useState<string | null>(null);
 
   // The roads render with default roles even when the economy record failed
   // to load — naming is disabled then, but the traffic itself is real data.
@@ -93,8 +92,11 @@ export default function ThroneRoom() {
 
   // The Vista's food: a pure scene model from the same state the DOM renders.
   const scene = useMemo(
-    () => (kingdom !== null ? buildSceneModel(kingdom, roads) : null),
-    [kingdom, roads],
+    () =>
+      kingdom !== null
+        ? buildSceneModel(kingdom, roads, economy === null || economy.readOnly)
+        : null,
+    [kingdom, roads, economy],
   );
 
   // "While you were away": diff against the server-held baseline (the state
@@ -407,32 +409,19 @@ export default function ThroneRoom() {
       {scene !== null && !vistaFailed && (
         <KingdomVista
           model={scene}
-          onTravelerTap={setVistaTraveler}
+          onAssignRole={handleAssignRole}
+          onClearRole={handleClearRole}
           onFail={() => setVistaFailed(true)}
         />
       )}
-      {vistaTraveler !== null &&
-        roads !== null &&
-        (() => {
-          // A canvas tap opens the SAME DOM Road Registry — the renderer
-          // never writes; naming flows through the existing CAS handlers.
-          const tapped = roads.travelers.find((t) => t.id === vistaTraveler);
-          return tapped === undefined ? null : (
-            <RoadRegistryModal
-              traveler={tapped}
-              onAssign={handleAssignRole}
-              onClear={handleClearRole}
-              onClose={() => setVistaTraveler(null)}
-              busy={busy}
-              readOnly={economy === null || economy.readOnly}
-            />
-          );
-        })()}
       <AgeBanner age={kingdom.age} />
       <ResourceBars resources={kingdom.resources} />
       <ThreatCards threats={kingdom.threats} transactions={state.input.transactions} />
       <MoatMeter moat={kingdom.moat} />
-      {roads !== null && (
+      {/* Stage 4: the roads live on the canvas (travelers + in-world
+          registry). The DOM list remains only as the boot-failure fallback,
+          beside the structure grid. */}
+      {vistaFailed && roads !== null && (
         <TheRoads
           roads={roads}
           onAssign={handleAssignRole}

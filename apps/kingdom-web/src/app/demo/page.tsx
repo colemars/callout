@@ -7,6 +7,15 @@ import { useState } from "react";
 import { KingdomVista } from "../../components/vista";
 import type { SceneModel } from "../../scene/sceneModel";
 
+const FIXTURE_TRAVELER = {
+  roleAssigned: false,
+  icon: "🧳",
+  etaDays: 5,
+  arrivesOn: "2026-08-10",
+  cadence: "comes every 30 days or so",
+  basis: "hand-written fixture data — nothing real",
+} as const;
+
 const DEMO: SceneModel = {
   surveying: false,
   ageId: 2,
@@ -58,6 +67,17 @@ const DEMO: SceneModel = {
       agitated: false,
       name: "NETFLIX",
       arrivalCopy: "arrives in 15 days",
+      state: {
+        ...FIXTURE_TRAVELER,
+        id: "merchant:NETFLIX",
+        source: "recurring",
+        name: "NETFLIX",
+        role: "players",
+        tone: "neutral",
+        status: "approaching",
+        amount: { amountMinor: 17_99, currency: "USD" },
+        arrivalCopy: "arrives in 15 days",
+      },
     },
     {
       id: "due:card-1",
@@ -70,6 +90,19 @@ const DEMO: SceneModel = {
       agitated: true,
       name: "Chase collector",
       arrivalCopy: "waits at the gates",
+      state: {
+        ...FIXTURE_TRAVELER,
+        id: "due:card-1",
+        source: "due",
+        name: "Chase collector",
+        role: "loansharks",
+        roleAssigned: true,
+        tone: "hostile",
+        status: "overdue",
+        amount: { amountMinor: 40_00, currency: "USD" },
+        arrivalCopy: "waits at the gates",
+        cadence: "a due date the bank has set",
+      },
     },
     {
       id: "income:ACME PAYROLL",
@@ -82,6 +115,17 @@ const DEMO: SceneModel = {
       agitated: false,
       name: "ACME PAYROLL",
       arrivalCopy: "arrives in 4 days",
+      state: {
+        ...FIXTURE_TRAVELER,
+        id: "income:ACME PAYROLL",
+        source: "income",
+        name: "ACME PAYROLL",
+        role: "provisioner",
+        tone: "friendly",
+        status: "approaching",
+        amount: { amountMinor: 2_400_00, currency: "USD" },
+        arrivalCopy: "arrives in 4 days",
+      },
     },
     {
       id: "merchant:OLDGYM",
@@ -94,24 +138,36 @@ const DEMO: SceneModel = {
       agitated: false,
       name: "OLDGYM",
       arrivalCopy: "the road has gone quiet",
+      state: {
+        ...FIXTURE_TRAVELER,
+        id: "merchant:OLDGYM",
+        source: "recurring",
+        name: "OLDGYM",
+        role: "visitor",
+        tone: "neutral",
+        status: "quiet",
+        arrivalCopy: "the road has gone quiet",
+      },
     },
   ],
   weather: { winter: 2 },
   ambientCount: 12,
+  registryReadOnly: false,
 };
 
 export default function VistaDemo() {
-  const [tapped, setTapped] = useState<string | null>(null);
+  const [action, setAction] = useState<string | null>(null);
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <h1 className="font-serif text-xl font-bold">Vista test bench (fixture data)</h1>
       <KingdomVista
         model={DEMO}
-        onTravelerTap={setTapped}
-        onFail={() => setTapped("BOOT FAILED")}
+        onAssignRole={(id, role) => setAction(`assign ${role} to ${id}`)}
+        onClearRole={(id) => setAction(`clear ${id}`)}
+        onFail={() => setAction("BOOT FAILED")}
       />
       <p className="mt-3 text-sm text-stone-500" data-testid="tap-result">
-        last traveler tap: {tapped ?? "none"}
+        last registry action: {action ?? "none"}
       </p>
     </main>
   );

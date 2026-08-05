@@ -34,6 +34,8 @@ export interface PlacedTraveler {
   name: string;
   /** Passthrough for hover labels. */
   arrivalCopy: string;
+  /** Full traveler state — the in-canvas Road Registry renders from this. */
+  state: TravelerState;
 }
 
 export interface SceneModel {
@@ -47,6 +49,8 @@ export interface SceneModel {
   weather: Partial<Record<ThreatKind, 1 | 2 | 3>>;
   /** Ambient villager count from the builders resource (rendered Stage 2). */
   ambientCount: number;
+  /** True when meta writes are unavailable — the registry shows, never edits. */
+  registryReadOnly: boolean;
 }
 
 /** How far out (days) the map edge sits. 30+ days = the horizon. */
@@ -132,7 +136,11 @@ const AMBIENT_BY_BUILDERS: Record<0 | 1 | 2 | 3 | 4 | 5, number> = {
   5: 20,
 };
 
-export function buildSceneModel(kingdom: KingdomState, roads: RoadsState | null): SceneModel {
+export function buildSceneModel(
+  kingdom: KingdomState,
+  roads: RoadsState | null,
+  registryReadOnly = false,
+): SceneModel {
   const reservedPlots = RESERVED_PLOTS.map((p) => p.id);
 
   if (kingdom.surveying) {
@@ -146,6 +154,7 @@ export function buildSceneModel(kingdom: KingdomState, roads: RoadsState | null)
       travelers: [],
       weather: {},
       ambientCount: 0,
+      registryReadOnly,
     };
   }
 
@@ -173,6 +182,7 @@ export function buildSceneModel(kingdom: KingdomState, roads: RoadsState | null)
       agitated,
       name: traveler.name,
       arrivalCopy: traveler.arrivalCopy,
+      state: traveler,
       status: traveler.status,
     };
   });
@@ -207,5 +217,6 @@ export function buildSceneModel(kingdom: KingdomState, roads: RoadsState | null)
     travelers: placed.map(({ status: _status, ...rest }) => rest),
     weather,
     ambientCount: AMBIENT_BY_BUILDERS[builders?.level ?? 0],
+    registryReadOnly,
   };
 }
