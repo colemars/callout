@@ -319,6 +319,12 @@ export class VistaScene extends Phaser.Scene {
           isoToScreen(17, 12),
           isoToScreen(0, 12),
         ]);
+        // Spawn LIFT px above the sampled ground point so each flake falls
+        // down onto the map instead of materializing at ground level. With
+        // speedY 34-58 over 6s a flake travels ~275px, so lifting by ~200
+        // keeps the full-alpha stretch of its life on the descent and lands
+        // it near its ground point as the fade-out begins.
+        const SNOW_LIFT = 200;
         const diamondSource = {
           getRandomPoint: (point: Phaser.Types.Math.Vector2Like) => {
             let x = 0;
@@ -328,7 +334,7 @@ export class VistaScene extends Phaser.Scene {
               y = b.minY + Math.random() * (b.maxY - b.minY);
             } while (!Phaser.Geom.Polygon.Contains(diamond, x, y));
             point.x = x;
-            point.y = y;
+            point.y = y - SNOW_LIFT;
             return point;
           },
         };
