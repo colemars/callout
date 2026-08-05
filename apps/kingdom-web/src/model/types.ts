@@ -152,6 +152,8 @@ export interface ThreatBreakdownLine {
   previousMinor: number;
   currentMinor: number;
   deltaMinor: number;
+  /** Income-like lines: a rise is good news (spending lines omit this). */
+  risingIsGood?: boolean;
 }
 
 export interface MoatComponent {

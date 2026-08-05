@@ -216,40 +216,48 @@ export function ThreatCards({
                 <summary className={`cursor-pointer text-xs ${muted}`}>
                   the ledger's account, line by line
                 </summary>
+                {t.months !== undefined && (
+                  <p className={`mt-1 text-right text-xs ${muted}`}>
+                    the moon before ({t.months.previous}) → last moon ({t.months.current}) · change
+                  </p>
+                )}
                 <ul className="mt-1 flex flex-col gap-0.5 text-xs">
-                  {t.breakdown.map((line) => (
-                    <li key={line.label} className="flex justify-between gap-4 tabular-nums">
-                      {t.months !== undefined ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setLedger({
-                              category: line.label,
-                              months: t.months as LedgerView["months"],
-                            })
-                          }
-                          className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-amber-800 dark:hover:text-amber-200"
-                          title="Open the ledger"
-                        >
-                          {line.label}
-                        </button>
-                      ) : (
-                        <span>{line.label}</span>
-                      )}
-                      <span>
-                        {fmtUsd(line.previousMinor)} → {fmtUsd(line.currentMinor)}{" "}
-                        <span
-                          className={
-                            line.deltaMinor > 0
-                              ? "text-red-700 dark:text-red-400"
-                              : "text-emerald-700 dark:text-emerald-400"
-                          }
-                        >
-                          {line.deltaMinor >= 0 ? "▲" : "▼"} {fmtUsd(Math.abs(line.deltaMinor))}
+                  {t.breakdown.map((line) => {
+                    const worsened = line.risingIsGood ? line.deltaMinor < 0 : line.deltaMinor > 0;
+                    return (
+                      <li key={line.label} className="flex justify-between gap-4 tabular-nums">
+                        {t.months !== undefined ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLedger({
+                                category: line.label,
+                                months: t.months as LedgerView["months"],
+                              })
+                            }
+                            className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-amber-800 dark:hover:text-amber-200"
+                            title="Open the ledger"
+                          >
+                            {line.label}
+                          </button>
+                        ) : (
+                          <span>{line.label}</span>
+                        )}
+                        <span>
+                          {fmtUsd(line.previousMinor)} → {fmtUsd(line.currentMinor)}{" "}
+                          <span
+                            className={
+                              worsened
+                                ? "text-red-700 dark:text-red-400"
+                                : "text-emerald-700 dark:text-emerald-400"
+                            }
+                          >
+                            {line.deltaMinor >= 0 ? "▲" : "▼"} {fmtUsd(Math.abs(line.deltaMinor))}
+                          </span>
                         </span>
-                      </span>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             )}

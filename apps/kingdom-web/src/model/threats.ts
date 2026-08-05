@@ -176,6 +176,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
             previousMinor: incomePrior,
             currentMinor: incomeNow ?? 0,
             deltaMinor: (incomeNow ?? 0) - incomePrior,
+            risingIsGood: true,
           },
         ],
         months: { current: ref.month, previous: prior.month },
