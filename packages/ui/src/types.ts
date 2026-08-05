@@ -30,6 +30,9 @@ export interface Txn {
 }
 
 export interface ApiEvent {
+  id?: string;
+  /** Monotonic insertion cursor (paginate with ?sinceSeq=). */
+  seq?: number;
   type: string;
   /** The date the event describes. */
   occurredOn: string;

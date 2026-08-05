@@ -12,6 +12,6 @@ export type {
   RecurringCandidate,
 } from "./metrics.js";
 export { computeMetrics } from "./compute.js";
-export { deriveEvents } from "./events.js";
+export { deriveEvents, eventDedupKey } from "./events.js";
 export type { GoalProjection } from "./projections.js";
 export { project } from "./projections.js";

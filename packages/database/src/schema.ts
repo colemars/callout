@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   date,
   index,
@@ -209,13 +210,23 @@ export const events = platform.table(
   "events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** Monotonic insertion order — THE cursor for exact, loss-free pagination. */
+    seq: bigserial("seq", { mode: "number" }).notNull(),
     userId: uuid("user_id").notNull(),
     occurredOn: date("occurred_on", { mode: "string" }).notNull(),
     type: text("type").notNull(),
+    /** Natural identity within (user, type, occurredOn) — the double-derive guard. */
+    dedupKey: text("dedup_key"),
     payload: jsonb("payload").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("events_user_created_ix").on(t.userId, t.createdAt)],
+  (t) => [
+    index("events_user_created_ix").on(t.userId, t.createdAt),
+    index("events_user_seq_ix").on(t.userId, t.seq),
+    // Legacy rows have NULL dedup_key (distinct under the index); all new
+    // inserts carry one, making concurrent double-derivation a no-op.
+    uniqueIndex("events_user_natural_ux").on(t.userId, t.type, t.occurredOn, t.dedupKey),
+  ],
 );
 
 /**

@@ -364,10 +364,14 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
           const userId = await requireUser(request);
           const store = createEventStore(deps.db);
           const stored =
-            request.query.since === undefined
-              ? await store.listRecent(userId, request.query.limit)
-              : await store.listSince(userId, new Date(request.query.since), request.query.limit);
+            request.query.sinceSeq !== undefined
+              ? await store.listSinceSeq(userId, request.query.sinceSeq, request.query.limit)
+              : request.query.since !== undefined
+                ? await store.listSince(userId, new Date(request.query.since), request.query.limit)
+                : await store.listRecent(userId, request.query.limit);
           return stored.map((s) => ({
+            id: s.id,
+            seq: s.seq,
             type: s.event.type,
             occurredOn: s.event.occurredOn as string,
             createdAt: s.createdAt,

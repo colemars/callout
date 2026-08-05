@@ -64,17 +64,22 @@ export const budgetSchema = z.object({
 });
 
 export const eventSchema = z.object({
+  id: z.string(),
+  /** Monotonic insertion cursor — paginate with ?sinceSeq= (exact, loss-free). */
+  seq: z.number().int(),
   type: z.string(),
   /** The date the event describes. */
   occurredOn: z.string(),
-  /** When the event was derived — cursor on THIS with ?since=. */
+  /** When the event was derived. */
   createdAt: z.string(),
   payload: z.record(z.unknown()),
 });
 
 export const eventsQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
-  /** ISO timestamp; returns events created strictly after it, ascending. */
+  /** Preferred cursor: events with seq strictly greater, ascending. */
+  sinceSeq: z.coerce.number().int().min(0).optional(),
+  /** Legacy cursor (ISO timestamp) — batch-boundary-lossy; prefer sinceSeq. */
   since: z.string().datetime().optional(),
 });
 

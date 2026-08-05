@@ -64,8 +64,11 @@ raiders' toll from them; absence means "rate hidden", never a guessed rate.
 - **In-page engine (recommended: Phaser/TS)**: import `kingdomModel` +
   `computeKingdomDiff` directly — same product, same runtime, zero drift.
 - **Time travel**: `GET /api/v1/insights/history?from&to` (daily MetricSets,
-  ≤180-day window) and `GET /api/v1/events?since=<ISO timestamp>` (cursor on
-  `createdAt` — `occurredOn` is the described date, not insertion time).
+  ≤180-day window) and `GET /api/v1/events?sinceSeq=<n>` (exact monotonic
+  cursor; events expose `id` + `seq`; the older `?since=<ISO>` cursor is
+  batch-boundary-lossy and kept for compatibility only). Events are
+  dedup-guarded at insert — the stream is a ledger, safe to fold currency
+  over (`occurredOn` is the described date, not insertion time).
 - **"While you were away"**: the reference baseline is server-held —
   `GET/PUT /api/v1/products/kingdom/state` (platform `product_state`, opaque
   blob `{lastSeenAt, lastSeen: KingdomState}` with an optimistic-concurrency

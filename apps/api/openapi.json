@@ -1295,6 +1295,15 @@
           },
           {
             "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "sinceSeq",
+            "required": false
+          },
+          {
+            "schema": {
               "type": "string",
               "format": "date-time"
             },
@@ -1313,6 +1322,12 @@
                   "items": {
                     "type": "object",
                     "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "seq": {
+                        "type": "integer"
+                      },
                       "type": {
                         "type": "string"
                       },
@@ -1328,6 +1343,8 @@
                       }
                     },
                     "required": [
+                      "id",
+                      "seq",
                       "type",
                       "occurredOn",
                       "createdAt",

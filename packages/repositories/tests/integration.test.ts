@@ -473,3 +473,55 @@ describe("LiabilityRepository", () => {
     expect(await repo.listForUser(OTHER_USER)).toEqual([]);
   });
 });
+
+describe("EventStore dedup + seq cursor", () => {
+  it("re-deriving the same events is a no-op; seq paginates exactly", async () => {
+    const store = createEventStore(db);
+    const mkEvent = (month: string, minor: number) =>
+      ({
+        userId: USER,
+        occurredOn: isoDate("2026-08-01"),
+        type: "NET_CASH_FLOW_POSITIVE",
+        month,
+        netFlow: money(minor),
+      }) as unknown as Parameters<typeof store.insertMany>[0][number];
+
+    // Same natural event twice — even with a DIFFERENT amount (the concurrent
+    // double-derive case computes slightly different currents).
+    await store.insertMany([mkEvent("2026-07", 100_00)]);
+    await store.insertMany([mkEvent("2026-07", 105_00)]);
+    const july = (await store.listRecent(USER, 50)).filter(
+      (s) =>
+        s.event.type === "NET_CASH_FLOW_POSITIVE" &&
+        (s.event as { month?: string }).month === "2026-07",
+    );
+    expect(july).toHaveLength(1);
+    expect((july[0]?.event as { netFlow?: { amountMinor: number } }).netFlow?.amountMinor).toBe(
+      100_00, // first write wins
+    );
+
+    // A different month is a different natural event.
+    await store.insertMany([mkEvent("2026-06", 90_00)]);
+
+    // Exact pagination on seq: walk one at a time, no loss, no redelivery.
+    let cursor = 0;
+    const seen: number[] = [];
+    for (;;) {
+      const page = await store.listSinceSeq(USER, cursor, 1);
+      if (page.length === 0) break;
+      for (const s of page) {
+        seen.push(s.seq);
+        cursor = s.seq;
+      }
+    }
+    expect(new Set(seen).size).toBe(seen.length); // no redelivery
+    expect(seen).toEqual([...seen].sort((a, b) => a - b)); // ascending
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    // Every stored event carries its identity.
+    const all = await store.listRecent(USER, 50);
+    for (const s of all) {
+      expect(s.id).toBeTruthy();
+      expect(s.seq).toBeGreaterThan(0);
+    }
+  });
+});

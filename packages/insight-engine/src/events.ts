@@ -230,6 +230,15 @@ function spendingDeltas(
   return events;
 }
 
+/**
+ * The event's natural identity within (user, type, occurredOn) — used as the
+ * persistence dedup key so concurrent derivation can never double-insert.
+ * (Also the display sort key; both want the same discriminators.)
+ */
+export function eventDedupKey(e: FinancialEvent): string {
+  return sortKey(e);
+}
+
 function sortKey(e: FinancialEvent): string {
   switch (e.type) {
     case "GOAL_OFF_TRACK":

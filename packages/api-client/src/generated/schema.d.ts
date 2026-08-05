@@ -789,6 +789,7 @@ export interface paths {
             parameters: {
                 query?: {
                     limit?: number;
+                    sinceSeq?: number;
                     since?: string;
                 };
                 header?: never;
@@ -804,6 +805,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            id: string;
+                            seq: number;
                             type: string;
                             occurredOn: string;
                             createdAt: string;

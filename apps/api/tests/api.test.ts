@@ -412,3 +412,26 @@ describe("account liabilities on GET /accounts", () => {
     expect(enriched.userId).toBeUndefined(); // serializer still strips internals
   });
 });
+
+describe("events cursor exactness", () => {
+  it("exposes id + seq and paginates exactly with ?sinceSeq=", async () => {
+    const first = (await get("/api/v1/events?limit=5", GOOD_TOKEN)).json();
+    expect(first.length).toBeGreaterThan(0);
+    expect(first[0].id).toBeTruthy();
+    expect(typeof first[0].seq).toBe("number");
+
+    // Walk the full stream by seq — ascending, no duplicates.
+    let cursor = 0;
+    const seqs: number[] = [];
+    for (;;) {
+      const page = (await get(`/api/v1/events?sinceSeq=${cursor}&limit=1`, GOOD_TOKEN)).json();
+      if (page.length === 0) break;
+      for (const e of page) {
+        seqs.push(e.seq);
+        cursor = e.seq;
+      }
+    }
+    expect(new Set(seqs).size).toBe(seqs.length);
+    expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
+  });
+});
