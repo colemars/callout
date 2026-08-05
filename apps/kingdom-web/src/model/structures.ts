@@ -1,6 +1,13 @@
 import { classifyAccount, fmtMinor, lifestyleShare, referenceMonths, sumBalances } from "./derive";
 import { ASSUMED_CARD_APR_PCT, banditToll } from "./threats";
-import type { AgeState, KingdomInput, MoatState, ResourceState, StructureState } from "./types";
+import type {
+  AgeState,
+  KingdomInput,
+  MoatState,
+  ResourceState,
+  StructureLine,
+  StructureState,
+} from "./types";
 
 type Level = StructureState["level"];
 const asLevel = (n: number): Level => Math.max(0, Math.min(5, Math.round(n))) as Level;
@@ -34,16 +41,22 @@ export function computeStructures(
   const budgets = input.metrics?.budgetStatus ?? [];
   const share = lifestyleShare(ref);
 
-  const accountLines = (cls: "retirement" | "brokerage" | "mortgage" | "student") =>
+  const accountLines = (
+    cls: "retirement" | "brokerage" | "mortgage" | "student",
+  ): StructureLine[] =>
     input.accounts
       .filter((a) => classifyAccount(a) === cls && a.balance.amountMinor !== 0)
       .sort((a, b) => b.balance.amountMinor - a.balance.amountMinor)
       .map((a) => {
-        const rate =
-          a.apr === undefined ? "" : ` · ${a.apr}%${a.aprType === "fixed" ? " fixed" : ""}`;
-        const payment =
-          a.minPayment === undefined ? "" : ` · ${fmtMinor(a.minPayment.amountMinor)}/month`;
-        return `${a.institution} ${a.name}: ${fmtMinor(a.balance.amountMinor)}${rate}${payment}`;
+        const parts = [
+          a.apr === undefined ? null : `${a.apr}%${a.aprType === "fixed" ? " fixed" : ""}`,
+          a.minPayment === undefined ? null : `${fmtMinor(a.minPayment.amountMinor)}/month`,
+        ].filter((x) => x !== null);
+        return {
+          label: `${a.institution} ${a.name}`,
+          value: fmtMinor(a.balance.amountMinor),
+          ...(parts.length > 0 ? { note: parts.join(" · ") } : {}),
+        };
       });
 
   const structures: StructureState[] = [
@@ -72,9 +85,12 @@ export function computeStructures(
         if (runway === null || runway <= 0) return {};
         return {
           lines: [
-            `liquid stores: ${fmtMinor(liquid)}`,
-            `the realm's essential needs: ≈ ${fmtMinor(Math.round(liquid / runway))}/month`,
-          ],
+            { label: "liquid stores", value: fmtMinor(liquid) },
+            {
+              label: "the realm's essential needs",
+              value: `≈ ${fmtMinor(Math.round(liquid / runway))}/month`,
+            },
+          ] satisfies StructureLine[],
           basis: "runway = liquid balances ÷ trailing average essential spend",
         };
       })(),
@@ -199,16 +215,32 @@ export function computeStructures(
       }`,
       basis:
         "month-to-date spending vs your decreed caps; 'alarm' compares to even daily pace, 'breach' to the full cap",
-      lines: budgets.map((b) => {
+      lines: budgets.map((b): StructureLine => {
         const spent = b.spentMtd.amountMinor;
         const cap = b.monthlyCap.amountMinor;
         const pace = b.proratedCap.amountMinor;
-        const state = isBreached(b)
-          ? "✗ breached — the cap is spent"
-          : b.overPace
-            ? `⚠ alarm — ahead of pace (${fmtMinor(pace)} would be even spending by today)`
-            : "on pace";
-        return `${b.category}: ${fmtMinor(spent)} of ${fmtMinor(cap)} (${Math.round((spent / cap) * 100)}%) · ${state}`;
+        if (isBreached(b)) {
+          return {
+            label: b.category,
+            value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+            note: "✗ breached — the monthly cap is spent",
+            tone: "bad",
+          };
+        }
+        if (b.overPace) {
+          return {
+            label: b.category,
+            value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+            note: `⚠ alarm — ${Math.round((spent / cap) * 100)}% spent; even pace would be ${fmtMinor(pace)} by today`,
+            tone: "warn",
+          };
+        }
+        return {
+          label: b.category,
+          value: `${fmtMinor(spent)} of ${fmtMinor(cap)}`,
+          note: "on pace",
+          tone: "good",
+        };
       }),
     });
   }
@@ -243,11 +275,15 @@ export function computeStructures(
       lines: input.accounts
         .filter((a) => classifyAccount(a) === "credit" && a.balance.amountMinor > 0)
         .sort((a, b) => b.balance.amountMinor - a.balance.amountMinor)
-        .map((a) => {
+        .map((a): StructureLine => {
           const apr = a.apr ?? ASSUMED_CARD_APR_PCT;
           const label = a.apr === undefined ? "assumed " : "";
           const toll = Math.round((a.balance.amountMinor * apr) / 100 / 12);
-          return `${a.institution} ${a.name}: ${fmtMinor(a.balance.amountMinor)} at ${label}${apr}% ≈ ${fmtMinor(toll)}/month`;
+          return {
+            label: `${a.institution} ${a.name}`,
+            value: fmtMinor(a.balance.amountMinor),
+            note: `${label}${apr}% ≈ ${fmtMinor(toll)}/month in interest`,
+          };
         }),
       basis: "credit balances; tolls from bank-reported APRs (assumed 24% where unreported)",
     });

@@ -122,6 +122,16 @@ export type StructureKey =
   | "watchtowers"
   | "banditCamp";
 
+export interface StructureLine {
+  /** What the row is about (a decree, a card, a vault). */
+  label: string;
+  /** The headline figure, right-aligned. */
+  value?: string;
+  /** One-line explanation beneath, muted. */
+  note?: string;
+  tone?: "good" | "warn" | "bad";
+}
+
 export interface StructureState {
   key: StructureKey;
   name: string;
@@ -133,7 +143,7 @@ export interface StructureState {
   unit: ValueUnit;
   detail: string;
   /** Optional per-item account of the detail (e.g. one line per watched decree). */
-  lines?: string[];
+  lines?: StructureLine[];
   /** Where the numbers come from — the panel's provenance footnote. */
   basis?: string;
   lien?: boolean;

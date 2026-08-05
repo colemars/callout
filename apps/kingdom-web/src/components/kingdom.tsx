@@ -364,10 +364,30 @@ function StructureModal({ s, onClose }: { s: StructureState; onClose: () => void
         <p className={`mt-4 pt-3 text-sm ${rule}`}>{s.detail}</p>
 
         {s.lines !== undefined && s.lines.length > 0 && (
-          <ul className={`mt-3 flex flex-col gap-1.5 pt-3 text-sm ${rule}`}>
+          <ul className={`mt-3 flex flex-col gap-2 pt-3 text-sm ${rule}`}>
             {s.lines.map((line) => (
-              <li key={line} className="flex justify-between gap-3">
-                <span className="min-w-0">{line}</span>
+              <li key={line.label}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0">{line.label}</span>
+                  {line.value !== undefined && (
+                    <span className="shrink-0 tabular-nums">{line.value}</span>
+                  )}
+                </div>
+                {line.note !== undefined && (
+                  <p
+                    className={`mt-0.5 text-xs ${
+                      line.tone === "bad"
+                        ? "text-red-700 dark:text-red-400"
+                        : line.tone === "warn"
+                          ? "text-amber-700 dark:text-amber-400"
+                          : line.tone === "good"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : muted
+                    }`}
+                  >
+                    {line.note}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
