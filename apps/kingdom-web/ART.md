@@ -7,11 +7,20 @@ before it ships.** Frames drop in via `src/scene/assets.ts` (each manifest
 entry gains a `frame` name matching its key verbatim) — zero scene-code
 changes.
 
+**Per-frame prompts are generated**: `art/PROMPTS.md` (human) and
+`art/prompt-pack.json` (pipeline) hold one finished prompt per frame,
+derived from `ASSET_MANIFEST` by `src/scene/promptPack.ts` so names and
+sizes cannot drift. Regenerate after any manifest or prompt change:
+`UPDATE_PROMPT_PACK=1 pnpm --filter @platform/kingdom-web test -- promptPack`.
+
 ## Global spec
 
 - **Projection**: isometric 2:1 (26.57°), consistent southwest light.
-- **Base tile**: 128×64 px. **Structures**: 128×160 px (tier 3 may use
-  128×192). **Travelers**: 64×96 px. Transparent backgrounds.
+- **Canvas sizes**: the scene renders every texture at its natural size, so
+  delivered frames must match `ASSET_MANIFEST` px exactly (author at 2× and
+  downscale if the generator needs room). Base tile 128×64. Structures by
+  tier: t1 128×128, t2 128×160, t3 128×192. Travelers 40×56 (villager
+  26×38). Tree 64×96. Badges 24×24. Transparent backgrounds.
 - **Delivery**: one PNG sprite sheet + JSON atlas (TexturePacker "JSON Hash"
   or Phaser 3 format). Frame names MUST equal the manifest keys below.
 - **Style**: pixel-painterly medieval, warm and readable at 50% scale; inked
@@ -48,7 +57,7 @@ granary, tier 2 of 3: two round thatched silos beside a wooden loft, warm
 amber palette (#84a94b grass base, #8b5e34 wood, #78350f inked outline),
 southwest light, transparent background, 128×160, readable at 50% scale."*
 
-## Travelers — 6 archetypes (6 frames)
+## Travelers — 6 archetypes + villager (7 frames)
 
 Frame names: `traveler:<archetype>`. Small figures with a **grayscale/neutral
 garb zone that tints well** (the engine tints by tone: friendly green /
@@ -57,6 +66,9 @@ neutral tan / hostile red).
 merchant (pack + walking staff) · courier (satchel + horn) · official
 (ledger + seal sash) · guard (spear + kite shield) · raider (hood + axe) ·
 guest (cloak + gift box)
+
+Plus `traveler:villager` (26×38) — the tiny ambient figure around the
+commons: simple tunic, no props, plainer than the road travelers.
 
 ## Monuments — 3 frames (Stage 6 build-plots)
 
@@ -78,6 +90,9 @@ EARNED (finer detail than same-size structures is welcome).
 (64×96), `badge:lock` (24×24 gold padlock), `badge:lien` (24×24 bank
 pennant).
 
+`fx:dot` stays programmatic (a plain white particle) and is NOT part of the
+atlas.
+
 ## Acceptance checklist (before shipping)
 
 - [ ] Every structure identifiable by silhouette alone at 50% scale
@@ -85,4 +100,5 @@ pennant).
 - [ ] Traveler garb tints cleanly (no baked-in strong hues)
 - [ ] Consistent light direction and outline weight across all frames
 - [ ] banditCamp reads hostile without being cartoonishly evil
+- [ ] Frame dimensions match `ASSET_MANIFEST` px exactly (promptPack test green)
 - [ ] Cole has approved the sheet
