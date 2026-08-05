@@ -307,9 +307,11 @@ export class VistaScene extends Phaser.Scene {
       if (this.weatherFx.has(kind)) continue;
       const objects: Phaser.GameObjects.GameObject[] = [];
       if (kind === "winter") {
-        // Real snowFALL: flakes spawn inside the map diamond only (an
-        // emit-zone polygon — never static in the void corners), fall a
+        // Real snowFALL: flakes spawn inside the map diamond only, fall a
         // meaningful distance with a gentle sway, and fade at both ends.
+        // Geom.Polygon has NO getRandomPoint (a polygon emit zone silently
+        // collapses to the origin — the tiny-column-of-snow bug), so the
+        // zone is a custom source that rejection-samples the diamond.
         // Alive ~= lifespan/(frequency/severity) — ≤51 at severity 3.
         const diamond = new Phaser.Geom.Polygon([
           isoToScreen(0, 0),
@@ -317,8 +319,21 @@ export class VistaScene extends Phaser.Scene {
           isoToScreen(17, 12),
           isoToScreen(0, 12),
         ]);
+        const diamondSource = {
+          getRandomPoint: (point: Phaser.Types.Math.Vector2Like) => {
+            let x = 0;
+            let y = 0;
+            do {
+              x = b.minX + Math.random() * (b.maxX - b.minX);
+              y = b.minY + Math.random() * (b.maxY - b.minY);
+            } while (!Phaser.Geom.Polygon.Contains(diamond, x, y));
+            point.x = x;
+            point.y = y;
+            return point;
+          },
+        };
         const snow = this.add.particles(0, 0, "fx:dot", {
-          emitZone: { type: "random", source: diamond, quantity: 40 },
+          emitZone: { type: "random", source: diamondSource, quantity: 40 },
           lifespan: 6000,
           speedY: { min: 34, max: 58 },
           speedX: { min: -14, max: 14 },
