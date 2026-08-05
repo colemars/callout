@@ -57,10 +57,29 @@ export interface KingdomMetrics extends MetricsView {
   };
   /** Trailing income average from the engine (server-persisted snapshots). */
   incomeBaseline?: { monthsCounted: number; averageMonthly: ApiMoney | null };
+  goalStatuses?: {
+    goalId: string;
+    kind: string;
+    evaluable: boolean;
+    onTrack: boolean | null;
+    expected: ApiMoney | null;
+    actual: ApiMoney | null;
+  }[];
+}
+
+/** A sworn undertaking as served by /api/v1/goals. */
+export interface KingdomGoal {
+  id: string;
+  kind: "savings_net_flow" | "balance_target" | "debt_paydown";
+  accountId?: string;
+  targetAmount: ApiMoney;
+  targetDate?: string;
+  active: boolean;
 }
 
 export interface KingdomInput {
   accounts: KingdomAccount[];
+  goals?: KingdomGoal[];
   transactions: KingdomTxn[];
   investmentActivity: KingdomInvestmentActivity[];
   events: ApiEvent[];
@@ -120,7 +139,8 @@ export type StructureKey =
   | "manor"
   | "guildDebt"
   | "watchtowers"
-  | "banditCamp";
+  | "banditCamp"
+  | "oaths";
 
 export interface StructureLine {
   /** What the row is about (a decree, a card, a vault). */

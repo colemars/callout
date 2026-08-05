@@ -2,6 +2,7 @@ import type { ApiEvent, ProductClients } from "@platform/ui";
 import { useEffect, useState } from "react";
 import type {
   KingdomAccount,
+  KingdomGoal,
   KingdomInput,
   KingdomInvestmentActivity,
   KingdomMetrics,
@@ -33,8 +34,9 @@ export function useKingdomData(clients: ProductClients): KingdomDataState {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const from = new Date(Date.now() - 70 * 86_400_000).toISOString().slice(0, 10);
-        const [accounts, transactions, activity, events, insights] = await Promise.all([
+        const [accounts, goals, transactions, activity, events, insights] = await Promise.all([
           clients.api.GET("/api/v1/accounts"),
+          clients.api.GET("/api/v1/goals"),
           clients.api.GET("/api/v1/transactions", { params: { query: { from } } }),
           clients.api.GET("/api/v1/investments/activity", { params: { query: { from } } }),
           clients.api.GET("/api/v1/events", { params: { query: { limit: 25 } } }),
@@ -45,6 +47,7 @@ export function useKingdomData(clients: ProductClients): KingdomDataState {
           status: "ready",
           input: {
             accounts: (accounts.data ?? []) as KingdomAccount[],
+            goals: (goals.data ?? []) as KingdomGoal[],
             transactions: (transactions.data ?? []) as KingdomTxn[],
             investmentActivity: (activity.data ?? []) as KingdomInvestmentActivity[],
             events: (events.data ?? []) as ApiEvent[],

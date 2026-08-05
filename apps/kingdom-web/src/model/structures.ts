@@ -244,6 +244,56 @@ export function computeStructures(
       }),
     });
   }
+  const activeGoals = (input.goals ?? []).filter((g) => g.active);
+  if (activeGoals.length > 0) {
+    const statuses = new Map((input.metrics?.goalStatuses ?? []).map((st) => [st.goalId, st]));
+    const kindCopy: Record<string, string> = {
+      savings_net_flow: "amass treasure",
+      balance_target: "grow the vault",
+      debt_paydown: "drive the raiders down",
+    };
+    const onTrackCount = activeGoals.filter((g) => statuses.get(g.id)?.onTrack === true).length;
+    const strayCount = activeGoals.filter((g) => statuses.get(g.id)?.onTrack === false).length;
+    structures.push({
+      key: "oaths",
+      name: "The Hall of Oaths",
+      icon: "🛡️",
+      exists: true,
+      value: activeGoals.length,
+      unit: "count" as const,
+      level: asLevel(strayCount > 0 ? 2 : onTrackCount === activeGoals.length ? 5 : 3),
+      detail: `${activeGoals.length} oath${activeGoals.length === 1 ? "" : "s"} sworn · ${
+        strayCount > 0
+          ? `${strayCount} straying from pace`
+          : onTrackCount === activeGoals.length
+            ? "all on pace"
+            : "awaiting the surveyors"
+      }`,
+      lines: activeGoals.map((g) => {
+        const account = input.accounts.find((a) => a.id === g.accountId);
+        const st = statuses.get(g.id);
+        const what = `${kindCopy[g.kind] ?? g.kind} to ${fmtMinor(g.targetAmount.amountMinor)}${
+          g.targetDate === undefined ? "" : ` by ${g.targetDate}`
+        }${account === undefined ? "" : ` — ${account.institution} ${account.name}`}`;
+        if (st === undefined || !st.evaluable || st.onTrack === null) {
+          return { label: what, note: "not yet paceable" } satisfies StructureLine;
+        }
+        const actual = st.actual === null ? "" : fmtMinor(st.actual.amountMinor);
+        const expected = st.expected === null ? "" : fmtMinor(st.expected.amountMinor);
+        return {
+          label: what,
+          value: actual,
+          note: st.onTrack
+            ? `on pace — ${expected} expected by today`
+            : `straying — ${expected} expected by today`,
+          tone: st.onTrack ? ("good" as const) : ("bad" as const),
+        };
+      }),
+      basis:
+        "the surveyors pace each oath linearly from its baseline to its target date; 'standing' is the vault balance or net savings since the oath",
+    });
+  }
+
   if (highInterest > 0) {
     structures.push({
       key: "banditCamp",
