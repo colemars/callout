@@ -138,7 +138,7 @@ export type StructureKey =
   | "festival"
   | "manor"
   | "guildDebt"
-  | "watchtowers"
+  | "oaths"
   | "banditCamp";
 
 export interface StructureLine {

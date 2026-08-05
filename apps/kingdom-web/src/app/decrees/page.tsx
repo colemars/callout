@@ -1,7 +1,9 @@
 "use client";
 
-// Royal Decrees — the crown's own laws: monthly spending caps (watchtowers
-// watch them) and sworn undertakings (goals the engine paces). Everything here
+// Royal Decrees — the crown's own laws: monthly spending caps and sworn
+// undertakings (goals the engine paces), both kept in the kingdom's Hall of
+// Oaths — the crown's word to itself, not a watch for outside threats.
+// Everything here
 // writes through the platform API; the kingdom only ever renders what is law.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -113,7 +115,7 @@ export default function RoyalDecrees() {
       return;
     }
     setDecreeCap("");
-    setMessage("The decree is sealed. The watchtowers take their posts.");
+    setMessage("The decree is sealed and hangs in the Hall of Oaths.");
     load();
   }
 
@@ -197,8 +199,8 @@ export default function RoyalDecrees() {
           Spending decrees
         </h2>
         <p className={`text-xs ${muted}`}>
-          "The court shall spend no more than the stated sum each month." The watchtowers keep
-          watch; breaching a decree brings warnings, never punishment.
+          "The court shall spend no more than the stated sum each month." The Hall of Oaths keeps
+          the ledger honest; breaching a decree brings warnings, never punishment.
         </p>
         {budgets === null ? (
           <p className={`mt-2 text-sm ${muted}`}>The scribes are fetching the law…</p>

@@ -270,16 +270,16 @@ export function computeStructures(
     });
 
     structures.push({
-      key: "watchtowers",
-      name: "The Watchtowers",
-      icon: "🗼",
+      key: "oaths",
+      name: "The Hall of Oaths",
+      icon: "🛡️",
       exists: true,
       value: budgets.length + activeGoals.length,
       unit: "count" as const,
-      // Status-led pips: quiet towers glow; alarms and straying dim them;
-      // a breach darkens the sky.
+      // Status-led pips: a hall of kept promises glows; alarms and straying
+      // dim it; a breach darkens the sky.
       level: asLevel(breached > 0 ? 1 : alarms + straying > 0 ? 3 : 5),
-      detail: summary === "" ? "the towers stand quiet" : summary,
+      detail: summary === "" ? "the hall stands quiet" : summary,
       lines: [
         ...(decreeLines.length > 0
           ? [{ label: "spending decrees", heading: true } satisfies StructureLine, ...decreeLines]

@@ -55,7 +55,7 @@ describe("kingdomModel on the day-one sandbox (the sanity story)", () => {
     expect(keys).toContain("guildDebt");
     expect(keys).toContain("banditCamp");
     expect(keys).not.toContain("caravans"); // no brokerage in sandbox (401k/IRA are retirement)
-    expect(keys).not.toContain("watchtowers"); // no budgets seeded
+    expect(keys).not.toContain("oaths"); // no budgets or goals seeded
     expect(state.structures.find((s) => s.key === "treasury")?.locked).toBe(true);
     expect(state.structures.find((s) => s.key === "manor")?.lien).toBe(true);
     expect(state.structures.find((s) => s.key === "banditCamp")?.hostile).toBe(true);
