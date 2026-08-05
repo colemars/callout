@@ -24,6 +24,7 @@ export class VistaScene extends Phaser.Scene {
   private uiCamera!: Phaser.Cameras.Scene2D.Camera;
   private structureSprites = new Map<string, Phaser.GameObjects.Image>();
   private travelerSprites = new Map<string, Phaser.GameObjects.Image>();
+  private ambientSprites: Phaser.GameObjects.Image[] = [];
   private model: SceneModel | null = null;
   private pendingModel: SceneModel | null = null;
   private panel: StewardPanel | null = null;
@@ -89,12 +90,19 @@ export class VistaScene extends Phaser.Scene {
    * viewport otherwise, and a world hit-test culls against that stale
    * rectangle — clicks beyond it silently miss.
    */
+  private lastViewportWidth = 0;
+
   private syncViewports(): void {
     this.cameras.main.setSize(this.scale.width, this.scale.height);
     this.uiCamera.setSize(this.scale.width, this.scale.height);
     this.fitWorldCamera();
-    // A panel laid out for the old viewport re-lays on next open.
-    this.closePanel();
+    // Re-lay the panel only on WIDTH changes: phones fire height-only
+    // resizes when the browser chrome collapses mid-scroll, and slamming
+    // the report shut on scroll is hostile.
+    if (Math.abs(this.scale.width - this.lastViewportWidth) > 2) {
+      this.closePanel();
+    }
+    this.lastViewportWidth = this.scale.width;
   }
 
   private fitWorldCamera(): void {
@@ -174,6 +182,71 @@ export class VistaScene extends Phaser.Scene {
     this.model = model;
     this.syncStructures(model.structures);
     this.syncTravelers(model.travelers);
+    this.syncAmbient(model.ambientCount);
+  }
+
+  /**
+   * Ambient life (Stage 2): villagers around the commons, their number set
+   * by the builders resource — the kingdom literally grows busier as the
+   * surplus does. Purely decorative, deterministic by index (no randomness:
+   * the same kingdom always bustles the same way), never interactive.
+   */
+  private static readonly COMMONS: ReadonlyArray<{ tx: number; ty: number }> = [
+    { tx: 6.2, ty: 6.4 }, // the market square
+    { tx: 8.4, ty: 4.6 }, // before the keep
+    { tx: 11.2, ty: 6.8 }, // the festival grounds
+    { tx: 3.4, ty: 6.6 }, // by the granary
+    { tx: 8.2, ty: 7.6 }, // the gate commons
+  ];
+
+  private syncAmbient(count: number): void {
+    while (this.ambientSprites.length > count) {
+      const sprite = this.ambientSprites.pop();
+      if (sprite !== undefined) {
+        this.tweens.killTweensOf(sprite);
+        this.tweens.add({
+          targets: sprite,
+          alpha: 0,
+          duration: TWEEN_MS,
+          onComplete: () => sprite.destroy(),
+        });
+      }
+    }
+    while (this.ambientSprites.length < count) {
+      const i = this.ambientSprites.length;
+      const anchor = VistaScene.COMMONS[i % VistaScene.COMMONS.length] as {
+        tx: number;
+        ty: number;
+      };
+      // Deterministic scatter around the anchor, index-derived.
+      const ox = (((i * 37) % 7) - 3) * 0.22;
+      const oy = (((i * 53) % 7) - 3) * 0.22;
+      const home = isoToScreen(anchor.tx + ox, anchor.ty + oy);
+      const sprite = this.add
+        .image(home.x, home.y, "traveler:villager")
+        .setOrigin(0.5, 1)
+        .setDepth(home.y)
+        .setAlpha(0);
+      this.addWorld(sprite);
+      this.ambientSprites.push(sprite);
+      this.tweens.add({ targets: sprite, alpha: 0.9, duration: TWEEN_MS });
+      // A small wandering loop: out to an index-derived point and back.
+      const wander = isoToScreen(
+        anchor.tx + ox + (((i * 17) % 5) - 2) * 0.35,
+        anchor.ty + oy + (((i * 29) % 5) - 2) * 0.35,
+      );
+      this.tweens.add({
+        targets: sprite,
+        x: wander.x,
+        y: wander.y,
+        duration: 2600 + ((i * 331) % 1400),
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+        delay: (i * 211) % 900,
+        onUpdate: () => sprite.setDepth(sprite.y),
+      });
+    }
   }
 
   private structurePosition(key: PlacedStructure["key"]): { x: number; y: number } {
@@ -257,18 +330,19 @@ export class VistaScene extends Phaser.Scene {
         );
         this.addWorld(sprite);
         this.travelerSprites.set(t.id, sprite);
-        // One idle bob each, phase-jittered by id so the road breathes.
-        const jitter = [...t.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 400;
+        this.addBob(sprite, t.id, pos.y);
+      } else if (Math.abs(sprite.x - pos.x) > 1 || Math.abs(sprite.y - pos.y) > 4) {
+        // Both axes move on an iso road; the idle bob must rebase to the
+        // new y or the sprite drifts off the road over time.
+        const moving = sprite;
+        this.tweens.killTweensOf(moving);
         this.tweens.add({
-          targets: sprite,
-          y: pos.y - 3,
-          duration: 900 + jitter,
-          yoyo: true,
-          repeat: -1,
-          ease: "Sine.easeInOut",
+          targets: moving,
+          x: pos.x,
+          y: pos.y,
+          duration: TWEEN_MS,
+          onComplete: () => this.addBob(moving, t.id, pos.y),
         });
-      } else if (Math.abs(sprite.x - pos.x) > 1) {
-        this.tweens.add({ targets: sprite, x: pos.x, duration: TWEEN_MS });
       }
       sprite.setTexture(`traveler:${t.archetype}`);
       sprite.setDepth(pos.y + 1000);
@@ -300,6 +374,19 @@ export class VistaScene extends Phaser.Scene {
         this.travelerSprites.delete(id);
       }
     }
+  }
+
+  /** One idle bob per traveler, phase-jittered by id so the road breathes. */
+  private addBob(sprite: Phaser.GameObjects.Image, id: string, baseY: number): void {
+    const jitter = [...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 400;
+    this.tweens.add({
+      targets: sprite,
+      y: baseY - 3,
+      duration: 900 + jitter,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   private openPanel(structure: StructureState): void {

@@ -68,6 +68,10 @@ export function buildManifest(): Record<AssetKey, AssetSpec> {
   for (const [archetype, body] of Object.entries(TRAVELER_COLORS)) {
     manifest[`traveler:${archetype}`] = traveler(body);
   }
+  manifest["traveler:villager"] = {
+    px: { w: 26, h: 38 },
+    placeholder: { body: 0x9a8467, roof: 0xf5e6c8, height: 22 },
+  };
   manifest["tile:grass"] = {
     px: { w: 128, h: 64 },
     placeholder: { body: 0x84a94b, roof: 0x6d8f3c, height: 0 },

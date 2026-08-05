@@ -11,15 +11,16 @@ export async function createVista(
   parent: HTMLElement,
   model: SceneModel,
   callbacks: VistaCallbacks,
+  dark: boolean,
 ): Promise<VistaHandle> {
   const [{ default: Phaser }, { VistaScene }] = await Promise.all([
     import("phaser"),
     import("./VistaScene"),
   ]);
 
-  // Dark mode picks the dusk palette once at boot, matching the page theme.
-  const dusk = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const palette = dusk ? DUSK : DAY;
+  // The React shell owns the theme listener and reboots on change —
+  // day/dusk is live, not a boot-time snapshot.
+  const palette = dark ? DUSK : DAY;
 
   const scene = new VistaScene();
   const initial = parent.getBoundingClientRect();

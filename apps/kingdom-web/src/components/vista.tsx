@@ -24,6 +24,20 @@ export function KingdomVista({
   const modelRef = useRef(model);
   modelRef.current = model;
   const [ready, setReady] = useState(false);
+  // Day/dusk is live: a theme flip reboots the canvas with the other
+  // palette (rare event; textures are palette-baked, so a clean reboot is
+  // the honest implementation).
+  const [dark, setDark] = useState(
+    () =>
+      typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: boot exactly once — models and callbacks flow through refs
   useEffect(() => {
@@ -34,18 +48,26 @@ export function KingdomVista({
 
     (async () => {
       const { createVista } = await import("../scene/boot");
-      const h = await createVista(parent, modelRef.current, {
-        onTravelerTap,
-        onReady: () => {
-          if (!cancelled) setReady(true);
+      const h = await createVista(
+        parent,
+        modelRef.current,
+        {
+          onTravelerTap,
+          onReady: () => {
+            if (!cancelled) setReady(true);
+          },
         },
-      });
+        dark,
+      );
       if (cancelled) {
         h.destroy();
         return;
       }
       handle = h;
       handleRef.current = h;
+      // Models that changed during the engine load window would otherwise
+      // be lost — flush the latest one now.
+      h.update(modelRef.current);
     })().catch(() => {
       if (!cancelled) onFail();
     });
@@ -55,9 +77,9 @@ export function KingdomVista({
       handleRef.current = null;
       handle?.destroy();
     };
-    // Boot exactly once; models flow through the handle below.
+    // Boot once per theme; models flow through the handle below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dark]);
 
   useEffect(() => {
     handleRef.current?.update(model);

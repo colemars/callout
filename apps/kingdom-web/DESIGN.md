@@ -249,7 +249,7 @@ in-canvas steward's panels (DOM StructureGrid demoted to boot-failure
 fallback), placeholder "surveyor's sketch" art behind the assets.ts
 contract (ART.md is the generation brief; Cole approves the real sheet).
 
-- **Stage 2** — ambient villagers scaled by the builders surplus; day/dusk cycle
+- ~~**Stage 2**~~ — SHIPPED (2026-08-05): villagers wander the commons scaled by the builders level (deterministic by index — the same kingdom always bustles the same way); day/dusk follows the live color-scheme, rebooting the canvas on theme change
 - **Stage 3** — threat weather VFX (winter snow, drought parch, fire embers, bandit-camp smoke, feast banners)
 - **Stage 4** — in-canvas Road Registry role picker; the DOM TheRoads section sheds
 - **Stage 5** — growth moments + "while you were away" replay cinematics driven by the KingdomDelta feed
