@@ -19,8 +19,10 @@ export class PlaidError extends Error {
   }
 }
 
-// Plaid credentials: env vars win; app_config is the fallback so setup can be
-// done entirely through the database (keys: plaid_client_id/plaid_secret/plaid_env).
+// Plaid credentials: env vars win; the fallback reads app_config for the
+// client id and resolves the SECRET from Supabase Vault by the id stored in
+// app_config.plaid_secret_vault_id — the secret itself never sits in a
+// plain table (ARCHITECTURE.md "Security, Privacy & Trust").
 let credsCache: { clientId: string; secret: string; env: string } | null = null;
 
 async function plaidCreds() {
@@ -32,11 +34,17 @@ async function plaidCreds() {
     return credsCache;
   }
   const { data } = await db.from("app_config").select("key, value")
-    .in("key", ["plaid_client_id", "plaid_secret", "plaid_env"]);
+    .in("key", ["plaid_client_id", "plaid_secret_vault_id", "plaid_env"]);
   const map = new Map((data ?? []).map((r) => [r.key, r.value]));
+  const vaultId = map.get("plaid_secret_vault_id");
+  let secret = "";
+  if (vaultId) {
+    const { data: token } = await db.rpc("get_plaid_token", { p_secret_id: vaultId });
+    secret = token ?? "";
+  }
   credsCache = {
     clientId: map.get("plaid_client_id") ?? "",
-    secret: map.get("plaid_secret") ?? "",
+    secret,
     env: Deno.env.get("PLAID_ENV") ?? map.get("plaid_env") ?? "sandbox",
   };
   return credsCache;
@@ -56,36 +64,4 @@ export async function plaid(path: string, body: Record<string, unknown>) {
   const json = await res.json();
   if (!res.ok) throw new PlaidError(json);
   return json;
-}
-
-// Auth: compares x-app-token header (or ?token=) against a value in app_config.
-export async function requireToken(
-  req: Request,
-  configKey: string,
-): Promise<Response | null> {
-  const { data } = await db.from("app_config").select("value").eq("key", configKey).single();
-  const url = new URL(req.url);
-  const got = req.headers.get("x-app-token") ?? url.searchParams.get("token");
-  if (!data?.value || got !== data.value) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-  return null;
-}
-
-const DELIVERY_RE = /(doordash|door dash|uber\s*eats|grubhub|instacart|postmates|seamless|caviar|favor delivery)/i;
-const COFFEE_RE = /(starbucks|dunkin|blue bottle|peet'?s|philz|dutch bros)/i;
-
-export function mapCategory(
-  catMap: Map<string, string>,
-  detailed: string | null,
-  primary: string | null,
-  merchant: string | null,
-  name: string,
-): string {
-  const label = `${merchant ?? ""} ${name}`;
-  if (DELIVERY_RE.test(label)) return "delivery";
-  if (COFFEE_RE.test(label)) return "coffee";
-  if (detailed && catMap.has(detailed)) return catMap.get(detailed)!;
-  if (primary && catMap.has(primary)) return catMap.get(primary)!;
-  return "other";
 }

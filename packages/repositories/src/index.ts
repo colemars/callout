@@ -15,6 +15,8 @@ export {
   createVaultTokenStore,
   findConnectionByExternalItemId,
 } from "./ingestion-stores.js";
+export type { WipeReport } from "./data-rights.js";
+export { deleteAllUserData } from "./data-rights.js";
 export type { ProductStateRecord, ProductStateStore } from "./product-state.js";
 export { createProductStateStore } from "./product-state.js";
 export type { UserCategoryRuleStore, UserRuleEntry } from "./user-rules.js";

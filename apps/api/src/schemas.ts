@@ -262,3 +262,52 @@ export const patchGoalBody = z.object({
   note: z.string().max(200).nullable().optional(),
   active: z.boolean().optional(),
 });
+
+/**
+ * Data rights (ARCHITECTURE.md "Security, Privacy & Trust"): the full
+ * archive of everything the platform holds for the caller. Secret ids and
+ * vault internals never appear — connection rows are reduced to metadata.
+ */
+export const exportSchema = z.object({
+  exportedAt: z.string(),
+  accounts: z.array(accountSchema),
+  transactions: z.array(transactionSchema),
+  budgets: z.array(budgetSchema),
+  goals: z.array(goalSchema),
+  investmentActivity: z.array(investmentActivitySchema),
+  events: z.array(eventSchema),
+  latestMetrics: snapshotSchema.nullable(),
+  productState: z.array(productStateSchema),
+  categoryRules: z.array(
+    z.object({
+      matchKey: z.string(),
+      category: z.string(),
+      origin: z.string(),
+    }),
+  ),
+  connections: z.array(
+    z.object({
+      institution: z.string().nullable(),
+      status: z.string(),
+    }),
+  ),
+});
+
+/**
+ * The full wipe. The confirmation phrase is deliberate friction — this
+ * deletes every platform row the caller owns and their vault-held tokens.
+ * alsoRevokeAtPlaid calls Plaid /item/remove per connection: OPT-IN because
+ * on the Plaid Trial plan Items are lifetime-capped and deletion does NOT
+ * free slots — an accidental revoke is near-unrecoverable (relinking burns
+ * new slots). Flip the default to true once on a paid Plaid plan.
+ */
+export const deleteDataBody = z.object({
+  confirm: z.literal("BURN THE LEDGERS"),
+  alsoRevokeAtPlaid: z.boolean().default(false),
+});
+
+export const wipeReportSchema = z.object({
+  deleted: z.record(z.number().int()),
+  tokensDeleted: z.number().int(),
+  revokedAtPlaid: z.number().int(),
+});

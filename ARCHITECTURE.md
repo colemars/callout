@@ -557,3 +557,95 @@ Supabase (Postgres + Auth) plus AWS (compute) means two vendors, two secret stor
 * **Multi-tenancy / user isolation** — implied by Advisor Dashboard and Public API but unspecified. Needs a tenancy model before the API phase.
 * **Migration path** — the currently deployed callout stack (Supabase project `hkxerogzvowkyvdifbpn`, edge functions, GitHub Pages dashboard at colemars.github.io/callout) keeps running as-is until platform ingestion + the first product replace it. Its schema and sync logic inform, but do not constrain, the platform's canonical models.
 * **Worker from day one** — acceptable only as an empty placeholder app; no queue infrastructure until Phase 9-equivalent.
+
+## Security, Privacy & Trust Architecture (v0.3 — 2026-08-05)
+
+Trust is one of the products. Users hand this platform their complete
+financial life; security and privacy are product features, not
+implementation details. Every design decision optimizes for: least
+privilege, defense in depth, data minimization, auditability, and a
+straightforward path to future compliance.
+
+The standing question when designing anything: **"what is the minimum
+information this component actually needs?"** If it doesn't need balances,
+it doesn't get balances. If a derived representation suffices, the raw
+record never travels.
+
+### Boundaries are packages, not services
+
+A proposed five-service topology (Identity / Financial Platform / Analytics
+Projection / Kingdom Projection / Clients) was evaluated and **rejected at
+this scale**. The security property it buys — raw financial data existing in
+as few places as possible — is already enforced here, in-process:
+
+* **Identity** is Supabase Auth. `platform.*` stores no email, name, or PII
+  — every table keys on the opaque auth UUID only. An engineer reading
+  financial tables cannot tell whose records they are.
+* **The Financial Platform** is the API + worker (one logical service).
+  It is the only code that touches raw financial data or speaks to Plaid.
+* **The boundary out** is the zod serializer allow-list
+  (`apps/api/src/schemas.ts`): responses validate AND strip — `userId`,
+  vault ids, external ids, connection internals never leave the API.
+* **The package graph** is policed by dependency-cruiser: financial-core
+  has zero runtime deps; the engine is pure; products consume served
+  metrics/events through translation layers.
+
+Network seams would add IAM surface, deploy complexity, latency, and cost
+without changing the enforcement mechanism. Revisit if: real multi-tenant
+scale, a second engineering team, or a compliance mandate that requires
+physically separated processing.
+
+### The user-honesty carve-out
+
+Products render the authenticated user's **own** raw data by design — the
+kingdom's Prime Rule (every number traces to a statement line) depends on
+it. "Projections-only" applies to **non-user consumers**:
+
+* **AI (the scribe)** receives exactly six fields per merchant group —
+  cleaned description, merchant, amount, account kind, Plaid code,
+  occurrence count. No ids, no balances, no institutions, no dates.
+  This is the template for every future AI surface.
+* **Notifications** consume derived events only.
+* Any future analytics, support tooling, or third-party surface consumes
+  Tier 4 (below), never Tier 3.
+
+### Data classification
+
+| Tier | What | Where | Who may touch it |
+|---|---|---|---|
+| T1 Identity | email, password hash, MFA | `auth.users` (Supabase Auth) | Auth service; JWT claims only elsewhere |
+| T2 Financial metadata | institution names, connection status, product grants, categories, liability terms | `provider_connections` (minus secret ids), `account_liabilities`, `category_rules` | Platform API/worker; serialized subsets to the user |
+| T3 Raw financial | transactions, accounts, balances, snapshots, investment activity, goals, **Plaid tokens (Supabase Vault)** | `platform.*`, `vault.secrets` | Platform API/worker only; Vault RPCs owner/service_role only |
+| T4 Derived | metrics, events, insights, product_state, KingdomState | `metric_snapshots`, `events`, `product_state` | Any authenticated product surface (user-scoped) |
+
+### Standing rules
+
+1. New component checklist: does it need raw data (almost never)? does it
+   need identity (UUID only)? can it run on projections (prefer)?
+2. Plaid tokens live in Vault, are resolved by security-definer RPCs
+   granted to owner/service_role only, and are **never logged**.
+3. Secrets live in Secrets Manager (AWS) or Vault (Supabase); never in the
+   repo, never echoed in tooling output.
+4. Webhook endpoints verify signatures over the exact raw request bytes
+   (see `apps/api/src/webhooks.ts` — alg-pinned JWT, freshness window,
+   constant-time digest compare).
+5. Every API route derives its user from the verified JWT; no route accepts
+   a client-supplied user id.
+6. Data rights are product features: `GET /api/v1/export` (full archive)
+   and `DELETE /api/v1/data` (full wipe, confirmation-gated).
+7. Access is attributable: the API logs the acting user id and route
+   template on every response; authorization headers are redacted.
+
+### Accepted risks & roadmap
+
+* Deploy-time `{{resolve:secretsmanager}}` leaves secrets readable in
+  Lambda env configuration — accepted for now; move to runtime SDK reads
+  if the threat model tightens.
+* The daily digest is single-recipient (operator) — must become per-user
+  before a second tenant is real.
+* Legacy `public.*` tables (deny-all RLS, service-role only) await a final
+  drop once the parallel-run window closes.
+* Per-user envelope encryption (unique DEK per user under KMS) and SOC 2
+  Type I/II are compliance-phase work: the architecture (IaC, least
+  privilege, audit logs, encryption at rest, secrets management) is built
+  so they are additive, not rewrites.

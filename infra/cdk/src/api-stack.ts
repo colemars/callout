@@ -41,7 +41,9 @@ export class PlatformApiStack extends Stack {
         DATABASE_URL: "{{resolve:secretsmanager:platform/database-url}}",
         SUPABASE_URL: "https://hkxerogzvowkyvdifbpn.supabase.co",
         DB_POOL_MAX: "1",
-        CORS_ORIGINS: "*",
+        // Locked to the product origins; localhost keeps the dev loop alive
+        // (dev pages call this production API by default).
+        CORS_ORIGINS: "https://colemars.github.io,http://localhost:3000",
         // Enables POST /api/v1/sync (link-time sync for the calling user).
         PLAID_CLIENT_ID: "{{resolve:secretsmanager:platform/plaid-client-id}}",
         PLAID_SECRET: "{{resolve:secretsmanager:platform/plaid-secret}}",

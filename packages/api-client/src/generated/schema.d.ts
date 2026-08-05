@@ -1050,6 +1050,242 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            exportedAt: string;
+                            accounts: {
+                                id: string;
+                                name: string;
+                                institution: string;
+                                /** @enum {string} */
+                                kind: "depository" | "credit" | "loan" | "investment" | "other";
+                                subtype?: string;
+                                mask?: string;
+                                balance: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                creditLimit?: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                balanceAsOf?: string;
+                                isActive: boolean;
+                                apr?: number;
+                                aprType?: string;
+                                minPayment?: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                nextDueDate?: string;
+                                isOverdue?: boolean;
+                            }[];
+                            transactions: {
+                                id: string;
+                                accountId: string;
+                                postedAt: string;
+                                authorizedAt?: string;
+                                description: string;
+                                merchant?: string;
+                                amount: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                pending: boolean;
+                                category: string;
+                                /** @enum {string} */
+                                categorySource: "rule" | "ai" | "user";
+                                source: string;
+                            }[];
+                            budgets: {
+                                category: string;
+                                monthlyCap: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                active: boolean;
+                            }[];
+                            goals: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "savings_net_flow" | "balance_target" | "debt_paydown";
+                                accountId?: string;
+                                targetAmount: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                targetDate?: string;
+                                startedAt?: string;
+                                baselineAmount?: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                note?: string;
+                                active: boolean;
+                            }[];
+                            investmentActivity: {
+                                id: string;
+                                accountId: string;
+                                date: string;
+                                description: string;
+                                /** @enum {string} */
+                                kind: "contribution" | "dividend" | "interest" | "buy" | "sell" | "other";
+                                amount: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                                ticker?: string;
+                                quantity?: string;
+                            }[];
+                            events: {
+                                id: string;
+                                seq: number;
+                                type: string;
+                                occurredOn: string;
+                                createdAt: string;
+                                payload: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                            latestMetrics: {
+                                asOf: string;
+                                metrics: {
+                                    [key: string]: unknown;
+                                };
+                            } | null;
+                            productState: {
+                                product: string;
+                                version: number;
+                                data: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                            categoryRules: {
+                                matchKey: string;
+                                category: string;
+                                origin: string;
+                            }[];
+                            connections: {
+                                institution: string | null;
+                                status: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        confirm: "BURN THE LEDGERS";
+                        /** @default false */
+                        alsoRevokeAtPlaid?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            deleted: {
+                                [key: string]: number;
+                            };
+                            tokensDeleted: number;
+                            revokedAtPlaid: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;

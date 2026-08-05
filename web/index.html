@@ -1,121 +1,23 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>penny kingdom</title>
+<meta http-equiv="refresh" content="3; url=/pennykingdom/kingdom/">
+<title>Penny Kingdom</title>
 <style>
 :root{color-scheme:light dark}
-body{font-family:-apple-system,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem}
-table{border-collapse:collapse;width:100%;margin-bottom:1.5rem}
-td,th{padding:.35rem .5rem;border-bottom:1px solid #8884;text-align:left;font-size:.9rem}
-.num{text-align:right;font-variant-numeric:tabular-nums}
-.bar{width:40%}.bar div{height:10px;border-radius:5px}
-small{color:#888}
-form{display:flex;flex-direction:column;gap:.5rem;max-width:420px}
-input{padding:.5rem;font-size:1rem}
-button{padding:.5rem;font-size:1rem;cursor:pointer}
-#error{color:#d33}
-.hidden{display:none}
-#logout{float:right;font-size:.8rem}
+body{font-family:Georgia,serif;max-width:480px;margin:20vh auto 0;padding:0 1rem;text-align:center}
+a{color:inherit}
+p{color:#888;font-size:.9rem}
 </style>
 </head>
 <body>
-<h1>penny kingdom <span style="float:right;font-size:.8rem"><a href="link.html">banks</a> · <a id="logout" href="#" class="hidden">reset</a></span></h1>
-
-<div id="setup" class="hidden">
-  <p><small>Enter your app token — saved in this browser only.</small></p>
-  <form id="setupForm">
-    <input id="appToken" type="password" placeholder="App token" required>
-    <button>Connect</button>
-  </form>
-</div>
-
-<p id="error" class="hidden"></p>
-<p id="loading" class="hidden"><small>Loading…</small></p>
-<div id="dash" class="hidden">
-  <p id="health"><small></small></p>
-  <h2>Accounts</h2><table id="accounts"></table>
-  <h2>Budgets (month to date)</h2><table id="budgets"></table>
-  <h2>Debt (30-day change)</h2><table id="debt"></table>
-  <h2>Recent reports</h2><ul id="reports"></ul>
-</div>
-
-<script>
-const API = "https://hkxerogzvowkyvdifbpn.supabase.co";
-
-const $ = (id) => document.getElementById(id);
-const show = (id, on = true) => $(id).classList.toggle("hidden", !on);
-
-const fmt = (n) => n == null ? "—"
-  : Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
-const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-
-function render(d) {
-  $("health").firstElementChild.textContent =
-    `Last Plaid sync: ${d.health?.last_plaid_sync ?? "never"} · ` +
-    `Items needing attention: ${d.health?.items_needing_attention ?? 0} · ` +
-    `Newest Apple txn: ${d.health?.newest_apple_txn ?? "none"}`;
-
-  $("accounts").innerHTML = d.accounts.map((a) =>
-    `<tr><td>${esc(a.institution)}</td><td>${esc(a.name)} ${a.mask ? "···" + esc(a.mask) : ""}</td>
-     <td>${esc(a.type)}</td><td class="num">${fmt(a.current_balance)}</td></tr>`
-  ).join("") || "<tr><td>No accounts linked yet.</td></tr>";
-
-  $("budgets").innerHTML = d.budgets.map((b) => {
-    const pct = Math.min(150, Number(b.pct_of_monthly_cap ?? 0));
-    const over = Number(b.spent_mtd) > Number(b.prorated_cap);
-    return `<tr><td>${esc(b.category)}</td>
-      <td class="num">${fmt(b.spent_mtd)} / ${fmt(b.monthly_cap)}</td>
-      <td class="bar"><div style="width:${pct / 1.5}%;background:${over ? "#d33" : "#4a4"}"></div></td></tr>`;
-  }).join("") || "<tr><td>No budgets set.</td></tr>";
-
-  $("debt").innerHTML = d.debt.map((x) =>
-    `<tr><td>${esc(x.institution)} ${esc(x.name)}</td><td class="num">${fmt(x.current_balance)}</td>
-     <td class="num">${x.delta_30d == null ? "—" : (x.delta_30d > 0 ? "▲" : "▼") + fmt(Math.abs(x.delta_30d))}</td></tr>`
-  ).join("") || "<tr><td>No credit/loan accounts yet.</td></tr>";
-
-  $("reports").innerHTML = d.reports.map((r) =>
-    `<li>[${esc(r.cadence)}] ${esc(r.subject)} <small>${esc(String(r.created_at).slice(0, 10))}</small></li>`
-  ).join("") || "<li>None yet.</li>";
-}
-
-async function load() {
-  // pennykingdom_token going forward; callout_token honored so the rename doesn't log anyone out.
-  const token = localStorage.getItem("pennykingdom_token") ?? localStorage.getItem("callout_token");
-  if (!token) { show("setup"); return; }
-  show("logout"); show("loading"); show("error", false);
-  try {
-    const res = await fetch(`${API}/functions/v1/dashboard?format=json`, {
-      headers: { "x-app-token": token },
-    });
-    if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized — check token." : `HTTP ${res.status}`);
-    render(await res.json());
-    show("dash");
-  } catch (e) {
-    $("error").textContent = e.message;
-    show("error");
-    show("setup");
-  } finally {
-    show("loading", false);
-  }
-}
-
-$("setupForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  localStorage.setItem("pennykingdom_token", $("appToken").value.trim());
-  show("setup", false);
-  load();
-});
-
-$("logout").addEventListener("click", (e) => {
-  e.preventDefault();
-  localStorage.removeItem("pennykingdom_token");
-  localStorage.removeItem("callout_token");
-  location.reload();
-});
-
-load();
-</script>
+<h1>🏰 Penny Kingdom</h1>
+<p>The old dashboard has been retired. Off to the throne room…</p>
+<p>
+  <a href="/pennykingdom/kingdom/">The Kingdom</a> ·
+  <a href="/pennykingdom/app/">Accountability</a>
+</p>
 </body>
 </html>

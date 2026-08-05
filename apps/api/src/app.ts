@@ -12,6 +12,7 @@ import { normalizeMatchKey } from "@platform/ingestion";
 import {
   createAccountRepository,
   createBudgetRepository,
+  createConnectionStore,
   createEventStore,
   createGoalRepository,
   createInvestmentActivityRepository,
@@ -20,6 +21,7 @@ import {
   createProductStateStore,
   createTransactionRepository,
   createUserCategoryRuleStore,
+  deleteAllUserData,
 } from "@platform/repositories";
 import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest } from "fastify";
 import {
@@ -35,9 +37,11 @@ import {
   budgetSchema,
   createGoalBody,
   dateRangeQuery,
+  deleteDataBody,
   errorSchema,
   eventSchema,
   eventsQuery,
+  exportSchema,
   goalIdParams,
   goalSchema,
   historyQuery,
@@ -53,6 +57,7 @@ import {
   syncRunSchema,
   transactionIdParams,
   transactionSchema,
+  wipeReportSchema,
 } from "./schemas.js";
 import type { UserSync } from "./sync.js";
 import type { PlaidWebhook } from "./webhooks.js";
@@ -66,6 +71,12 @@ export interface AppDeps {
   readonly sync?: UserSync;
   /** POST /webhooks/plaid handler; absent when Plaid creds aren't configured. */
   readonly plaidWebhook?: PlaidWebhook;
+  /**
+   * Revokes one Plaid item by vault secret id (calls /item/remove); absent
+   * when Plaid creds aren't configured. Used only by the opt-in
+   * alsoRevokeAtPlaid path of DELETE /data.
+   */
+  readonly revokePlaidItem?: (accessTokenSecretId: string) => Promise<void>;
 }
 
 declare module "fastify" {
@@ -82,9 +93,29 @@ declare module "fastify" {
  */
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: deps.logger ?? true,
+    // Bearer tokens must never land in CloudWatch (ARCHITECTURE.md
+    // "Security, Privacy & Trust" — access is attributable, credentials
+    // are not logged).
+    logger:
+      deps.logger === false
+        ? false
+        : { redact: { paths: ["req.headers.authorization"], censor: "[redacted]" } },
     requestIdHeader: "x-request-id",
   }).withTypeProvider<ZodTypeProvider>();
+
+  // Audit line: every response attributable to the acting user, by route
+  // TEMPLATE (resource ids stay out of logs by default).
+  app.addHook("onResponse", async (request, reply) => {
+    request.log.info(
+      {
+        userId: request.user?.userId ?? "anon",
+        method: request.method,
+        route: request.routeOptions.url ?? request.url,
+        statusCode: reply.statusCode,
+      },
+      "access",
+    );
+  });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -153,7 +184,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     if (error.validation) {
       return reply.status(400).send({ error: error.message });
     }
-    request.log.error(error);
+    // Message + stack only — raw error objects can carry query text.
+    request.log.error({ message: error.message, stack: error.stack }, "unhandled error");
     return reply.status(500).send({ error: "internal error" });
   });
 
@@ -536,6 +568,120 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             return reply.status(503).send({ error: "sync not configured" });
           }
           return await deps.sync(userId);
+        },
+      );
+
+      // Data rights (ARCHITECTURE.md "Security, Privacy & Trust"): the full
+      // archive of everything held for the caller. Secret ids never appear.
+      v1.get(
+        "/export",
+        { schema: { response: { 200: exportSchema, 401: errorSchema } } },
+        async (request) => {
+          const userId = await requireUser(request);
+          const [
+            accounts,
+            liabilities,
+            transactions,
+            budgets,
+            goals,
+            activity,
+            events,
+            latest,
+            rules,
+            connections,
+            kingdomState,
+            kingdomMeta,
+          ] = await Promise.all([
+            createAccountRepository(deps.db).listActive(userId),
+            createLiabilityRepository(deps.db).listForUser(userId),
+            createTransactionRepository(deps.db).findByUser(userId, {}),
+            createBudgetRepository(deps.db).listActive(userId),
+            createGoalRepository(deps.db).listActive(userId),
+            createInvestmentActivityRepository(deps.db).findByUser(userId, {}),
+            createEventStore(deps.db).listSinceSeq(userId, 0, 100_000),
+            createMetricSnapshotStore(deps.db).latest(userId),
+            createUserCategoryRuleStore(deps.db).listForUser(userId, "plaid"),
+            createConnectionStore(deps.db).list(userId),
+            createProductStateStore(deps.db).get(userId, "kingdom"),
+            createProductStateStore(deps.db).get(userId, "kingdom-meta"),
+          ]);
+          const byAccount = new Map(liabilities.map((l) => [l.accountId, l]));
+          return {
+            exportedAt: new Date().toISOString(),
+            accounts: accounts.map((a) => {
+              const l = byAccount.get(a.id);
+              return l === undefined
+                ? a
+                : { ...a, ...(l.aprBps === undefined ? {} : { apr: l.aprBps / 100 }) };
+            }),
+            transactions,
+            budgets,
+            goals,
+            investmentActivity: activity,
+            events: events.map((s) => ({
+              id: s.id,
+              seq: s.seq,
+              type: s.event.type,
+              occurredOn: s.event.occurredOn as string,
+              createdAt: s.createdAt,
+              payload: s.event as unknown as Record<string, unknown>,
+            })),
+            latestMetrics:
+              latest === null
+                ? null
+                : {
+                    asOf: latest.asOf as string,
+                    metrics: latest as unknown as Record<string, unknown>,
+                  },
+            productState: [kingdomState, kingdomMeta]
+              .filter((s) => s !== null)
+              .map((s) => ({
+                product: s.product,
+                version: s.version,
+                data: s.data as Record<string, unknown>,
+              })),
+            categoryRules: [...rules.entries()].map(([matchKey, r]) => ({
+              matchKey,
+              category: r.category,
+              origin: r.origin,
+            })),
+            connections: connections.map((c) => ({
+              institution: c.institutionName,
+              status: c.status,
+            })),
+          };
+        },
+      );
+
+      // The full wipe: every platform row + vault tokens. Plaid /item/remove
+      // is opt-in (Trial plan: Items are lifetime-capped; see schemas.ts).
+      v1.delete(
+        "/data",
+        {
+          schema: {
+            body: deleteDataBody,
+            response: { 200: wipeReportSchema, 400: errorSchema, 401: errorSchema },
+          },
+        },
+        async (request) => {
+          const userId = await requireUser(request);
+          let revokedAtPlaid = 0;
+          if (request.body.alsoRevokeAtPlaid && deps.revokePlaidItem !== undefined) {
+            for (const c of await createConnectionStore(deps.db).list(userId)) {
+              try {
+                await deps.revokePlaidItem(c.accessTokenSecretId);
+                revokedAtPlaid++;
+              } catch (err) {
+                request.log.warn(
+                  { message: err instanceof Error ? err.message : String(err) },
+                  "plaid item revoke failed",
+                );
+              }
+            }
+          }
+          const report = await deleteAllUserData(deps.db, userId);
+          request.log.info({ userId, ...report.deleted }, "data wipe");
+          return { ...report, revokedAtPlaid };
         },
       );
 
