@@ -706,7 +706,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             request.log.warn({ orphanedTokens: report.orphanedTokens }, "vault delete failed");
           }
           request.log.info({ userId, ...report.deleted }, "data wipe");
-          return { ...report, revokedAtPlaid };
+          return { ...report, orphanedTokens: [...report.orphanedTokens], revokedAtPlaid };
         },
       );
 

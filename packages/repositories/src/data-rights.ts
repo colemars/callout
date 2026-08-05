@@ -1,10 +1,10 @@
 import type { PlatformDb } from "@platform/database";
 import {
+  events,
   accountLiabilities,
   accounts,
   balanceSnapshots,
   budgets,
-  events,
   goals,
   investmentActivity,
   metricSnapshots,
