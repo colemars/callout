@@ -50,7 +50,7 @@ import {
   clearRole,
   computeRoads,
 } from "../model/roads";
-import { buildSceneModel } from "../scene/sceneModel";
+import { buildSceneModel, replayMoments } from "../scene/sceneModel";
 
 /** Away this long, the crown is offered a fresh start alongside the replay. */
 const FLEE_OFFER_GAP_MS = 60 * 24 * 60 * 60 * 1000;
@@ -89,6 +89,10 @@ export default function ThroneRoom() {
         : null,
     [state, economy],
   );
+
+  // "While you were away", as spectacle: the same deltas the text strip
+  // narrates, mapped to canvas moments (the strip remains the ledger).
+  const reel = useMemo(() => (replay === null ? null : replayMoments(replay)), [replay]);
 
   // The Vista's food: a pure scene model from the same state the DOM renders.
   const scene = useMemo(
@@ -409,6 +413,7 @@ export default function ThroneRoom() {
       {scene !== null && !vistaFailed && (
         <KingdomVista
           model={scene}
+          replay={reel}
           onAssignRole={handleAssignRole}
           onClearRole={handleClearRole}
           onFail={() => setVistaFailed(true)}

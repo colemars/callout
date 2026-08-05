@@ -5,7 +5,7 @@
 // (by humans and by the build pipeline) without a logged-in session.
 import { useState } from "react";
 import { KingdomVista } from "../../components/vista";
-import type { SceneModel } from "../../scene/sceneModel";
+import type { ReplayMoment, SceneModel } from "../../scene/sceneModel";
 
 const FIXTURE_TRAVELER = {
   roleAssigned: false,
@@ -155,17 +155,33 @@ const DEMO: SceneModel = {
   registryReadOnly: false,
 };
 
+const DEMO_REEL: ReplayMoment[] = [
+  { at: "sky", caption: "A new age dawns: Age of Timber", tone: "good" },
+  { at: "granary", caption: "The Granary grows", tone: "good" },
+  { at: "banditCamp", caption: "The raiders press the walls", tone: "bad" },
+];
+
 export default function VistaDemo() {
   const [action, setAction] = useState<string | null>(null);
+  const [reel, setReel] = useState<ReplayMoment[] | null>(null);
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
       <h1 className="font-serif text-xl font-bold">Vista test bench (fixture data)</h1>
       <KingdomVista
         model={DEMO}
+        replay={reel}
         onAssignRole={(id, role) => setAction(`assign ${role} to ${id}`)}
         onClearRole={(id) => setAction(`clear ${id}`)}
         onFail={() => setAction("BOOT FAILED")}
       />
+      <button
+        type="button"
+        onClick={() => setReel([...DEMO_REEL])}
+        className="mt-3 rounded-lg border border-amber-900/25 px-3 py-1 text-sm"
+        data-testid="play-reel"
+      >
+        play replay reel
+      </button>
       <p className="mt-3 text-sm text-stone-500" data-testid="tap-result">
         last registry action: {action ?? "none"}
       </p>

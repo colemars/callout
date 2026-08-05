@@ -3,7 +3,7 @@
 // assignment flows through React's existing CAS handlers.
 
 import type { RoleId } from "../model/roads";
-import type { SceneModel } from "./sceneModel";
+import type { ReplayMoment, SceneModel } from "./sceneModel";
 
 export interface VistaCallbacks {
   /** The crown named a visitor from the in-canvas registry. */
@@ -16,6 +16,8 @@ export interface VistaCallbacks {
 
 export interface VistaHandle {
   update(model: SceneModel): void;
+  /** Play the "while you were away" reel (Stage 5). */
+  playReplay(moments: ReplayMoment[]): void;
   /** Sleep/wake the render loop (offscreen, hidden tab). */
   setSleeping(sleeping: boolean): void;
   destroy(): void;

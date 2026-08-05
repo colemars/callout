@@ -9,15 +9,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { RoleId } from "../model/roads";
 import type { VistaHandle } from "../scene/bridge";
-import type { SceneModel } from "../scene/sceneModel";
+import type { ReplayMoment, SceneModel } from "../scene/sceneModel";
 
 export function KingdomVista({
   model,
+  replay,
   onAssignRole,
   onClearRole,
   onFail,
 }: {
   model: SceneModel;
+  /** "While you were away" moments — played once per reel (Stage 5). */
+  replay?: ReplayMoment[] | null;
   onAssignRole: (travelerId: string, roleId: RoleId) => void;
   onClearRole: (travelerId: string) => void;
   onFail: () => void;
@@ -26,6 +29,7 @@ export function KingdomVista({
   const handleRef = useRef<VistaHandle | null>(null);
   const modelRef = useRef(model);
   modelRef.current = model;
+  const replayRef = useRef<ReplayMoment[] | null>(null);
   const [ready, setReady] = useState(false);
   // Day/dusk is live: a theme flip reboots the canvas with the other
   // palette (rare event; textures are palette-baked, so a clean reboot is
@@ -74,6 +78,7 @@ export function KingdomVista({
       // Models that changed during the engine load window would otherwise
       // be lost — flush the latest one now.
       h.update(modelRef.current);
+      if (replayRef.current !== null) h.playReplay(replayRef.current);
     })().catch((err) => {
       // The fallback grid takes over; the WHY must not vanish with it.
       console.error("vista boot failed", err);
@@ -92,6 +97,12 @@ export function KingdomVista({
   useEffect(() => {
     handleRef.current?.update(model);
   }, [model]);
+
+  useEffect(() => {
+    if (replay === undefined || replay === null || replay.length === 0) return;
+    replayRef.current = replay;
+    handleRef.current?.playReplay(replay);
+  }, [replay]);
 
   // Offscreen = asleep: no reason to render a kingdom nobody is watching.
   useEffect(() => {

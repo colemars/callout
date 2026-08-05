@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { RoadsState, TravelerState } from "../src/model/roads";
 import type { KingdomState, StructureState } from "../src/model/types";
 import { GATE, RESERVED_PLOTS, SLOTS } from "../src/scene/layout";
-import { ETA_HORIZON_DAYS, buildSceneModel, travelerT } from "../src/scene/sceneModel";
+import {
+  ETA_HORIZON_DAYS,
+  REPLAY_MOMENT_CAP,
+  buildSceneModel,
+  replayMoments,
+  travelerT,
+} from "../src/scene/sceneModel";
 
 const structure = (key: StructureState["key"], level: StructureState["level"]): StructureState => ({
   key,
@@ -211,5 +217,39 @@ describe("layout sanity used by the model", () => {
     expect(RESERVED_PLOTS.length).toBeGreaterThan(0);
     for (const plot of RESERVED_PLOTS) expect(slotIds.has(plot.id)).toBe(false);
     expect(GATE.tx).toBeGreaterThan(0);
+  });
+});
+
+describe("replayMoments — the reel (Stage 5)", () => {
+  it("maps the notable deltas, skips bookkeeping, and caps the reel", () => {
+    const moments = replayMoments([
+      { type: "AGE_ADVANCED", from: 1, to: 2, toName: "Age of Timber" },
+      { type: "THREAT_ENDED", kind: "bandits", title: "The raiders withdraw" },
+      { type: "RESOURCE_VALUE_CHANGED", key: "gold", fromValue: 1, toValue: 2, pctChange: 1 },
+      { type: "STRUCTURE_LEVEL_CHANGED", key: "granary", name: "The Granary", from: 2, to: 3 },
+      { type: "STRUCTURE_LEVEL_CHANGED", key: "manor", name: "The Manor", from: 3, to: 2 },
+      { type: "MOAT_CHANGED", from: 40, to: 55, fromTier: "narrow", toTier: "broad" },
+      {
+        type: "CHRONICLE_NEW",
+        entry: { date: "d", icon: "x", headline: "h", tone: "info", source: "event", refId: "r" },
+      },
+    ] as never);
+    expect(moments).toEqual([
+      { at: "sky", caption: "A new age dawns: Age of Timber", tone: "good" },
+      { at: "banditCamp", caption: "The raiders withdraw has passed", tone: "good" },
+      { at: "granary", caption: "The Granary grows", tone: "good" },
+      { at: "manor", caption: "The Manor wanes", tone: "bad" },
+      { at: "sky", caption: "The moat deepens — it runs broad", tone: "good" },
+    ]);
+  });
+
+  it("caps at the reel limit", () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({
+      type: "STRUCTURE_APPEARED",
+      key: "market",
+      name: `S${i}`,
+      level: 1,
+    }));
+    expect(replayMoments(many as never)).toHaveLength(REPLAY_MOMENT_CAP);
   });
 });

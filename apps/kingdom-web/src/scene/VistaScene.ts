@@ -11,7 +11,7 @@ import type { VistaCallbacks } from "./bridge";
 import { GATE, RESERVED_PLOTS, ROADS, SLOTS, isoToScreen, mapBounds, pathPoint } from "./layout";
 import { TONE_TINT, type VistaPalette } from "./palette";
 import { RegistryPanel, StewardPanel } from "./panels";
-import type { PlacedStructure, PlacedTraveler, SceneModel } from "./sceneModel";
+import type { PlacedStructure, PlacedTraveler, ReplayMoment, SceneModel } from "./sceneModel";
 import { ensureTextures } from "./textures";
 
 const TWEEN_MS = 700;
@@ -33,6 +33,8 @@ export class VistaScene extends Phaser.Scene {
   private pendingModel: SceneModel | null = null;
   private panel: StewardPanel | RegistryPanel | null = null;
   private ready = false;
+  private replayTimers: Phaser.Time.TimerEvent[] = [];
+  private pendingReplay: ReplayMoment[] | null = null;
 
   constructor() {
     super("vista");
@@ -74,6 +76,97 @@ export class VistaScene extends Phaser.Scene {
       return;
     }
     this.applyModel(model);
+    if (this.pendingReplay !== null) {
+      const reel = this.pendingReplay;
+      this.pendingReplay = null;
+      this.playReplay(reel);
+    }
+  }
+
+  /**
+   * Stage 5: the "while you were away" reel — each moment gets a caption
+   * chip and, when it has a home, a sparkle burst + pulse at the structure.
+   * The DOM text strip remains the ledger; this is the spectacle.
+   */
+  playReplay(moments: ReplayMoment[]): void {
+    if (!this.ready) {
+      this.pendingReplay = moments;
+      return;
+    }
+    for (const timer of this.replayTimers) timer.remove();
+    this.replayTimers = moments.map((moment, i) =>
+      this.time.delayedCall(600 + i * 2000, () => this.playMoment(moment)),
+    );
+  }
+
+  private playMoment(moment: ReplayMoment): void {
+    // Caption chip: bottom-center on the UI layer, in and out.
+    const vw = this.scale.width;
+    const vh = this.scale.height;
+    const tone =
+      moment.tone === "good" ? 0x059669 : moment.tone === "bad" ? 0xdc2626 : this.palette.ink;
+    const label = this.add
+      .text(0, 0, moment.caption, {
+        fontFamily: "Georgia, 'Times New Roman', serif",
+        fontSize: "14px",
+        color: `#${tone.toString(16).padStart(6, "0")}`,
+      })
+      .setResolution(Math.min(window.devicePixelRatio || 1, 2));
+    const padX = 14;
+    const chipW = label.width + padX * 2;
+    const chip = this.add.graphics();
+    chip.fillStyle(this.palette.parchment, 0.96);
+    chip.fillRoundedRect(0, 0, chipW, label.height + 14, 9);
+    chip.lineStyle(1.5, this.palette.parchmentEdge, 1);
+    chip.strokeRoundedRect(0, 0, chipW, label.height + 14, 9);
+    label.setPosition(padX, 7);
+    const holder = this.add.container(Math.round((vw - chipW) / 2), vh - 52, [chip, label]);
+    holder.setAlpha(0);
+    this.uiLayer.add(holder);
+    this.cameras.main.ignore(holder);
+    this.tweens.add({
+      targets: holder,
+      alpha: 1,
+      y: vh - 58,
+      duration: 260,
+      hold: 1300,
+      yoyo: true,
+      onComplete: () => holder.destroy(true),
+    });
+
+    // A located moment sparkles and pulses its structure.
+    if (moment.at !== "sky") {
+      const slot = SLOTS[moment.at];
+      const pos = isoToScreen(slot.tx + slot.w / 2, slot.ty + slot.h / 2);
+      this.burstAt(pos.x, pos.y - 40, moment.tone === "bad" ? 0xef4444 : 0xf59e0b);
+      const sprite = this.structureSprites.get(moment.at);
+      if (sprite !== undefined) {
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 260,
+          yoyo: true,
+          ease: "Sine.easeInOut",
+        });
+      }
+    }
+  }
+
+  /** A one-shot sparkle burst in world space. */
+  private burstAt(x: number, y: number, tint: number): void {
+    const burst = this.add.particles(x, y, "fx:dot", {
+      lifespan: 900,
+      speed: { min: 40, max: 120 },
+      scale: { start: 0.5, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint,
+      emitting: false,
+    });
+    burst.setDepth(95000);
+    this.addWorld(burst);
+    burst.explode(14);
+    this.time.delayedCall(1000, () => burst.destroy());
   }
 
   /**
@@ -214,19 +307,25 @@ export class VistaScene extends Phaser.Scene {
       if (this.weatherFx.has(kind)) continue;
       const objects: Phaser.GameObjects.GameObject[] = [];
       if (kind === "winter") {
-        // Area spawn + short life: flakes drift everywhere and fade out
-        // instead of dying visibly mid-fall. Alive count ~= lifespan /
-        // (frequency/severity) — ≤42 at severity 3, inside the budget.
+        // Real snowFALL: flakes spawn inside the map diamond only (an
+        // emit-zone polygon — never static in the void corners), fall a
+        // meaningful distance with a gentle sway, and fade at both ends.
+        // Alive ~= lifespan/(frequency/severity) — ≤51 at severity 3.
+        const diamond = new Phaser.Geom.Polygon([
+          isoToScreen(0, 0),
+          isoToScreen(17, 0),
+          isoToScreen(17, 12),
+          isoToScreen(0, 12),
+        ]);
         const snow = this.add.particles(0, 0, "fx:dot", {
-          x: { min: b.minX, max: b.maxX },
-          y: { min: b.minY, max: b.maxY },
-          lifespan: 3500,
-          speedY: { min: 16, max: 34 },
-          speedX: { min: -8, max: 8 },
-          scale: { start: 0.5, end: 0.3 },
-          alpha: { start: 0, end: 0.85, ease: "Quad.easeOut" },
+          emitZone: { type: "random", source: diamond, quantity: 40 },
+          lifespan: 6000,
+          speedY: { min: 34, max: 58 },
+          speedX: { min: -14, max: 14 },
+          scale: { start: 0.55, end: 0.35 },
+          alpha: { values: [0, 0.9, 0.9, 0], interpolation: "linear" },
           quantity: 1,
-          frequency: 250 / severity,
+          frequency: 350 / severity,
         });
         snow.setDepth(100000);
         objects.push(this.addWorld(snow));
@@ -388,8 +487,9 @@ export class VistaScene extends Phaser.Scene {
         this.tweens.add({ targets: sprite, alpha: 1, duration: TWEEN_MS });
         this.structureSprites.set(placed.key, sprite);
       } else if (sprite.texture.key !== texture) {
-        // A growth moment (level tier changed): quick dip-and-reveal.
+        // A growth moment (level tier changed): dip-and-reveal + sparkle.
         const s = sprite;
+        const pos = this.structurePosition(placed.key);
         this.tweens.add({
           targets: s,
           alpha: 0.3,
@@ -397,6 +497,7 @@ export class VistaScene extends Phaser.Scene {
           yoyo: true,
           onYoyo: () => s.setTexture(texture),
         });
+        this.burstAt(pos.x, pos.y - 40, 0xf59e0b);
       }
       sprite.setTint(placed.state.hostile === true ? 0xffd5d5 : 0xffffff);
       sprite.removeAllListeners("pointerup");

@@ -64,6 +64,9 @@ export async function createVista(
     update(next: SceneModel) {
       scene.updateModel(next);
     },
+    playReplay(moments) {
+      scene.playReplay(moments);
+    },
     setSleeping(sleeping: boolean) {
       if (sleeping) game.loop.sleep();
       else game.loop.wake();

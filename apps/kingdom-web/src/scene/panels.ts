@@ -14,6 +14,10 @@ import type { PlacedTraveler } from "./sceneModel";
 
 const css = (color: number): string => `#${color.toString(16).padStart(6, "0")}`;
 
+/** A pointerup that traveled is a scroll, not a tap — never an action. */
+const isDrag = (p: Phaser.Input.Pointer): boolean =>
+  Math.hypot(p.upX - p.downX, p.upY - p.downY) > 8;
+
 const TONE_COLORS = {
   bad: 0xdc2626,
   warn: 0xd97706,
@@ -361,9 +365,14 @@ export class RegistryPanel extends ParchmentPanel {
         );
         clear.on(
           "pointerup",
-          (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+          (
+            p: Phaser.Input.Pointer,
+            _x: unknown,
+            _y: unknown,
+            event: Phaser.Types.Input.EventData,
+          ) => {
             event.stopPropagation();
-            onClear();
+            if (!isDrag(p)) onClear();
           },
         );
         this.y += clear.height + 4;
@@ -418,9 +427,14 @@ export class RegistryPanel extends ParchmentPanel {
       );
       box.on(
         "pointerup",
-        (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+        (
+          p: Phaser.Input.Pointer,
+          _x: unknown,
+          _y: unknown,
+          event: Phaser.Types.Input.EventData,
+        ) => {
           event.stopPropagation();
-          if (!active) onAssign(role.id);
+          if (!active && !isDrag(p)) onAssign(role.id);
         },
       );
       this.content.add(box);

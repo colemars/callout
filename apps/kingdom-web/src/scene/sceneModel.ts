@@ -3,6 +3,7 @@
 // RoadsState into placed sprites with stable keys — no Phaser imports, no
 // clock, fully unit-testable. The Phaser layer is a thin shell over this.
 
+import type { KingdomDelta } from "../model/diff";
 import type { RoadsState, RoleId, TravelerState } from "../model/roads";
 import type { KingdomState, StructureKey, StructureState, ThreatKind } from "../model/types";
 import { RESERVED_PLOTS, type RoadId, SLOTS } from "./layout";
@@ -219,4 +220,84 @@ export function buildSceneModel(
     ambientCount: AMBIENT_BY_BUILDERS[builders?.level ?? 0],
     registryReadOnly,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Stage 5: replay cinematics. "While you were away" deltas become MOMENTS the
+// vista plays back — pure mapping over the policy-free KingdomDelta feed
+// (CONTRACT.md). The DOM text strip remains the ledger; this is spectacle.
+// ---------------------------------------------------------------------------
+
+export interface ReplayMoment {
+  /** Where it happens: a structure's slot, or "sky" for realm-wide news. */
+  at: StructureKey | "sky";
+  caption: string;
+  tone: "good" | "bad" | "info";
+}
+
+/** The vista plays at most this many moments per replay. */
+export const REPLAY_MOMENT_CAP = 8;
+
+const THREAT_HOME: Partial<Record<ThreatKind, StructureKey>> = {
+  bandits: "banditCamp",
+  feast: "festival",
+  winter: "granary",
+};
+
+export function replayMoments(deltas: readonly KingdomDelta[]): ReplayMoment[] {
+  const moments: ReplayMoment[] = [];
+  for (const delta of deltas) {
+    switch (delta.type) {
+      case "AGE_ADVANCED":
+        moments.push({ at: "sky", caption: `A new age dawns: ${delta.toName}`, tone: "good" });
+        break;
+      case "AGE_REGRESSED":
+        moments.push({ at: "sky", caption: `The age slips back to ${delta.toName}`, tone: "bad" });
+        break;
+      case "THREAT_ENDED":
+        moments.push({
+          at: THREAT_HOME[delta.kind] ?? "sky",
+          caption: `${delta.title} has passed`,
+          tone: "good",
+        });
+        break;
+      case "THREAT_STARTED":
+        moments.push({
+          at: THREAT_HOME[delta.kind] ?? "sky",
+          caption: delta.title,
+          tone: "bad",
+        });
+        break;
+      case "STRUCTURE_APPEARED":
+        moments.push({ at: delta.key, caption: `${delta.name} rises`, tone: "good" });
+        break;
+      case "STRUCTURE_REMOVED":
+        moments.push({ at: delta.key, caption: `${delta.name} stands no more`, tone: "info" });
+        break;
+      case "STRUCTURE_LEVEL_CHANGED":
+        moments.push({
+          at: delta.key,
+          caption: delta.to > delta.from ? `${delta.name} grows` : `${delta.name} wanes`,
+          tone: delta.to > delta.from ? "good" : "bad",
+        });
+        break;
+      case "MOAT_CHANGED":
+        if (delta.fromTier !== delta.toTier) {
+          moments.push({
+            at: "sky",
+            caption:
+              delta.to > delta.from
+                ? `The moat deepens — it runs ${delta.toTier}`
+                : `The moat thins — it runs ${delta.toTier}`,
+            tone: delta.to > delta.from ? "good" : "bad",
+          });
+        }
+        break;
+      // Resource ticks and chronicle entries stay in the text strip — the
+      // reel is for moments, not bookkeeping.
+      default:
+        break;
+    }
+  }
+  return moments.slice(0, REPLAY_MOMENT_CAP);
 }
