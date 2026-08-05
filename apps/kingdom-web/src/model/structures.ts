@@ -142,6 +142,18 @@ export function computeStructures(
     });
   }
   if (budgets.length > 0) {
+    // Two distinct signals: an ALARM (spending outpaces the month — early
+    // warning) and a BREACH (the monthly cap itself is spent — the law broken).
+    const isBreached = (b: (typeof budgets)[number]) =>
+      b.spentMtd.amountMinor > b.monthlyCap.amountMinor;
+    const breached = budgets.filter(isBreached).length;
+    const alarms = budgets.filter((b) => b.overPace && !isBreached(b)).length;
+    const summary = [
+      breached > 0 ? `${breached} breached` : null,
+      alarms > 0 ? `${alarms} alarm${alarms === 1 ? "" : "s"} sounding` : null,
+    ]
+      .filter((x) => x !== null)
+      .join(" · ");
     structures.push({
       key: "watchtowers",
       name: "The Watchtowers",
@@ -150,7 +162,20 @@ export function computeStructures(
       value: budgets.length,
       unit: "count" as const,
       level: asLevel(Math.min(budgets.length, 5)),
-      detail: `${budgets.length} decree(s) watched, ${budgets.filter((b) => b.overPace).length} breached`,
+      detail: `${budgets.length} decree${budgets.length === 1 ? "" : "s"} watched · ${
+        summary === "" ? "all quiet" : summary
+      }`,
+      lines: budgets.map((b) => {
+        const spent = b.spentMtd.amountMinor;
+        const cap = b.monthlyCap.amountMinor;
+        const pace = b.proratedCap.amountMinor;
+        const state = isBreached(b)
+          ? "✗ breached — the cap is spent"
+          : b.overPace
+            ? `⚠ alarm — ahead of pace (${fmtMinor(pace)} would be even spending by today)`
+            : "on pace";
+        return `${b.category}: ${fmtMinor(spent)} of ${fmtMinor(cap)} (${Math.round((spent / cap) * 100)}%) · ${state}`;
+      }),
     });
   }
   if (highInterest > 0) {

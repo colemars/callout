@@ -132,6 +132,8 @@ export interface StructureState {
   value: number | null;
   unit: ValueUnit;
   detail: string;
+  /** Optional per-item account of the detail (e.g. one line per watched decree). */
+  lines?: string[];
   lien?: boolean;
   locked?: boolean;
   hostile?: boolean;

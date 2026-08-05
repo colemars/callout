@@ -333,6 +333,13 @@ export function StructureGrid({ structures }: { structures: StructureState[] }) 
                 <Pips level={s.level} hostile={s.hostile} />
               </div>
               <p className={`mt-1 text-xs ${muted}`}>{s.detail}</p>
+              {s.lines !== undefined && s.lines.length > 0 && (
+                <ul className={`mt-1 flex flex-col gap-0.5 text-xs ${muted}`}>
+                  {s.lines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
       </div>
