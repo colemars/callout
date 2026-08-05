@@ -161,7 +161,19 @@ export function computeStructures(
       hostile: true,
       value: highInterest,
       unit: "minor" as const,
-      level: asLevel(highInterest < 1_000_00 ? 1 : highInterest < 10_000_00 ? 2 : 3),
+      // Full 0-5 range — the camp grows with the debt: <$1k, <$5k, <$15k,
+      // <$40k, then a fortress. (The old ladder capped at 3, sandbox-tuned.)
+      level: asLevel(
+        highInterest < 1_000_00
+          ? 1
+          : highInterest < 5_000_00
+            ? 2
+            : highInterest < 15_000_00
+              ? 3
+              : highInterest < 40_000_00
+                ? 4
+                : 5,
+      ),
       detail: `${fmtMinor(highInterest)} claimed by raiders`,
     });
   }
