@@ -104,7 +104,7 @@ beforeAll(async () => {
       revoked.push(secretId);
     },
   });
-});
+}, 30_000); // PGlite migration replay is slow under parallel CI load
 
 afterAll(async () => {
   await app.close();

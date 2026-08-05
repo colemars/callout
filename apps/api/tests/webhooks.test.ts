@@ -74,7 +74,7 @@ beforeAll(async () => {
     })
     .returning({ id: providerConnections.id });
   connectionId = rows[0]?.id as string;
-});
+}, 30_000); // PGlite migration replay is slow under parallel CI load
 
 describe("webhook verification", () => {
   const webhook = () => createPlaidWebhook(db, PLAID, undefined, fakeHttp);

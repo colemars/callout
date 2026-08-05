@@ -123,7 +123,7 @@ beforeAll(async () => {
 
   app = await buildApp({ db, verifier: fakeVerifier, logger: false });
   await app.ready();
-});
+}, 30_000); // PGlite migration replay is slow under parallel CI load
 
 afterAll(async () => {
   await app.close();
