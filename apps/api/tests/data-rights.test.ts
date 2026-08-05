@@ -8,8 +8,10 @@ import { providerConnections, schema } from "@platform/database";
 import { isoDate, money, userId } from "@platform/financial-core";
 import {
   createAccountRepository,
+  createBudgetRepository,
   createEventStore,
   createTransactionRepository,
+  createUserCategoryRuleStore,
 } from "@platform/repositories";
 import { drizzle } from "drizzle-orm/pglite";
 import type { FastifyInstance } from "fastify";
@@ -95,6 +97,12 @@ beforeAll(async () => {
       netFlow: money(100_00),
     } as never,
   ]);
+  // A REPEALED decree and a non-plaid learned rule — the archive must
+  // include inactive rows and every rule source, not just the live slice.
+  const budgetRepo = createBudgetRepository(db);
+  await budgetRepo.upsert(USER, "dining" as never, money(200_00));
+  await budgetRepo.deactivate(USER, "dining" as never);
+  await createUserCategoryRuleStore(db).upsert(USER, "apple", "acme cafe", "coffee", "user");
 
   app = await buildApp({
     db,
@@ -122,6 +130,17 @@ describe("GET /api/v1/export", () => {
     expect(body.events).toHaveLength(1); // and its payload survives, minus the id
     expect(body.events[0].payload.netFlow).toEqual({ amountMinor: 100_00, currency: "USD" });
     expect(body.connections).toEqual([{ institution: "Tartan Bank", status: "ok" }]);
+    // Completeness: the repealed decree and the non-plaid rule are IN.
+    expect(body.budgets).toEqual([
+      {
+        category: "dining",
+        monthlyCap: { amountMinor: 200_00, currency: "USD" },
+        active: false,
+      },
+    ]);
+    expect(body.categoryRules).toEqual([
+      { source: "apple", matchKey: "acme cafe", category: "coffee", origin: "user" },
+    ]);
     const raw = res.body;
     expect(raw).not.toContain("accessTokenSecretId");
     expect(raw).not.toContain("access_token_secret_id");

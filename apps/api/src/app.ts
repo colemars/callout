@@ -594,15 +594,17 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             kingdomMeta,
             snapshots,
           ] = await Promise.all([
-            createAccountRepository(deps.db).listActive(userId),
+            // listAll everywhere: repealed decrees, renounced goals, and
+            // inactive accounts are still the user's data.
+            createAccountRepository(deps.db).listAll(userId),
             createLiabilityRepository(deps.db).listForUser(userId),
             createTransactionRepository(deps.db).findByUser(userId, {}),
-            createBudgetRepository(deps.db).listActive(userId),
-            createGoalRepository(deps.db).listActive(userId),
+            createBudgetRepository(deps.db).listAll(userId),
+            createGoalRepository(deps.db).listAll(userId),
             createInvestmentActivityRepository(deps.db).findByUser(userId, {}),
             createEventStore(deps.db).listSinceSeq(userId, 0, 100_000),
             createMetricSnapshotStore(deps.db).latest(userId),
-            createUserCategoryRuleStore(deps.db).listForUser(userId, "plaid"),
+            createUserCategoryRuleStore(deps.db).listAllForUser(userId),
             createConnectionStore(deps.db).list(userId),
             createProductStateStore(deps.db).get(userId, "kingdom"),
             createProductStateStore(deps.db).get(userId, "kingdom-meta"),
@@ -661,11 +663,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
                 version: s.version,
                 data: s.data as Record<string, unknown>,
               })),
-            categoryRules: [...rules.entries()].map(([matchKey, r]) => ({
-              matchKey,
-              category: r.category,
-              origin: r.origin,
-            })),
+            categoryRules: rules,
             connections: connections.map((c) => ({
               institution: c.institutionName,
               status: c.status,
@@ -676,6 +674,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
       // The full wipe: every platform row + vault tokens. Plaid /item/remove
       // is opt-in (Trial plan: Items are lifetime-capped; see schemas.ts).
+      // Accepted race: a sync already in flight when the wipe commits can
+      // write back a partial slice afterward — rerunning the wipe heals it;
+      // no cheap lock exists across Lambda invocations.
       v1.delete(
         "/data",
         {

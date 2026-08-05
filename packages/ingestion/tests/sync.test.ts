@@ -38,6 +38,9 @@ function makeFakes() {
     async listActive() {
       return [...accounts.values()];
     },
+    async listAll() {
+      return [...accounts.values()];
+    },
   };
 
   const transactionRepo: TransactionRepository = {

@@ -79,6 +79,16 @@ export function createAccountRepository(db: PlatformDb): AccountRepository {
         .orderBy(asc(accounts.institution), asc(accounts.name));
       return rows.map(accountFromRow);
     },
+
+    // Inactive accounts included — the data-rights export must be complete.
+    async listAll(userId: UserId) {
+      const rows = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.userId, userId))
+        .orderBy(asc(accounts.institution), asc(accounts.name));
+      return rows.map(accountFromRow);
+    },
   };
 }
 
@@ -168,6 +178,16 @@ export function createGoalRepository(db: PlatformDb): GoalRepository {
       return rows.map(goalFromRow).filter((g) => g !== null);
     },
 
+    // Renounced goals included — the data-rights export must be complete.
+    async listAll(userId: UserId) {
+      const rows = await db
+        .select()
+        .from(goals)
+        .where(eq(goals.userId, userId))
+        .orderBy(asc(goals.id));
+      return rows.map(goalFromRow).filter((g) => g !== null);
+    },
+
     async create(userId: UserId, goal) {
       const rows = await db
         .insert(goals)
@@ -217,6 +237,16 @@ export function createBudgetRepository(db: PlatformDb): BudgetRepository {
         .select()
         .from(budgets)
         .where(and(eq(budgets.userId, userId), eq(budgets.active, true)))
+        .orderBy(asc(budgets.category));
+      return rows.map(budgetFromRow).filter((b) => b !== null);
+    },
+
+    // Repealed decrees included — the data-rights export must be complete.
+    async listAll(userId: UserId) {
+      const rows = await db
+        .select()
+        .from(budgets)
+        .where(eq(budgets.userId, userId))
         .orderBy(asc(budgets.category));
       return rows.map(budgetFromRow).filter((b) => b !== null);
     },

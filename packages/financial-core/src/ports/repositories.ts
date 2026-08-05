@@ -47,10 +47,14 @@ export interface AccountRepository {
   /** Upsert keyed on (userId, source, externalId) — the ingestion path. */
   upsertByExternalId(userId: UserId, account: ExternalAccount): Promise<Account>;
   listActive(userId: UserId): Promise<Account[]>;
+  /** Inactive rows included — for the data-rights export. */
+  listAll(userId: UserId): Promise<Account[]>;
 }
 
 export interface GoalRepository {
   listActive(userId: UserId): Promise<Goal[]>;
+  /** Renounced goals included — for the data-rights export. */
+  listAll(userId: UserId): Promise<Goal[]>;
   create(userId: UserId, goal: NewGoal): Promise<Goal>;
   /** Partial update; null return = not this user's goal. */
   update(
@@ -67,6 +71,8 @@ export interface GoalRepository {
 
 export interface BudgetRepository {
   listActive(userId: UserId): Promise<Budget[]>;
+  /** Repealed decrees included — for the data-rights export. */
+  listAll(userId: UserId): Promise<Budget[]>;
   /** Upsert the decree for a category (re-issuing reactivates). */
   upsert(userId: UserId, category: Category, monthlyCap: Money): Promise<Budget>;
   /** Repeal: deactivates; returns false when no such decree. */

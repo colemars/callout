@@ -16,6 +16,10 @@ export interface UserRuleEntry {
  */
 export interface UserCategoryRuleStore {
   listForUser(userId: UserId, source: string): Promise<Map<string, UserRuleEntry>>;
+  /** Every rule across ALL sources — for the data-rights export. */
+  listAllForUser(
+    userId: UserId,
+  ): Promise<Array<{ source: string; matchKey: string; category: string; origin: string }>>;
   upsert(
     userId: UserId,
     source: string,
@@ -39,6 +43,19 @@ export function createUserCategoryRuleStore(db: PlatformDb): UserCategoryRuleSto
         map.set(row.matchKey, { category: row.category, origin: row.origin });
       }
       return map;
+    },
+
+    async listAllForUser(userId) {
+      const rows = await db
+        .select()
+        .from(userCategoryRules)
+        .where(eq(userCategoryRules.userId, userId));
+      return rows.map((r) => ({
+        source: r.source,
+        matchKey: r.matchKey,
+        category: r.category,
+        origin: r.origin,
+      }));
     },
 
     async upsert(userId, source, matchKey, category, origin) {

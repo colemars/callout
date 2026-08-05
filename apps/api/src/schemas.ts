@@ -287,6 +287,7 @@ export const exportSchema = z.object({
   productState: z.array(productStateSchema),
   categoryRules: z.array(
     z.object({
+      source: z.string(),
       matchKey: z.string(),
       category: z.string(),
       origin: z.string(),

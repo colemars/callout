@@ -1190,6 +1190,7 @@ export interface paths {
                                 };
                             }[];
                             categoryRules: {
+                                source: string;
                                 matchKey: string;
                                 category: string;
                                 origin: string;

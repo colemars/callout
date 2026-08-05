@@ -2305,6 +2305,9 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "source": {
+                            "type": "string"
+                          },
                           "matchKey": {
                             "type": "string"
                           },
@@ -2316,6 +2319,7 @@
                           }
                         },
                         "required": [
+                          "source",
                           "matchKey",
                           "category",
                           "origin"
