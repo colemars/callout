@@ -21,6 +21,9 @@ export interface ProviderConnection {
   readonly status: "ok" | "login_required" | "error";
 }
 
+/** Per-product sync outcome. 'consent_required' means a re-link can grant it. */
+export type ProductGrantStatus = "ok" | "consent_required" | "unsupported" | "error";
+
 export interface ConnectionStore {
   list(userId: UserId): Promise<ProviderConnection[]>;
   update(
@@ -29,6 +32,7 @@ export interface ConnectionStore {
       readonly cursor?: string | null;
       readonly status?: ProviderConnection["status"];
       readonly lastSyncedAt?: Date;
+      readonly products?: Readonly<Record<string, ProductGrantStatus>>;
     },
   ): Promise<void>;
 }

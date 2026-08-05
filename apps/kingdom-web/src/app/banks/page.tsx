@@ -19,7 +19,18 @@ interface LinkedItem {
   id: string;
   institution_name: string;
   status: string;
+  /** Per-product sync outcome: ok | consent_required | unsupported | error. */
+  products?: Record<string, string> | null;
   last_synced_at: string | null;
+}
+
+/** What action (if any) this vault needs. */
+function vaultAction(item: LinkedItem): "repair" | "grant" | "sworn" | "unknown" {
+  if (item.status !== "ok") return "repair";
+  // No stamp yet (no sync since this vault was sworn): don't claim ✓ falsely.
+  if (item.products == null) return "unknown";
+  if (Object.values(item.products).includes("consent_required")) return "grant";
+  return "sworn";
 }
 
 interface PlaidHandler {
@@ -204,16 +215,51 @@ export default function CountingHouse() {
         ) : (
           <ul className="mt-2 flex flex-col gap-1">
             {items.map((i) => (
-              <li key={i.id} className="text-sm">
-                {i.institution_name} — {i.status}
-                <button
-                  type="button"
-                  onClick={() => start(i.id)}
-                  className="ml-2 text-amber-800 underline dark:text-amber-200"
-                  title="Re-link to grant deeper records (rates, due dates)"
-                >
-                  renew the oath
-                </button>
+              <li key={i.id} className="flex items-baseline gap-2 text-sm">
+                <span>{i.institution_name}</span>
+                {vaultAction(i) === "repair" && (
+                  <>
+                    <span className="text-red-700 dark:text-red-400">— {i.status}</span>
+                    <button
+                      type="button"
+                      onClick={() => start(i.id)}
+                      className="text-amber-800 underline dark:text-amber-200"
+                      title="Re-link to restore the connection"
+                    >
+                      renew the oath
+                    </button>
+                  </>
+                )}
+                {vaultAction(i) === "grant" && (
+                  <button
+                    type="button"
+                    onClick={() => start(i.id)}
+                    className="text-amber-800 underline dark:text-amber-200"
+                    title="Re-link to grant deeper records (rates, due dates, contributions)"
+                  >
+                    grant deeper records
+                  </button>
+                )}
+                {vaultAction(i) === "unknown" && (
+                  <button
+                    type="button"
+                    onClick={() => start(i.id)}
+                    className={`underline ${"text-stone-500 dark:text-amber-200/60"}`}
+                    title="Awaiting the next census; re-link to grant deeper records now"
+                  >
+                    renew the oath
+                  </button>
+                )}
+                {vaultAction(i) === "sworn" && (
+                  <button
+                    type="button"
+                    onClick={() => start(i.id)}
+                    className={`cursor-pointer ${"text-emerald-700 dark:text-emerald-400"}`}
+                    title="Full records sworn. Click only if the bank demands a fresh oath (re-link)."
+                  >
+                    ✓ sworn
+                  </button>
+                )}
               </li>
             ))}
           </ul>

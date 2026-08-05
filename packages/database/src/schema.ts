@@ -41,6 +41,8 @@ export const providerConnections = platform.table(
     /** Sync cursor. Starts NULL (full replay = backfill); never copied from public.plaid_items. */
     cursor: text("cursor"),
     status: text("status").notNull().default("ok"), // ok | login_required | error
+    /** Per-product sync outcome: {liabilities: 'ok'|'consent_required'|'unsupported'|'error', ...}. */
+    products: jsonb("products"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

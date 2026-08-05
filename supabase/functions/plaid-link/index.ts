@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
   }
 
   const { data: items } = await connections()
-    .select("id, institution_name, status, last_synced_at")
+    .select("id, institution_name, status, products, last_synced_at")
     .eq("user_id", user.id)
     .order("institution_name");
   return json({ items: items ?? [] });

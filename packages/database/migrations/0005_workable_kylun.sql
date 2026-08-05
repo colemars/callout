@@ -1,0 +1,1 @@
+ALTER TABLE "platform"."provider_connections" ADD COLUMN "products" jsonb;

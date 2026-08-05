@@ -19,6 +19,7 @@ import type {
   AccessTokenStore,
   CategorizeFn,
   ConnectionStore,
+  ProductGrantStatus,
   ProviderConnection,
   ProviderTransaction,
   TransactionProvider,
@@ -160,6 +161,7 @@ async function syncConnection(
   // Investments product: trailing-window fetch, idempotent by sourceActivityId.
   // Its failures never fail the whole connection sync.
   let investments: SyncReport["investments"];
+  let investmentsGrant: ProductGrantStatus | undefined;
   let investmentActivityCount: number | undefined;
   let investmentsMessage: string | undefined;
   if (deps.investments !== undefined) {
@@ -188,22 +190,27 @@ async function syncConnection(
       }
       await deps.investments.repo.upsertMany(userId, upserts);
       investments = "ok";
+      investmentsGrant = "ok";
       investmentActivityCount = upserts.length;
     } catch (error) {
-      if (
+      if (error instanceof PlaidError && error.code === "ADDITIONAL_CONSENT_REQUIRED") {
+        // A re-link CAN grant this — remembered so the UI can offer it.
+        investments = "unsupported";
+        investmentsGrant = "consent_required";
+      } else if (
         error instanceof PlaidError &&
         [
           "PRODUCTS_NOT_SUPPORTED",
           "PRODUCT_NOT_READY",
           "NO_INVESTMENT_ACCOUNTS",
           "INVALID_PRODUCT",
-          // Items linked before investments consent existed can't grant it retroactively.
-          "ADDITIONAL_CONSENT_REQUIRED",
         ].includes(error.code)
       ) {
         investments = "unsupported";
+        investmentsGrant = "unsupported";
       } else {
         investments = "error";
+        investmentsGrant = "error";
         investmentsMessage = `investments: ${error instanceof PlaidError ? error.code : String(error)}`;
       }
     }
@@ -212,6 +219,7 @@ async function syncConnection(
   // Liabilities product: one snapshot per debt account per sync. Like
   // investments, its failures never fail the whole connection sync.
   let liabilities: SyncReport["liabilities"];
+  let liabilitiesGrant: ProductGrantStatus | undefined;
   let liabilityCount: number | undefined;
   let liabilitiesMessage: string | undefined;
   if (deps.liabilities !== undefined) {
@@ -237,30 +245,41 @@ async function syncConnection(
       }
       await deps.liabilities.repo.upsertMany(userId, upserts);
       liabilities = "ok";
+      liabilitiesGrant = "ok";
       liabilityCount = upserts.length;
     } catch (error) {
-      if (
+      if (error instanceof PlaidError && error.code === "ADDITIONAL_CONSENT_REQUIRED") {
+        // A re-link CAN grant this — remembered so the UI can offer it.
+        liabilities = "unsupported";
+        liabilitiesGrant = "consent_required";
+      } else if (
         error instanceof PlaidError &&
         [
           "PRODUCTS_NOT_SUPPORTED",
           "PRODUCT_NOT_READY",
           "NO_LIABILITY_ACCOUNTS",
           "INVALID_PRODUCT",
-          "ADDITIONAL_CONSENT_REQUIRED",
         ].includes(error.code)
       ) {
         liabilities = "unsupported";
+        liabilitiesGrant = "unsupported";
       } else {
         liabilities = "error";
+        liabilitiesGrant = "error";
         liabilitiesMessage = `liabilities: ${error instanceof PlaidError ? error.code : String(error)}`;
       }
     }
   }
 
+  const products: Record<string, ProductGrantStatus> = {
+    ...(investmentsGrant === undefined ? {} : { investments: investmentsGrant }),
+    ...(liabilitiesGrant === undefined ? {} : { liabilities: liabilitiesGrant }),
+  };
   await deps.connections.update(connection.id, {
     cursor,
     status: "ok",
     lastSyncedAt: deps.now(),
+    ...(Object.keys(products).length === 0 ? {} : { products }),
   });
   return {
     institution,

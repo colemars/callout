@@ -37,6 +37,7 @@ export function createConnectionStore(db: PlatformDb): ConnectionStore {
           ...(patch.cursor === undefined ? {} : { cursor: patch.cursor }),
           ...(patch.status === undefined ? {} : { status: patch.status }),
           ...(patch.lastSyncedAt === undefined ? {} : { lastSyncedAt: patch.lastSyncedAt }),
+          ...(patch.products === undefined ? {} : { products: patch.products }),
         })
         .where(eq(providerConnections.id, id));
     },
