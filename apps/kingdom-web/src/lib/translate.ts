@@ -1,5 +1,5 @@
 import type { ApiEvent, TranslatedEvent } from "@platform/ui";
-import { absMoney, asMoney, asNum, asStr } from "@platform/ui";
+import { absMoney, asMoney, asNum, asStr, monthName } from "@platform/ui";
 
 /**
  * The same normalized platform events, in the Kingdom's voice.
@@ -51,22 +51,22 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "NET_CASH_FLOW_NEGATIVE":
       return {
         tone: "bad",
-        headline: `In the moon of ${asStr(p.month)}, the treasury bled ${absMoney(p.netFlow)}.`,
+        headline: `In the moon of ${monthName(p.month)}, the treasury bled ${absMoney(p.netFlow)}.`,
       };
     case "NET_CASH_FLOW_POSITIVE":
       return {
         tone: "good",
-        headline: `The moon of ${asStr(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
+        headline: `The moon of ${monthName(p.month)} filled the coffers by ${asMoney(p.netFlow)}.`,
       };
     case "UNCATEGORIZED_FUNDS":
       return {
         tone: "bad",
-        headline: `The scribes cannot place ${asNum(p.count)} entries from ${asStr(p.month)} — ${asMoney(p.amount)} unaccounted in the rolls.`,
+        headline: `The scribes cannot place ${asNum(p.count)} entries from ${monthName(p.month)} — ${asMoney(p.amount)} unaccounted in the rolls.`,
       };
     case "RETIREMENT_CONTRIBUTION_MADE":
       return {
         tone: "good",
-        headline: `A caravan reached the Royal Treasury in ${asStr(p.month)} — ${asMoney(p.amount)} sealed away.`,
+        headline: `A caravan reached the Royal Treasury in ${monthName(p.month)} — ${asMoney(p.amount)} sealed away.`,
       };
     case "RETIREMENT_CONTRIBUTION_INCREASED":
       return {

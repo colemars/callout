@@ -116,3 +116,24 @@ export function recurringLoad(metrics: KingdomMetrics | null): number {
     0,
   );
 }
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** "2026-07" → "July" — the model speaks month names, not ISO codes. */
+export function monthName(isoMonth: string): string {
+  const m = /^\d{4}-(\d{2})/.exec(isoMonth);
+  return m === null ? isoMonth : (MONTH_NAMES[Number(m[1]) - 1] ?? isoMonth);
+}

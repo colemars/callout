@@ -1,5 +1,5 @@
 import type { ApiEvent, TranslatedEvent } from "@platform/ui";
-import { absMoney, asMoney, asNum, asStr } from "@platform/ui";
+import { absMoney, asMoney, asNum, asStr, monthName } from "@platform/ui";
 
 /**
  * The product-translation layer (ARCHITECTURE.md "Product Translation"):
@@ -18,12 +18,12 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "MONTHLY_SPENDING_INCREASED":
       return {
         tone: "bad",
-        headline: `${asStr(p.category)} spending jumped ${asNum(p.deltaPct)}% in ${asStr(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
+        headline: `${asStr(p.category)} spending jumped ${asNum(p.deltaPct)}% in ${monthName(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
       };
     case "MONTHLY_SPENDING_DECREASED":
       return {
         tone: "good",
-        headline: `${asStr(p.category)} spending down ${asNum(p.deltaPct)}% in ${asStr(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
+        headline: `${asStr(p.category)} spending down ${asNum(p.deltaPct)}% in ${monthName(p.month)}: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
       };
     case "RECURRING_EXPENSE_ADDED":
       return {
@@ -48,19 +48,22 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "NET_CASH_FLOW_NEGATIVE":
       return {
         tone: "bad",
-        headline: `${asStr(p.month)}: you spent ${absMoney(p.netFlow)} more than you made.`,
+        headline: `${monthName(p.month)}: you spent ${absMoney(p.netFlow)} more than you made.`,
       };
     case "NET_CASH_FLOW_POSITIVE":
-      return { tone: "good", headline: `${asStr(p.month)}: ${asMoney(p.netFlow)} net positive.` };
+      return {
+        tone: "good",
+        headline: `${monthName(p.month)}: ${asMoney(p.netFlow)} net positive.`,
+      };
     case "UNCATEGORIZED_FUNDS":
       return {
         tone: "bad",
-        headline: `${asStr(p.month)}: ${asNum(p.count)} uncategorized transactions worth ${asMoney(p.amount)} — fix the categories so the numbers mean something.`,
+        headline: `${monthName(p.month)}: ${asNum(p.count)} uncategorized transactions worth ${asMoney(p.amount)} — fix the categories so the numbers mean something.`,
       };
     case "RETIREMENT_CONTRIBUTION_MADE":
       return {
         tone: "good",
-        headline: `You put ${asMoney(p.amount)} into retirement in ${asStr(p.month)}.`,
+        headline: `You put ${asMoney(p.amount)} into retirement in ${monthName(p.month)}.`,
       };
     case "RETIREMENT_CONTRIBUTION_INCREASED":
       return {

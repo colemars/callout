@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { monthName } from "../model/derive";
 import type {
   AgeState,
   ChronicleEntry,
@@ -166,8 +167,8 @@ function LedgerModal({
             close
           </button>
         </div>
-        {section(view.months.current, "last moon")}
-        {section(view.months.previous, "the moon before")}
+        {section(view.months.current, monthName(view.months.current))}
+        {section(view.months.previous, monthName(view.months.previous))}
         <p className={`mt-3 text-xs ${muted}`}>
           The scrolls reach back ~70 days — the elder moon may be partly beyond them. Wrongly marked
           lines can be corrected in the Accountability ledger.
@@ -218,7 +219,7 @@ export function ThreatCards({
                 </summary>
                 {t.months !== undefined && (
                   <p className={`mt-1 text-right text-xs ${muted}`}>
-                    the moon before ({t.months.previous}) → last moon ({t.months.current}) · change
+                    {monthName(t.months.previous)} → {monthName(t.months.current)} · change
                   </p>
                 )}
                 <ul className="mt-1 flex flex-col gap-0.5 text-xs">

@@ -3,7 +3,7 @@ export { createProductClients } from "./clients.js";
 export { Amount, Section, Table } from "./components.js";
 export type { DashboardState } from "./data.js";
 export { useDashboardData } from "./data.js";
-export { absMoney, asMoney, asNum, asStr, fmtMoney } from "./format.js";
+export { absMoney, asMoney, asNum, asStr, fmtMoney, monthName } from "./format.js";
 export type {
   Account,
   ApiEvent,

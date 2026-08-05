@@ -148,8 +148,11 @@ describe("threat activation on month-over-month data", () => {
     const state = kingdomModel(input, translate);
     const feast = state.threats.find((t) => t.kind === "feast");
     expect(feast?.active).toBe(true);
-    // Travel is excluded from the jump math: cause = (900+700) − (400+300).
-    expect(feast?.causes[0]?.amount?.amountMinor).toBe(900_00);
+    // Travel is excluded from the jump math: cause = (900+700) − (400+300),
+    // spoken plainly with month names — no "month over month" jargon.
+    expect(feast?.causes[0]?.label).toBe(
+      "the court spent $900.00 more on merriment in July than in June",
+    );
   });
 
   it("drought: income falls 20%+", () => {

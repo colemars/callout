@@ -29,6 +29,25 @@ const absMoney = (v: unknown): string => {
 };
 const s = (v: unknown): string => String(v ?? "");
 const n = (v: unknown): number => Number(v ?? 0);
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+/** "2026-07" -> "July": month-over-month jargon stays out of the inbox too. */
+const monthName = (v: unknown): string => {
+  const m = /^\d{4}-(\d{2})/.exec(String(v ?? ""));
+  return m === null ? String(v ?? "") : (MONTH_NAMES[Number(m[1]) - 1] ?? String(v));
+};
 
 export function renderEventLine(e: Eventish): string {
   switch (e.type) {
@@ -37,9 +56,9 @@ export function renderEventLine(e: Eventish): string {
     case "GOAL_ON_TRACK":
       return `Goal on track: ${money(e.surplus)} ahead of schedule.`;
     case "MONTHLY_SPENDING_INCREASED":
-      return `${s(e.category)} spending up ${n(e.deltaPct)}% in ${s(e.month)}: ${money(e.previous)} -> ${money(e.current)}.`;
+      return `${s(e.category)} spending up ${n(e.deltaPct)}% in ${monthName(e.month)}: ${money(e.previous)} -> ${money(e.current)}.`;
     case "MONTHLY_SPENDING_DECREASED":
-      return `${s(e.category)} spending down ${n(e.deltaPct)}% in ${s(e.month)}: ${money(e.previous)} -> ${money(e.current)}.`;
+      return `${s(e.category)} spending down ${n(e.deltaPct)}% in ${monthName(e.month)}: ${money(e.previous)} -> ${money(e.current)}.`;
     case "RECURRING_EXPENSE_ADDED":
       return `New recurring charge: ${s(e.merchant)} (~${money(e.estimatedMonthly)}/mo).`;
     case "RECURRING_EXPENSE_REMOVED":
@@ -49,17 +68,17 @@ export function renderEventLine(e: Eventish): string {
     case "HIGH_INTEREST_DEBT_DECREASED":
       return `High-interest debt down ${money(e.delta)} to ${money(e.current)}.`;
     case "NET_CASH_FLOW_NEGATIVE":
-      return `${s(e.month)}: net cash flow negative — ${absMoney(e.netFlow)} more out than in.`;
+      return `${monthName(e.month)}: net cash flow negative — ${absMoney(e.netFlow)} more out than in.`;
     case "NET_CASH_FLOW_POSITIVE":
-      return `${s(e.month)}: net cash flow positive — ${money(e.netFlow)}.`;
+      return `${monthName(e.month)}: net cash flow positive — ${money(e.netFlow)}.`;
     case "RETIREMENT_CONTRIBUTION_MADE":
-      return `Retirement contribution in ${s(e.month)}: ${money(e.amount)}.`;
+      return `Retirement contribution in ${monthName(e.month)}: ${money(e.amount)}.`;
     case "RETIREMENT_CONTRIBUTION_INCREASED":
       return `Retirement contributions increased: ${money(e.previous)} -> ${money(e.current)}/mo.`;
     case "PASSIVE_INCOME_INCREASED":
       return `Passive income up: ${money(e.previous)} -> ${money(e.current)}.`;
     case "UNCATEGORIZED_FUNDS":
-      return `Uncategorized activity in ${s(e.month)}: ${n(e.count)} transactions, ${money(e.amount)} the ledger can't place.`;
+      return `Uncategorized activity in ${monthName(e.month)}: ${n(e.count)} transactions, ${money(e.amount)} the ledger can't place.`;
     case "EMERGENCY_RUNWAY_CHANGED":
       return `Emergency runway changed: ${n(e.previousMonths)} -> ${n(e.currentMonths)} months.`;
     default:
@@ -77,6 +96,25 @@ export function renderDigest(asOf: string, events: readonly Eventish[]): Digest 
   if (events.length === 0) return null;
   const lines = events.map(renderEventLine);
   const subject = `Your money: ${events.length} thing${events.length === 1 ? "" : "s"} worth knowing (${asOf})`;
+  const MONTH_NAMES = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthName = (v: unknown): string => {
+    const m = /^\d{4}-(\d{2})/.exec(String(v ?? ""));
+    return m === null ? String(v ?? "") : (MONTH_NAMES[Number(m[1]) - 1] ?? String(v));
+  };
+
   const esc = (t: string) =>
     t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);
   return {

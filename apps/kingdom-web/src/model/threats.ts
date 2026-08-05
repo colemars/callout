@@ -6,6 +6,7 @@ import {
   fmtMinor,
   incomeEstimate,
   lifestyleShare,
+  monthName,
   referenceMonths,
 } from "./derive";
 import type { KingdomInput, ThreatBreakdownLine, ThreatState } from "./types";
@@ -108,8 +109,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         narrative: `The cost of keeping the realm fed and warm rose ${(essRise * 100).toFixed(0)}% last moon (${fmtMinor(essPrior)} → ${fmtMinor(essNow)}). The granary drains faster through no fault of the court.`,
         causes: [
           {
-            label: "essential spending, month over month",
-            amount: { amountMinor: essNow - essPrior, currency: "USD" },
+            label: `keeping the realm fed cost ${fmtMinor(essNow - essPrior)} more in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
           },
         ],
         basis: "groceries + housing + transport + health, completed vs prior month",
@@ -134,8 +134,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         narrative: `The court feasts grandly — joy runs high, the coffers lighter (${fmtMinor(feastPrior)} → ${fmtMinor(feastNow)} last moon). A merry realm, if the granary agrees.`,
         causes: [
           {
-            label: "feasting & festivities, month over month",
-            amount: { amountMinor: feastNow - feastPrior, currency: "USD" },
+            label: `the court spent ${fmtMinor(feastNow - feastPrior)} more on merriment in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
           },
         ],
         basis: "lifestyle spending excluding travel, completed vs prior month",
@@ -165,8 +164,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         narrative: `Less tribute arrives than the moon before (${fmtMinor(incomePrior)} → ${fmtMinor(incomeNow ?? 0)}). Workers drift away while the harvest is thin.`,
         causes: [
           {
-            label: "income, month over month",
-            amount: { amountMinor: (incomeNow ?? 0) - incomePrior, currency: "USD" },
+            label: `${fmtMinor(incomePrior - (incomeNow ?? 0))} less tribute arrived in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
           },
         ],
         basis: "income ≈ net cash flow + spending, completed vs prior month",

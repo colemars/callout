@@ -22,7 +22,7 @@ describe("renderEventLine", () => {
         month: "2026-07",
         netFlow: money(-10_000),
       }),
-    ).toBe("2026-07: net cash flow negative — $100.00 more out than in.");
+    ).toBe("July: net cash flow negative — $100.00 more out than in.");
 
     expect(
       renderEventLine({
