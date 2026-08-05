@@ -22,7 +22,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run build --filter @platform/worker
-      - name: Sync + insights
-        run: |
-          node apps/worker/dist/cli.js sync
-          node apps/worker/dist/cli.js insights
+      - name: Sync
+        # Per-connection failures exit 1 but must not block insights.
+        continue-on-error: true
+        run: node apps/worker/dist/cli.js sync
+      - name: Insights
+        run: node apps/worker/dist/cli.js insights
