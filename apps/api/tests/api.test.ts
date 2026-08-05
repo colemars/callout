@@ -435,3 +435,84 @@ describe("events cursor exactness", () => {
     expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
   });
 });
+
+describe("royal decrees: budgets + goals CRUD", () => {
+  const send = (method: "PUT" | "POST" | "PATCH" | "DELETE", url: string, payload?: unknown) =>
+    app.inject({
+      method,
+      url,
+      ...(payload === undefined ? {} : { payload: payload as Record<string, unknown> }),
+      headers: { authorization: `Bearer ${GOOD_TOKEN}` },
+    });
+
+  it("issues, re-issues, and repeals a budget decree", async () => {
+    const issued = await send("PUT", "/api/v1/budgets/dining", { monthlyCapMinor: 400_00 });
+    expect(issued.statusCode).toBe(200);
+    expect(issued.json()).toMatchObject({
+      category: "dining",
+      monthlyCap: { amountMinor: 400_00 },
+      active: true,
+    });
+
+    // Re-issue updates the cap in place.
+    await send("PUT", "/api/v1/budgets/dining", { monthlyCapMinor: 350_00 });
+    const list = (await get("/api/v1/budgets", GOOD_TOKEN)).json();
+    const dining = list.filter((b: { category: string }) => b.category === "dining");
+    expect(dining).toHaveLength(1);
+    expect(dining[0].monthlyCap.amountMinor).toBe(350_00);
+
+    expect((await send("DELETE", "/api/v1/budgets/dining")).json()).toEqual({ repealed: true });
+    const after = (await get("/api/v1/budgets", GOOD_TOKEN)).json();
+    expect(after.some((b: { category: string }) => b.category === "dining")).toBe(false);
+
+    // Unknown category is rejected by the enum.
+    expect(
+      (await send("PUT", "/api/v1/budgets/nonsense", { monthlyCapMinor: 1_00 })).statusCode,
+    ).toBe(400);
+  });
+
+  it("creates a paydown goal with a server-computed baseline; validates ownership", async () => {
+    const accounts = (await get("/api/v1/accounts", GOOD_TOKEN)).json();
+    const target = accounts[0];
+
+    const created = await send("POST", "/api/v1/goals", {
+      kind: "debt_paydown",
+      targetAmountMinor: 1_000_00,
+      accountId: target.id,
+      targetDate: "2026-12-31",
+    });
+    expect(created.statusCode).toBe(200);
+    const goal = created.json();
+    expect(goal).toMatchObject({ kind: "debt_paydown", accountId: target.id, active: true });
+    expect(goal.baselineAmount.amountMinor).toBe(target.balance.amountMinor); // pinned at creation
+    expect(goal.startedAt).toBeTruthy();
+
+    // Update + deactivate.
+    const patched = await send("PATCH", `/api/v1/goals/${goal.id}`, {
+      targetAmountMinor: 2_000_00,
+    });
+    expect(patched.json().targetAmount.amountMinor).toBe(2_000_00);
+    await send("PATCH", `/api/v1/goals/${goal.id}`, { active: false });
+    const goals = (await get("/api/v1/goals", GOOD_TOKEN)).json();
+    expect(goals.some((g: { id: string }) => g.id === goal.id)).toBe(false);
+
+    // Guardrails: account must exist and be yours; kind requires account; farming floor.
+    expect(
+      (
+        await send("POST", "/api/v1/goals", {
+          kind: "balance_target",
+          targetAmountMinor: 1_000_00,
+          accountId: "00000000-0000-0000-0000-00000000dead",
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (await send("POST", "/api/v1/goals", { kind: "balance_target", targetAmountMinor: 1_000_00 }))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (await send("POST", "/api/v1/goals", { kind: "savings_net_flow", targetAmountMinor: 50_00 }))
+        .statusCode,
+    ).toBe(400);
+  });
+});

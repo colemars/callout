@@ -123,6 +123,8 @@ export const goals = platform.table(
     baselineAmountMinor: bigint("baseline_amount_minor", { mode: "number" }),
     note: text("note"),
     active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("goals_user_ix").on(t.userId)],
 );
@@ -135,6 +137,9 @@ export const budgets = platform.table(
     monthlyCapMinor: bigint("monthly_cap_minor", { mode: "number" }).notNull(),
     currency: text("currency").notNull().default("USD"),
     active: boolean("active").notNull().default(true),
+    /** Streaks may only count months after the decree existed. */
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.category] })],
 );

@@ -56,6 +56,7 @@ export type {
   BalanceTargetGoal,
   DebtPaydownGoal,
   Goal,
+  NewGoal,
   SavingsNetFlowGoal,
 } from "./entities/goal.js";
 export type {

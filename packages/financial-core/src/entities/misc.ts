@@ -14,6 +14,8 @@ export interface Budget {
   readonly category: Category;
   readonly monthlyCap: Money;
   readonly active: boolean;
+  /** When the decree was issued — streaks count only months after this. */
+  readonly createdAt?: ISODate;
 }
 
 export interface RecurringExpense {

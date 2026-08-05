@@ -1,12 +1,13 @@
 import type { ISODate } from "../dates/local-date.js";
 import type { Account } from "../entities/account.js";
 import type { Category } from "../entities/category.js";
-import type { Goal } from "../entities/goal.js";
+import type { Goal, NewGoal } from "../entities/goal.js";
 import type { InvestmentActivity } from "../entities/investment-activity.js";
 import type { AccountLiability } from "../entities/liability.js";
 import type { BalanceSnapshot, Budget } from "../entities/misc.js";
 import type { Transaction, TransactionSource } from "../entities/transaction.js";
-import type { AccountId, TransactionId, UserId } from "../ids.js";
+import type { AccountId, GoalId, TransactionId, UserId } from "../ids.js";
+import type { Money } from "../money/money.js";
 
 /**
  * Repository ports (ARCHITECTURE.md "Repository Pattern"). Business logic
@@ -50,10 +51,26 @@ export interface AccountRepository {
 
 export interface GoalRepository {
   listActive(userId: UserId): Promise<Goal[]>;
+  create(userId: UserId, goal: NewGoal): Promise<Goal>;
+  /** Partial update; null return = not this user's goal. */
+  update(
+    userId: UserId,
+    id: GoalId,
+    patch: {
+      readonly targetAmount?: Money;
+      readonly targetDate?: ISODate | null;
+      readonly note?: string | null;
+      readonly active?: boolean;
+    },
+  ): Promise<Goal | null>;
 }
 
 export interface BudgetRepository {
   listActive(userId: UserId): Promise<Budget[]>;
+  /** Upsert the decree for a category (re-issuing reactivates). */
+  upsert(userId: UserId, category: Category, monthlyCap: Money): Promise<Budget>;
+  /** Repeal: deactivates; returns false when no such decree. */
+  deactivate(userId: UserId, category: Category): Promise<boolean>;
 }
 
 /** Ingestion-shaped activity: the database assigns the platform id. */

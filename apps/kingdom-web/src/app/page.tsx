@@ -77,6 +77,12 @@ export default function ThroneRoom() {
         </div>
         <div className="flex items-baseline gap-4">
           <Link
+            href="/decrees/"
+            className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
+          >
+            📜 decrees
+          </Link>
+          <Link
             href="/banks/"
             className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
           >

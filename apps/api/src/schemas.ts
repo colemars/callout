@@ -199,3 +199,59 @@ export const patchTransactionBody = z.object({
     "other",
   ]),
 });
+
+const CATEGORY_ENUM = z.enum([
+  "groceries",
+  "dining",
+  "delivery",
+  "coffee",
+  "transport",
+  "shopping",
+  "subscriptions",
+  "entertainment",
+  "travel",
+  "health",
+  "housing",
+  "debt_payment",
+  "income",
+  "transfer",
+  "other",
+]);
+
+export const budgetCategoryParams = z.object({ category: CATEGORY_ENUM });
+
+export const putBudgetBody = z.object({
+  /** Positive minor units — a decree of $0 is a repeal, use DELETE. */
+  monthlyCapMinor: z.number().int().min(1),
+});
+
+export const goalIdParams = z.object({ id: z.string().uuid() });
+
+export const createGoalBody = z
+  .object({
+    kind: z.enum(["savings_net_flow", "balance_target", "debt_paydown"]),
+    /** Minimum $100 — trivial targets earn trivial credit anyway, but still. */
+    targetAmountMinor: z.number().int().min(100_00),
+    targetDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    accountId: z.string().uuid().optional(),
+    note: z.string().max(200).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if ((v.kind === "balance_target" || v.kind === "debt_paydown") && v.accountId === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${v.kind} requires accountId` });
+    }
+  });
+
+export const patchGoalBody = z.object({
+  targetAmountMinor: z.number().int().min(100_00).optional(),
+  targetDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  note: z.string().max(200).nullable().optional(),
+  active: z.boolean().optional(),
+});

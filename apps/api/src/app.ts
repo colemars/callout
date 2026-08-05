@@ -6,7 +6,8 @@ import type { AuthenticatedUser, JwtVerifier } from "@platform/auth";
 import { AuthError } from "@platform/auth";
 import type { PlatformDb } from "@platform/database";
 import type { DateRange, ISODate, UserId } from "@platform/financial-core";
-import { isoDate, transactionId } from "@platform/financial-core";
+import type { NewGoal } from "@platform/financial-core";
+import { accountId, goalId, isoDate, money, transactionId } from "@platform/financial-core";
 import { normalizeMatchKey } from "@platform/ingestion";
 import {
   createAccountRepository,
@@ -30,17 +31,22 @@ import {
 import { z } from "zod";
 import {
   accountSchema,
+  budgetCategoryParams,
   budgetSchema,
+  createGoalBody,
   dateRangeQuery,
   errorSchema,
   eventSchema,
   eventsQuery,
+  goalIdParams,
   goalSchema,
   historyQuery,
   investmentActivitySchema,
+  patchGoalBody,
   patchTransactionBody,
   productParams,
   productStateSchema,
+  putBudgetBody,
   putStateBody,
   putStateResultSchema,
   snapshotSchema,
@@ -191,6 +197,133 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
         async (request) => {
           const userId = await requireUser(request);
           return createBudgetRepository(deps.db).listActive(userId);
+        },
+      );
+
+      v1.put(
+        "/budgets/:category",
+        {
+          schema: {
+            params: budgetCategoryParams,
+            body: putBudgetBody,
+            response: { 200: budgetSchema, 400: errorSchema, 401: errorSchema },
+          },
+        },
+        async (request) => {
+          const userId = await requireUser(request);
+          return createBudgetRepository(deps.db).upsert(
+            userId,
+            request.params.category,
+            money(request.body.monthlyCapMinor),
+          );
+        },
+      );
+
+      v1.delete(
+        "/budgets/:category",
+        {
+          schema: {
+            params: budgetCategoryParams,
+            response: {
+              200: z.object({ repealed: z.boolean() }),
+              401: errorSchema,
+            },
+          },
+        },
+        async (request) => {
+          const userId = await requireUser(request);
+          const repealed = await createBudgetRepository(deps.db).deactivate(
+            userId,
+            request.params.category,
+          );
+          return { repealed };
+        },
+      );
+
+      v1.post(
+        "/goals",
+        {
+          schema: {
+            body: createGoalBody,
+            response: { 200: goalSchema, 400: errorSchema, 401: errorSchema },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const body = request.body;
+          const today = isoDate(new Date().toISOString().slice(0, 10));
+          let baseline = money(0);
+          if (body.kind === "balance_target" || body.kind === "debt_paydown") {
+            // Baseline = the account's balance NOW, so pacing is honest and
+            // the account is provably the caller's.
+            const accounts = await createAccountRepository(deps.db).listActive(userId);
+            const account = accounts.find((a) => a.id === body.accountId);
+            if (account === undefined) {
+              return reply.status(400).send({ error: "unknown account" });
+            }
+            baseline = account.balance;
+          }
+          const common = {
+            targetAmount: money(body.targetAmountMinor),
+            startedAt: today,
+            baselineAmount: baseline,
+            active: true,
+            ...(body.targetDate === undefined ? {} : { targetDate: isoDate(body.targetDate) }),
+            ...(body.note === undefined ? {} : { note: body.note }),
+          };
+          const goal: NewGoal =
+            body.kind === "savings_net_flow"
+              ? { kind: "savings_net_flow", ...common }
+              : body.kind === "balance_target"
+                ? {
+                    kind: "balance_target",
+                    // biome-ignore lint/style/noNonNullAssertion: schema superRefine guarantees it
+                    accountId: accountId(body.accountId!),
+                    ...common,
+                  }
+                : {
+                    kind: "debt_paydown",
+                    // biome-ignore lint/style/noNonNullAssertion: schema superRefine guarantees it
+                    accountId: accountId(body.accountId!),
+                    ...common,
+                  };
+          return createGoalRepository(deps.db).create(userId, goal);
+        },
+      );
+
+      v1.patch(
+        "/goals/:id",
+        {
+          schema: {
+            params: goalIdParams,
+            body: patchGoalBody,
+            response: {
+              200: goalSchema,
+              400: errorSchema,
+              401: errorSchema,
+              404: errorSchema,
+            },
+          },
+        },
+        async (request, reply) => {
+          const userId = await requireUser(request);
+          const body = request.body;
+          const updated = await createGoalRepository(deps.db).update(
+            userId,
+            goalId(request.params.id),
+            {
+              ...(body.targetAmountMinor === undefined
+                ? {}
+                : { targetAmount: money(body.targetAmountMinor) }),
+              ...(body.targetDate === undefined
+                ? {}
+                : { targetDate: body.targetDate === null ? null : isoDate(body.targetDate) }),
+              ...(body.note === undefined ? {} : { note: body.note }),
+              ...(body.active === undefined ? {} : { active: body.active }),
+            },
+          );
+          if (updated === null) return reply.status(404).send({ error: "unknown goal" });
+          return updated;
         },
       );
 

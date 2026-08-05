@@ -167,6 +167,46 @@ export function createGoalRepository(db: PlatformDb): GoalRepository {
         .orderBy(asc(goals.id));
       return rows.map(goalFromRow).filter((g) => g !== null);
     },
+
+    async create(userId: UserId, goal) {
+      const rows = await db
+        .insert(goals)
+        .values({
+          userId,
+          kind: goal.kind,
+          accountId: "accountId" in goal ? goal.accountId : null,
+          targetAmountMinor: goal.targetAmount.amountMinor,
+          currency: goal.targetAmount.currency,
+          targetDate: goal.targetDate ?? null,
+          startedAt: goal.startedAt ?? null,
+          baselineAmountMinor: goal.baselineAmount?.amountMinor ?? null,
+          note: goal.note ?? null,
+          active: goal.active,
+        })
+        .returning();
+      // biome-ignore lint/style/noNonNullAssertion: insert..returning yields one row
+      const created = goalFromRow(rows[0]!);
+      if (created === null) throw new Error("created goal failed domain validation");
+      return created;
+    },
+
+    async update(userId: UserId, id, patch) {
+      const rows = await db
+        .update(goals)
+        .set({
+          ...(patch.targetAmount === undefined
+            ? {}
+            : { targetAmountMinor: patch.targetAmount.amountMinor }),
+          ...(patch.targetDate === undefined ? {} : { targetDate: patch.targetDate }),
+          ...(patch.note === undefined ? {} : { note: patch.note }),
+          ...(patch.active === undefined ? {} : { active: patch.active }),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(goals.userId, userId), eq(goals.id, id)))
+        .returning();
+      const row = rows[0];
+      return row === undefined ? null : goalFromRow(row);
+    },
   };
 }
 
@@ -179,6 +219,39 @@ export function createBudgetRepository(db: PlatformDb): BudgetRepository {
         .where(and(eq(budgets.userId, userId), eq(budgets.active, true)))
         .orderBy(asc(budgets.category));
       return rows.map(budgetFromRow).filter((b) => b !== null);
+    },
+
+    async upsert(userId: UserId, category, monthlyCap) {
+      const values = {
+        userId,
+        category,
+        monthlyCapMinor: monthlyCap.amountMinor,
+        currency: monthlyCap.currency,
+        active: true,
+      };
+      const rows = await db
+        .insert(budgets)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [budgets.userId, budgets.category],
+          // Re-issuing a decree updates the cap and reactivates, but the
+          // original createdAt stands — streaks anchor to first issuance.
+          set: { monthlyCapMinor: values.monthlyCapMinor, active: true, updatedAt: new Date() },
+        })
+        .returning();
+      // biome-ignore lint/style/noNonNullAssertion: upsert..returning yields one row
+      const budget = budgetFromRow(rows[0]!);
+      if (budget === null) throw new Error("budget failed domain validation");
+      return budget;
+    },
+
+    async deactivate(userId: UserId, category) {
+      const rows = await db
+        .update(budgets)
+        .set({ active: false, updatedAt: new Date() })
+        .where(and(eq(budgets.userId, userId), eq(budgets.category, category)))
+        .returning({ category: budgets.category });
+      return rows.length > 0;
     },
   };
 }

@@ -96,6 +96,7 @@ export function goalFromRow(row: GoalRow): Goal | null {
       ? {}
       : { baselineAmount: money(row.baselineAmountMinor, currency(row.currency)) }),
     ...(row.note === null ? {} : { note: row.note }),
+    createdAt: isoDate(row.createdAt.toISOString().slice(0, 10)),
   };
   switch (row.kind) {
     case "savings_net_flow":
@@ -120,6 +121,7 @@ export function budgetFromRow(row: BudgetRow): Budget | null {
     category: row.category,
     monthlyCap: money(row.monthlyCapMinor, currency(row.currency)),
     active: row.active,
+    createdAt: isoDate(row.createdAt.toISOString().slice(0, 10)),
   };
 }
 
