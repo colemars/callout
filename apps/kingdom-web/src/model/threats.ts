@@ -8,7 +8,7 @@ import {
   lifestyleShare,
   referenceMonths,
 } from "./derive";
-import type { KingdomInput, ThreatState } from "./types";
+import type { KingdomInput, ThreatBreakdownLine, ThreatState } from "./types";
 
 type Severity = ThreatState["severity"];
 
@@ -26,6 +26,36 @@ const dormant = (
   causes: [],
   basis: reason === "no-data" ? "not enough recorded moons to judge" : "conditions clear",
 });
+
+/** Per-category prev→curr lines for a comparative threat, largest rise first. */
+function categoryBreakdown(
+  ref: { spendingByCategory: { category: string; amount: { amountMinor: number } }[] },
+  prior: { spendingByCategory: { category: string; amount: { amountMinor: number } }[] },
+  categories: readonly string[],
+): ThreatBreakdownLine[] {
+  const sums = (m: typeof ref): Map<string, number> => {
+    const map = new Map<string, number>();
+    for (const s of m.spendingByCategory) {
+      if (categories.includes(s.category)) map.set(s.category, Math.abs(s.amount.amountMinor));
+    }
+    return map;
+  };
+  const now = sums(ref);
+  const before = sums(prior);
+  const lines: ThreatBreakdownLine[] = [];
+  for (const category of categories) {
+    const currentMinor = now.get(category) ?? 0;
+    const previousMinor = before.get(category) ?? 0;
+    if (currentMinor === 0 && previousMinor === 0) continue;
+    lines.push({
+      label: category,
+      previousMinor,
+      currentMinor,
+      deltaMinor: currentMinor - previousMinor,
+    });
+  }
+  return lines.sort((a, b) => b.deltaMinor - a.deltaMinor);
+}
 
 export function computeThreats(input: KingdomInput): ThreatState[] {
   const { ref, prior } = referenceMonths(input.metrics);
@@ -83,6 +113,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
           },
         ],
         basis: "groceries + housing + transport + health, completed vs prior month",
+        breakdown: categoryBreakdown(ref, prior, ESSENTIAL_CATEGORIES),
       });
     } else {
       threats.push(dormant("winter", "Winter", "conditions-clear"));
@@ -107,6 +138,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
           },
         ],
         basis: "lifestyle spending excluding travel, completed vs prior month",
+        breakdown: categoryBreakdown(ref, prior, FEAST_CATEGORIES),
       });
     } else {
       threats.push(dormant("feast", "Royal feasts", "conditions-clear"));

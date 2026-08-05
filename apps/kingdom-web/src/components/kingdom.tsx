@@ -14,6 +14,9 @@ const card =
   "rounded-lg border border-amber-900/15 bg-white p-3 dark:border-amber-200/15 dark:bg-stone-900";
 const muted = "text-stone-500 dark:text-amber-200/60";
 
+const fmtUsd = (minor: number): string =>
+  (minor / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+
 function Pips({ level, hostile = false }: { level: number; hostile?: boolean | undefined }) {
   return (
     <span
@@ -112,6 +115,32 @@ export function ThreatCards({ threats }: { threats: ThreatState[] }) {
                   </li>
                 ))}
               </ul>
+            )}
+            {t.breakdown !== undefined && t.breakdown.length > 0 && (
+              <details className="mt-2">
+                <summary className={`cursor-pointer text-xs ${muted}`}>
+                  the ledger's account, line by line
+                </summary>
+                <ul className="mt-1 flex flex-col gap-0.5 text-xs">
+                  {t.breakdown.map((line) => (
+                    <li key={line.label} className="flex justify-between gap-4 tabular-nums">
+                      <span>{line.label}</span>
+                      <span>
+                        {fmtUsd(line.previousMinor)} → {fmtUsd(line.currentMinor)}{" "}
+                        <span
+                          className={
+                            line.deltaMinor > 0
+                              ? "text-red-700 dark:text-red-400"
+                              : "text-emerald-700 dark:text-emerald-400"
+                          }
+                        >
+                          {line.deltaMinor >= 0 ? "▲" : "▼"} {fmtUsd(Math.abs(line.deltaMinor))}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </li>
         ))}

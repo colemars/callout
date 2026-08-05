@@ -140,6 +140,16 @@ export interface ThreatState {
   narrative: string;
   causes: { label: string; amount?: ApiMoney }[];
   basis: string;
+  /** Optional per-line account of the comparison (e.g. Winter's categories). */
+  breakdown?: ThreatBreakdownLine[];
+}
+
+export interface ThreatBreakdownLine {
+  label: string;
+  /** Minor units, magnitudes. */
+  previousMinor: number;
+  currentMinor: number;
+  deltaMinor: number;
 }
 
 export interface MoatComponent {
