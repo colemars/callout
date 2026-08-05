@@ -317,77 +317,67 @@ export function MoatMeter({ moat }: { moat: MoatState }) {
 
 /** The steward's report — a Crusader-Kings-inspired detail panel per structure. */
 function StructureModal({ s, onClose }: { s: StructureState; onClose: () => void }) {
+  const rule = s.hostile
+    ? "border-t border-red-800/30 dark:border-red-400/20"
+    : "border-t border-amber-900/15 dark:border-amber-200/15";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">
       <button
         type="button"
         aria-label="Close the report"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/70"
+        className="absolute inset-0 cursor-default"
       />
       <dialog
         open
         aria-label={`${s.name} — the steward's report`}
-        className={`relative z-10 w-full max-w-md rounded-sm border-2 p-0 text-inherit shadow-2xl ${
-          s.hostile ? "border-red-900/70" : "border-amber-700/60"
-        } bg-amber-50 dark:bg-stone-950`}
+        className={`relative z-10 w-full max-w-md rounded-xl border p-5 text-inherit shadow-2xl ${
+          s.hostile
+            ? "border-red-800/40 dark:border-red-400/30"
+            : "border-amber-900/25 dark:border-amber-200/25"
+        } bg-amber-50 dark:bg-stone-900`}
       >
-        <div
-          className={`m-1 border px-5 py-4 ${
-            s.hostile ? "border-red-900/40" : "border-amber-700/30"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl leading-none">{s.icon}</span>
-              <div>
-                <h3 className="font-serif text-xl font-bold tracking-wide text-amber-900 dark:text-amber-200">
-                  {s.name}
-                  {s.locked && <span title="sealed until old age"> 🔒</span>}
-                  {s.lien && <span title="pledged to the bank"> 🏦</span>}
-                </h3>
-                <Pips level={s.level} hostile={s.hostile} />
-              </div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl leading-none" aria-hidden>
+              {s.icon}
+            </span>
+            <div>
+              <h3 className="font-serif text-lg font-bold text-amber-900 dark:text-amber-200">
+                {s.name}
+                {s.locked && <span title="sealed until old age"> 🔒</span>}
+                {s.lien && <span title="pledged to the bank"> 🏦</span>}
+              </h3>
+              <Pips level={s.level} hostile={s.hostile} />
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`text-sm underline ${muted}`}
-              aria-label="Close"
-            >
-              close
-            </button>
           </div>
-
-          <div
-            className={`my-3 h-px ${s.hostile ? "bg-red-900/40" : "bg-amber-700/30"}`}
-            aria-hidden
-          />
-          <p className="text-sm">{s.detail}</p>
-
-          {s.lines !== undefined && s.lines.length > 0 && (
-            <>
-              <div
-                className={`my-3 h-px ${s.hostile ? "bg-red-900/40" : "bg-amber-700/30"}`}
-                aria-hidden
-              />
-              <ul className="flex flex-col gap-1 text-sm">
-                {s.lines.map((line) => (
-                  <li key={line} className="flex gap-2">
-                    <span aria-hidden className={muted}>
-                      ❧
-                    </span>
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-
-          {s.basis !== undefined && (
-            <p className={`mt-4 text-xs italic ${muted}`}>Per the royal surveyors: {s.basis}.</p>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className={`text-sm underline ${muted}`}
+            aria-label="Close"
+          >
+            close
+          </button>
         </div>
+
+        <p className={`mt-4 pt-3 text-sm ${rule}`}>{s.detail}</p>
+
+        {s.lines !== undefined && s.lines.length > 0 && (
+          <ul className={`mt-3 flex flex-col gap-1.5 pt-3 text-sm ${rule}`}>
+            {s.lines.map((line) => (
+              <li key={line} className="flex justify-between gap-3">
+                <span className="min-w-0">{line}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {s.basis !== undefined && (
+          <p className={`mt-4 pt-3 text-xs italic ${muted} ${rule}`}>
+            Per the royal surveyors: {s.basis}.
+          </p>
+        )}
       </dialog>
     </div>
   );
