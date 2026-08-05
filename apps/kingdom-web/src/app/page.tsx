@@ -183,7 +183,7 @@ export default function ThroneRoom() {
           : null,
       );
       if (result !== null) {
-        setEconomy({ loaded: result, meta: result.meta, fold: economy.fold, readOnly: false });
+        setEconomy({ ...economy, loaded: result, meta: result.meta, readOnly: false });
       }
     } finally {
       setBusy(false);
@@ -200,6 +200,7 @@ export default function ThroneRoom() {
           loaded: result,
           meta: result.meta,
           fold: { influence: 0, grants: [] },
+          events: [],
           readOnly: false,
         });
         setReplay(null);
