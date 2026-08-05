@@ -43,23 +43,54 @@ export async function loadOrFoundMeta(
   const { data, response } = await api.GET("/api/v1/products/{product}/state", {
     params: { path: { product: "kingdom-meta" } },
   });
-  if (response.status !== 404 && data !== undefined) {
+  // Founding happens ONLY on a true 404. A transient failure must throw:
+  // falling through would re-found over an existing record and destroy the
+  // reign (the founding write is unconditional by design).
+  if (response.status !== 404) {
+    if (data === undefined) throw new Error("the meta record could not be read");
     const parsed = migrate(data.data as Record<string, unknown>);
     if (parsed === "newer") {
       return {
-        meta: data.data as unknown as KingdomMeta,
+        meta: newerSchemaView(data.data as Record<string, unknown>),
         version: data.version,
         readOnly: true,
       };
     }
-    if (parsed !== null) return { meta: parsed, version: data.version, readOnly: false };
-    // Malformed blob: fall through and re-found rather than crash the room.
+    if (parsed === null) throw new Error("the meta record is unreadable");
+    return { meta: parsed, version: data.version, readOnly: false };
   }
   const events = await fetchEventsSince(api, 0);
   const epochSeq = events.length > 0 ? Math.max(...events.map((e) => e.seq)) : 0;
   const meta = foundMeta(epochSeq, metrics, new Date().toISOString());
   const version = await writeMeta(api, meta, undefined);
-  return { meta, version, readOnly: version === undefined };
+  // An unpersisted founding must not masquerade as a reign — no economy today.
+  if (version === undefined) throw new Error("the founding could not be recorded");
+  return { meta, version, readOnly: false };
+}
+
+/**
+ * A defensive, display-only view of a meta record written by a NEWER schema:
+ * whatever fields still match render; the epoch cursor is pushed past every
+ * event so the fold contributes nothing this client can't verify. Never
+ * written back (readOnly guards every write path).
+ */
+function newerSchemaView(raw: Record<string, unknown>): KingdomMeta {
+  const r = raw as Partial<KingdomMeta>;
+  const endowment = r.endowment;
+  return {
+    metaSchemaVersion: typeof r.metaSchemaVersion === "number" ? r.metaSchemaVersion : 0,
+    epoch:
+      r.epoch !== undefined && typeof r.epoch.epochSeq === "number"
+        ? r.epoch
+        : { foundedAt: "", epochSeq: Number.MAX_SAFE_INTEGER, fleeCount: 0 },
+    endowment: {
+      influence: typeof endowment?.influence === "number" ? endowment.influence : 0,
+      grants: Array.isArray(endowment?.grants) ? endowment.grants : [],
+    },
+    questGrants: Array.isArray(r.questGrants) ? r.questGrants : [],
+    spends: Array.isArray(r.spends) ? r.spends : [],
+    unlocks: Array.isArray(r.unlocks) ? r.unlocks : [],
+  };
 }
 
 /** Raw CAS write; returns the new version, or undefined on conflict/failure. */
@@ -116,7 +147,11 @@ export async function fetchEventsSince(api: ApiClient, sinceSeq: number): Promis
     const { data } = await api.GET("/api/v1/events", {
       params: { query: { sinceSeq: cursor, limit: 200 } },
     });
-    const rows = (data ?? []) as LedgerEvent[];
+    // A failed page must throw, not truncate: a partial ledger under-folds,
+    // and at founding it would pin the epoch too early — a permanent
+    // over-grant on top of the endowment.
+    if (data === undefined) throw new Error("the event ledger could not be read");
+    const rows = data as LedgerEvent[];
     all.push(...rows);
     if (rows.length < 200) break;
     cursor = Math.max(...rows.map((r) => r.seq));

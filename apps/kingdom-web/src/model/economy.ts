@@ -8,6 +8,7 @@
 // The fold is always a FULL replay from the epoch cursor — at kingdom event
 // volumes that is cheap, and a cache that can drift is worse than no cache.
 
+import { monthName } from "./derive";
 import type { KingdomMetrics } from "./types";
 
 export const META_SCHEMA_VERSION = 1;
@@ -101,7 +102,7 @@ function grantFor(e: LedgerEvent): GrantLine | null {
         key: `flow:${String(p.month)}`,
         influence,
         occurredOn: e.occurredOn,
-        deed: `A month in surplus — ${usd(surplus)} kept.`,
+        deed: `${monthName(String(p.month))} closed in surplus — ${usd(surplus)} kept.`,
       };
     }
     case "HIGH_INTEREST_DEBT_DECREASED": {
@@ -152,7 +153,7 @@ function grantFor(e: LedgerEvent): GrantLine | null {
         key: `streak:${String(p.month)}`,
         influence,
         occurredOn: e.occurredOn,
-        deed: `${months} months running, every decree held.`,
+        deed: `Through ${monthName(String(p.month))}, ${months} months running with every decree held.`,
       };
     }
     case "RECURRING_EXPENSE_REMOVED":
@@ -294,7 +295,7 @@ export const SPEND_CATALOG: readonly CatalogItem[] = [
   {
     id: "banner-gilded",
     name: "Gilded Banner",
-    emblem: "🏳️‍🌈",
+    emblem: "⚜️",
     title: "",
     price: 500,
     flavor: "Thread-of-gold, visible from the far fields.",

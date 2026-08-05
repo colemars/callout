@@ -102,8 +102,14 @@ export default function ThroneRoom() {
     if (economy === null || busy) return;
     setBusy(true);
     try {
+      // The fold was computed for THIS epoch — if another device fled
+      // mid-purchase, the CAS retry sees a new reign and must abort rather
+      // than spend old-reign Influence in it.
+      const epochSeq = economy.meta.epoch.epochSeq;
       const result = await updateMeta(clients.api, economy.loaded, (meta) =>
-        purchase(meta, itemId, influenceBalance(meta, economy.fold), new Date().toISOString()),
+        meta.epoch.epochSeq === epochSeq
+          ? purchase(meta, itemId, influenceBalance(meta, economy.fold), new Date().toISOString())
+          : null,
       );
       if (result !== null) {
         setEconomy({ loaded: result, meta: result.meta, fold: economy.fold, readOnly: false });
