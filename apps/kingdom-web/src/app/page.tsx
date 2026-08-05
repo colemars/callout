@@ -14,7 +14,8 @@ import {
   StructureGrid,
   ThreatCards,
 } from "../components/kingdom";
-import { TheRoads } from "../components/roads";
+import { RoadRegistryModal, TheRoads } from "../components/roads";
+import { KingdomVista } from "../components/vista";
 import { clients, supabase } from "../lib/clients";
 import {
   type LoadedMeta,
@@ -49,6 +50,7 @@ import {
   clearRole,
   computeRoads,
 } from "../model/roads";
+import { buildSceneModel } from "../scene/sceneModel";
 
 /** Away this long, the crown is offered a fresh start alongside the replay. */
 const FLEE_OFFER_GAP_MS = 60 * 24 * 60 * 60 * 1000;
@@ -73,6 +75,9 @@ export default function ThroneRoom() {
     [state],
   );
 
+  const [vistaFailed, setVistaFailed] = useState(false);
+  const [vistaTraveler, setVistaTraveler] = useState<string | null>(null);
+
   // The roads render with default roles even when the economy record failed
   // to load — naming is disabled then, but the traffic itself is real data.
   const roads = useMemo(
@@ -84,6 +89,12 @@ export default function ThroneRoom() {
           )
         : null,
     [state, economy],
+  );
+
+  // The Vista's food: a pure scene model from the same state the DOM renders.
+  const scene = useMemo(
+    () => (kingdom !== null ? buildSceneModel(kingdom, roads) : null),
+    [kingdom, roads],
   );
 
   // "While you were away": diff against the server-held baseline (the state
@@ -393,6 +404,30 @@ export default function ThroneRoom() {
         />
       )}
 
+      {scene !== null && !vistaFailed && (
+        <KingdomVista
+          model={scene}
+          onTravelerTap={setVistaTraveler}
+          onFail={() => setVistaFailed(true)}
+        />
+      )}
+      {vistaTraveler !== null &&
+        roads !== null &&
+        (() => {
+          // A canvas tap opens the SAME DOM Road Registry — the renderer
+          // never writes; naming flows through the existing CAS handlers.
+          const tapped = roads.travelers.find((t) => t.id === vistaTraveler);
+          return tapped === undefined ? null : (
+            <RoadRegistryModal
+              traveler={tapped}
+              onAssign={handleAssignRole}
+              onClear={handleClearRole}
+              onClose={() => setVistaTraveler(null)}
+              busy={busy}
+              readOnly={economy === null || economy.readOnly}
+            />
+          );
+        })()}
       <AgeBanner age={kingdom.age} />
       <ResourceBars resources={kingdom.resources} />
       <ThreatCards threats={kingdom.threats} transactions={state.input.transactions} />
@@ -420,7 +455,10 @@ export default function ThroneRoom() {
             />
           );
         })()}
-      <StructureGrid structures={kingdom.structures} />
+      {/* The Vista's in-canvas panels carry the steward's reports now; the
+          DOM grid remains only as the graceful fallback when the canvas
+          cannot boot (chunk failure, no WebGL/canvas). */}
+      {vistaFailed && <StructureGrid structures={kingdom.structures} />}
       <Chronicle entries={kingdom.chronicle} />
 
       <details className="mt-10">

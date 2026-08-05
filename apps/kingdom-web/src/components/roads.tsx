@@ -109,7 +109,7 @@ export function TheRoads({
   );
 }
 
-function RoadRegistryModal({
+export function RoadRegistryModal({
   traveler,
   onAssign,
   onClear,

@@ -239,3 +239,18 @@ consent gain it via a Counting House re-oath (update-mode
 - The map itself — graphics after the meta-game proves out in text
 - The calendar view (`/api/v1/insights/history` + `/events?since=` exist to
   feed it)
+
+## The Vista — renderer staging (2026-08-05)
+
+Stage 1 shipped: the isometric authored map (fixed slot per StructureKey,
+roads from the map edges, reserved build plots) as the throne room's hero
+panel — structures at art tier, travelers on roads with distance ∝ ETA,
+in-canvas steward's panels (DOM StructureGrid demoted to boot-failure
+fallback), placeholder "surveyor's sketch" art behind the assets.ts
+contract (ART.md is the generation brief; Cole approves the real sheet).
+
+- **Stage 2** — ambient villagers scaled by the builders surplus; day/dusk cycle
+- **Stage 3** — threat weather VFX (winter snow, drought parch, fire embers, bandit-camp smoke, feast banners)
+- **Stage 4** — in-canvas Road Registry role picker; the DOM TheRoads section sheds
+- **Stage 5** — growth moments + "while you were away" replay cinematics driven by the KingdomDelta feed
+- **Stage 6** — Influence build-plots (spends raise structures on the reserved plots); real art atlas swap via assets.ts
