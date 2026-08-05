@@ -247,7 +247,7 @@ export interface paths {
                         /** @enum {string} */
                         kind: "savings_net_flow" | "balance_target" | "debt_paydown";
                         targetAmountMinor: number;
-                        targetDate?: string;
+                        targetDate: string;
                         /** Format: uuid */
                         accountId?: string;
                         note?: string;

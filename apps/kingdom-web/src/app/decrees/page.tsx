@@ -127,8 +127,17 @@ export default function RoyalDecrees() {
 
   async function swearUndertaking() {
     const targetMinor = Math.round(Number.parseFloat(goalTarget) * 100);
-    if (!Number.isFinite(targetMinor) || targetMinor < 100_00) {
-      setMessage("An undertaking worth swearing starts at $100.");
+    const floor = goalKind === "debt_paydown" ? 0 : 100_00;
+    if (!Number.isFinite(targetMinor) || targetMinor < floor) {
+      setMessage(
+        goalKind === "debt_paydown"
+          ? "Name the balance to pay down to — 0 counts, and is the noblest of all."
+          : "An undertaking worth swearing starts at $100.",
+      );
+      return;
+    }
+    if (goalDate === "") {
+      setMessage("Every oath needs a day of reckoning — choose the target date.");
       return;
     }
     const needsAccount = goalKind !== "savings_net_flow";
@@ -141,7 +150,7 @@ export default function RoyalDecrees() {
       body: {
         kind: goalKind,
         targetAmountMinor: targetMinor,
-        ...(goalDate === "" ? {} : { targetDate: goalDate }),
+        targetDate: goalDate,
         ...(needsAccount ? { accountId: goalAccount } : {}),
       },
     });
@@ -290,9 +299,9 @@ export default function RoyalDecrees() {
           </select>
           <input
             type="number"
-            min="100"
+            min="0"
             step="1"
-            placeholder="$ target"
+            placeholder={goalKind === "debt_paydown" ? "$ down to" : "$ target"}
             value={goalTarget}
             onChange={(e) => setGoalTarget(e.target.value)}
             className={`${input} w-28`}

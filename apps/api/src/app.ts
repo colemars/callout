@@ -262,6 +262,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
               return reply.status(400).send({ error: "unknown account" });
             }
             baseline = account.balance;
+            // A paydown oath must actually pay something down.
+            if (body.kind === "debt_paydown" && body.targetAmountMinor >= baseline.amountMinor) {
+              return reply
+                .status(400)
+                .send({ error: "paydown target must be below the vault's current balance" });
+            }
           }
           const common = {
             targetAmount: money(body.targetAmountMinor),

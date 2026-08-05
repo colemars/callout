@@ -477,7 +477,7 @@ describe("royal decrees: budgets + goals CRUD", () => {
 
     const created = await send("POST", "/api/v1/goals", {
       kind: "debt_paydown",
-      targetAmountMinor: 1_000_00,
+      targetAmountMinor: 0, // pay it off entirely — the noblest target
       accountId: target.id,
       targetDate: "2026-12-31",
     });
@@ -503,16 +503,43 @@ describe("royal decrees: budgets + goals CRUD", () => {
           kind: "balance_target",
           targetAmountMinor: 1_000_00,
           accountId: "00000000-0000-0000-0000-00000000dead",
+          targetDate: "2026-12-31",
         })
       ).statusCode,
     ).toBe(400);
     expect(
-      (await send("POST", "/api/v1/goals", { kind: "balance_target", targetAmountMinor: 1_000_00 }))
-        .statusCode,
+      (
+        await send("POST", "/api/v1/goals", {
+          kind: "balance_target",
+          targetAmountMinor: 1_000_00,
+          targetDate: "2026-12-31",
+        })
+      ).statusCode,
     ).toBe(400);
     expect(
-      (await send("POST", "/api/v1/goals", { kind: "savings_net_flow", targetAmountMinor: 50_00 }))
+      (
+        await send("POST", "/api/v1/goals", {
+          kind: "savings_net_flow",
+          targetAmountMinor: 50_00,
+          targetDate: "2026-12-31",
+        })
+      ).statusCode,
+    ).toBe(400);
+    // The engine only paces dated goals — undated oaths are refused.
+    expect(
+      (await send("POST", "/api/v1/goals", { kind: "savings_net_flow", targetAmountMinor: 500_00 }))
         .statusCode,
+    ).toBe(400);
+    // A paydown "target" at or above the current balance pays nothing down.
+    expect(
+      (
+        await send("POST", "/api/v1/goals", {
+          kind: "debt_paydown",
+          targetAmountMinor: target.balance.amountMinor + 1_00,
+          accountId: target.id,
+          targetDate: "2026-12-31",
+        })
+      ).statusCode,
     ).toBe(400);
   });
 });

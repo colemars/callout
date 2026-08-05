@@ -425,7 +425,7 @@
                   },
                   "targetAmountMinor": {
                     "type": "integer",
-                    "minimum": 10000
+                    "minimum": 0
                   },
                   "targetDate": {
                     "type": "string",
@@ -442,7 +442,8 @@
                 },
                 "required": [
                   "kind",
-                  "targetAmountMinor"
+                  "targetAmountMinor",
+                  "targetDate"
                 ],
                 "additionalProperties": false
               }
@@ -847,7 +848,7 @@
                 "properties": {
                   "targetAmountMinor": {
                     "type": "integer",
-                    "minimum": 10000
+                    "minimum": 0
                   },
                   "targetDate": {
                     "type": "string",

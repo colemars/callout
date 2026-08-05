@@ -230,12 +230,10 @@ export const goalIdParams = z.object({ id: z.string().uuid() });
 export const createGoalBody = z
   .object({
     kind: z.enum(["savings_net_flow", "balance_target", "debt_paydown"]),
-    /** Minimum $100 — trivial targets earn trivial credit anyway, but still. */
-    targetAmountMinor: z.number().int().min(100_00),
-    targetDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
+    /** For paydown this is the balance to reach — 0 means "pay it off". */
+    targetAmountMinor: z.number().int().min(0),
+    /** Required: the engine only paces goals with a deadline. */
+    targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     accountId: z.string().uuid().optional(),
     note: z.string().max(200).optional(),
   })
@@ -243,10 +241,15 @@ export const createGoalBody = z
     if ((v.kind === "balance_target" || v.kind === "debt_paydown") && v.accountId === undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${v.kind} requires accountId` });
     }
+    // Farming floor for accumulation goals; paydown's floor is the route's
+    // target-below-balance check (0 is the noblest paydown target of all).
+    if (v.kind !== "debt_paydown" && v.targetAmountMinor < 100_00) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "target must be at least $100" });
+    }
   });
 
 export const patchGoalBody = z.object({
-  targetAmountMinor: z.number().int().min(100_00).optional(),
+  targetAmountMinor: z.number().int().min(0).optional(),
   targetDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
