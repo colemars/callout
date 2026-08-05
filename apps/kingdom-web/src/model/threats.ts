@@ -25,7 +25,7 @@ const dormant = (
   title,
   narrative: "",
   causes: [],
-  basis: reason === "no-data" ? "not enough recorded moons to judge" : "conditions clear",
+  basis: reason === "no-data" ? "not enough recorded months to judge" : "conditions clear",
 });
 
 /** Per-category prev→curr lines for a comparative threat, largest rise first. */
@@ -58,19 +58,27 @@ function categoryBreakdown(
   return lines.sort((a, b) => b.deltaMinor - a.deltaMinor);
 }
 
-/** Estimated monthly interest across credit accounts with a bank-reported APR. */
+/**
+ * When a bank hasn't reported a card's APR, assume a ballpark national
+ * average rather than pretending the card is free — always LABELED "assumed"
+ * wherever it appears, and replaced by the real rate the moment it arrives.
+ */
+export const ASSUMED_CARD_APR_PCT = 24;
+
+/** Estimated monthly interest across credit accounts (bank APRs; assumed where unreported). */
 export function banditToll(accounts: readonly KingdomInput["accounts"][number][]): {
   tollMinor: number;
-  hiddenCount: number;
+  assumedCount: number;
 } {
   let tollMinor = 0;
-  let hiddenCount = 0;
+  let assumedCount = 0;
   for (const a of accounts) {
     if (classifyAccount(a) !== "credit" || a.balance.amountMinor <= 0) continue;
-    if (a.apr === undefined) hiddenCount++;
-    else tollMinor += Math.round((a.balance.amountMinor * a.apr) / 100 / 12);
+    const apr = a.apr ?? ASSUMED_CARD_APR_PCT;
+    if (a.apr === undefined) assumedCount++;
+    tollMinor += Math.round((a.balance.amountMinor * apr) / 100 / 12);
   }
-  return { tollMinor, hiddenCount };
+  return { tollMinor, assumedCount };
 }
 
 function daysUntil(todayIso: string, dateIso: string): number | null {
@@ -90,7 +98,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
     const severity: Severity = highInterest < 1_000_00 ? 1 : highInterest < 10_000_00 ? 2 : 3;
     // The raiders' toll: real APR × balance for cards the bank reported a rate
     // for. Cards without a reported rate simply show no rate — never a guess.
-    const { tollMinor } = banditToll(input.accounts);
+    const { tollMinor, assumedCount } = banditToll(input.accounts);
     // One line per raiding card, largest hoard first: rate, toll, trend, and
     // any looming tribute all ride on the card's own line.
     const causes = (input.metrics?.debtTrajectory ?? [])
@@ -106,12 +114,10 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
       .map((d) => {
         const account = input.accounts.find((a) => a.id === d.accountId);
         const parts: string[] = [];
-        const apr = account?.apr;
-        if (apr !== undefined) {
-          parts.push(
-            `${apr}% ≈ ${fmtMinor(Math.round((d.currentBalance.amountMinor * apr) / 100 / 12))}/moon`,
-          );
-        }
+        const apr = account?.apr ?? ASSUMED_CARD_APR_PCT;
+        parts.push(
+          `${account?.apr === undefined ? "assumed " : ""}${apr}% ≈ ${fmtMinor(Math.round((d.currentBalance.amountMinor * apr) / 100 / 12))}/month`,
+        );
         if (d.delta30d !== null) {
           parts.push(d.delta30d.amountMinor > 0 ? "growing" : "shrinking");
         }
@@ -127,8 +133,8 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
       });
     const tollLine =
       tollMinor > 0
-        ? ` Each moon they take ≈ ${fmtMinor(tollMinor)} in interest.`
-        : " Each moon they take their toll in interest.";
+        ? ` Each month they take ≈ ${fmtMinor(tollMinor)} in interest.`
+        : " Each month they take their toll in interest.";
     threats.push({
       kind: "bandits",
       active: true,
@@ -138,7 +144,9 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
       causes,
       basis:
         tollMinor > 0
-          ? "high-interest debt (credit balances); toll from bank-reported APRs"
+          ? `high-interest debt (credit balances); toll from bank-reported APRs${
+              assumedCount > 0 ? `, ${ASSUMED_CARD_APR_PCT}% assumed where unreported` : ""
+            }`
           : "high-interest debt (credit balances)",
     });
   } else {
@@ -161,7 +169,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         active: true,
         severity: essRise < 0.15 ? 1 : essRise < 0.3 ? 2 : 3,
         title: "Winter deepens",
-        narrative: `The cost of keeping the realm fed and warm rose ${(essRise * 100).toFixed(0)}% last moon (${fmtMinor(essPrior)} → ${fmtMinor(essNow)}). The granary drains faster through no fault of the court.`,
+        narrative: `The cost of keeping the realm fed and warm rose ${(essRise * 100).toFixed(0)}% last month (${fmtMinor(essPrior)} → ${fmtMinor(essNow)}). The granary drains faster through no fault of the court.`,
         causes: [
           {
             label: `keeping the realm fed cost ${fmtMinor(essNow - essPrior)} more in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
@@ -186,7 +194,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         active: true,
         severity: feastRise < 0.5 ? 1 : feastRise < 1 ? 2 : 3,
         title: "The feasts grow grander",
-        narrative: `The court feasts grandly — joy runs high, the coffers lighter (${fmtMinor(feastPrior)} → ${fmtMinor(feastNow)} last moon). A merry realm, if the granary agrees.`,
+        narrative: `The court feasts grandly — joy runs high, the coffers lighter (${fmtMinor(feastPrior)} → ${fmtMinor(feastNow)} last month). A merry realm, if the granary agrees.`,
         causes: [
           {
             label: `the court spent ${fmtMinor(feastNow - feastPrior)} more on merriment in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
@@ -216,7 +224,7 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
         active: true,
         severity: drop < 0.35 ? 1 : drop < 0.7 ? 2 : 3,
         title: "Drought grips the fields",
-        narrative: `Less tribute arrives than the moon before (${fmtMinor(incomePrior)} → ${fmtMinor(incomeNow ?? 0)}). Workers drift away while the harvest is thin.`,
+        narrative: `Less tribute arrives than the month before (${fmtMinor(incomePrior)} → ${fmtMinor(incomeNow ?? 0)}). Workers drift away while the harvest is thin.`,
         causes: [
           {
             label: `${fmtMinor(incomePrior - (incomeNow ?? 0))} less tribute arrived in ${monthName(ref.month)} than in ${monthName(prior.month)}`,

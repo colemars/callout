@@ -47,7 +47,7 @@ export function computeMoat(input: KingdomInput): MoatState {
     max: 20,
     evidence:
       goldMonths === null
-        ? "no full moon of spending recorded yet"
+        ? "no full month of spending recorded yet"
         : `${goldMonths.toFixed(1)} months of spending held in gold (full at 3)`,
     provisional: goldMonths === null,
   };

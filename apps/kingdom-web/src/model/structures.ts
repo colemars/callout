@@ -178,7 +178,7 @@ export function computeStructures(
       detail: (() => {
         const { tollMinor } = banditToll(input.accounts);
         return tollMinor > 0
-          ? `${fmtMinor(highInterest)} claimed by raiders · ≈ ${fmtMinor(tollMinor)}/moon toll`
+          ? `${fmtMinor(highInterest)} claimed by raiders · ≈ ${fmtMinor(tollMinor)}/month toll`
           : `${fmtMinor(highInterest)} claimed by raiders`;
       })(),
     });

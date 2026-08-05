@@ -62,7 +62,7 @@ function resourceName(key: string): string {
 }
 
 function describeValue(key: string, value: number): string {
-  if (key === "grain") return `${value} moons`;
+  if (key === "grain") return `${value} months`;
   if (key === "happiness") return `${Math.round(value * 100)}%`;
   return fmtMinor(value);
 }

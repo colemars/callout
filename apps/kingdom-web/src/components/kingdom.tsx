@@ -38,7 +38,7 @@ export function AgeBanner({ age }: { age: AgeState }) {
         <h2 className="font-serif text-xl font-bold">
           {age.icon} Age {age.current} — {age.name}
         </h2>
-        {age.provisional && <span className={`text-xs ${muted}`}>first moon still open</span>}
+        {age.provisional && <span className={`text-xs ${muted}`}>first month still open</span>}
       </div>
       <p className={`mt-1 text-sm ${muted}`}>{age.tagline}</p>
       {age.gatesToNext !== null && (
@@ -87,7 +87,7 @@ export function ResourceBars({ resources }: { resources: ResourceState[] }) {
           </li>
         ))}
       </ul>
-      <p className={`mt-2 text-xs ${muted}`}>* judged before the first full moon has closed</p>
+      <p className={`mt-2 text-xs ${muted}`}>* judged before the first full month has closed</p>
     </section>
   );
 }
@@ -170,8 +170,8 @@ function LedgerModal({
         {section(view.months.current, monthName(view.months.current))}
         {section(view.months.previous, monthName(view.months.previous))}
         <p className={`mt-3 text-xs ${muted}`}>
-          The scrolls reach back ~70 days — the elder moon may be partly beyond them. Wrongly marked
-          lines can be corrected in the Accountability ledger.
+          The scrolls reach back ~70 days — the elder month may be partly beyond them. Wrongly
+          marked lines can be corrected in the Accountability ledger.
         </p>
       </dialog>
     </div>

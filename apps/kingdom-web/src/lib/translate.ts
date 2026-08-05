@@ -21,17 +21,17 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "MONTHLY_SPENDING_INCREASED":
       return {
         tone: "bad",
-        headline: `The court's spending on ${asStr(p.category)} rose ${asNum(p.deltaPct)}% last moon: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
+        headline: `The court's spending on ${asStr(p.category)} rose ${asNum(p.deltaPct)}% last month: ${asMoney(p.previous)} → ${asMoney(p.current)}.`,
       };
     case "MONTHLY_SPENDING_DECREASED":
       return {
         tone: "good",
-        headline: `Thrift prevails: ${asStr(p.category)} spending fell ${asNum(p.deltaPct)}% last moon.`,
+        headline: `Thrift prevails: ${asStr(p.category)} spending fell ${asNum(p.deltaPct)}% last month.`,
       };
     case "RECURRING_EXPENSE_ADDED":
       return {
         tone: "info",
-        headline: `A new tithe binds the treasury: ${asStr(p.merchant)}, ~${asMoney(p.estimatedMonthly)} each moon.`,
+        headline: `A new tithe binds the treasury: ${asStr(p.merchant)}, ~${asMoney(p.estimatedMonthly)} each month.`,
       };
     case "RECURRING_EXPENSE_REMOVED":
       return {
@@ -71,7 +71,7 @@ export function translate(event: ApiEvent): TranslatedEvent {
     case "RETIREMENT_CONTRIBUTION_INCREASED":
       return {
         tone: "good",
-        headline: `The tribute to the Treasury grows: ${asMoney(p.previous)} → ${asMoney(p.current)} each moon. The Guildmaster is pleased.`,
+        headline: `The tribute to the Treasury grows: ${asMoney(p.previous)} → ${asMoney(p.current)} each month. The Guildmaster is pleased.`,
       };
     case "PASSIVE_INCOME_INCREASED":
       return {
@@ -83,7 +83,7 @@ export function translate(event: ApiEvent): TranslatedEvent {
       const curr = asNum(p.currentMonths);
       return {
         tone: curr < prev ? "bad" : "good",
-        headline: `Under siege, the stores would last ${curr} moons (was ${prev}).`,
+        headline: `Under siege, the stores would last ${curr} months (was ${prev}).`,
       };
     }
     default:

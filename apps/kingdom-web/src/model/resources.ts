@@ -47,7 +47,7 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     max: 24,
     unit: "months",
     level: runway === null ? 0 : tier(runway, [1, 3, 6, 12, 24]),
-    displayValue: runway === null ? "unmeasured" : `${runway} moons of grain`,
+    displayValue: runway === null ? "unmeasured" : `${runway} months of grain`,
     basis: "emergency runway (liquid ÷ average essential spend, from the royal surveyors)",
     provisional: runway === null,
   };
@@ -90,8 +90,8 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     level: buildersLevel,
     displayValue:
       flow === null
-        ? "the first moon has not closed"
-        : `${flow >= 0 ? "+" : "−"}${fmtMinor(Math.abs(flow))} ${provisional ? "this moon (so far)" : "last moon"} · ${
+        ? "the first month has not closed"
+        : `${flow >= 0 ? "+" : "−"}${fmtMinor(Math.abs(flow))} ${provisional ? "this month (so far)" : "last month"} · ${
             builders > 0
               ? `${builders} builder${builders === 1 ? " arrives" : "s arrive"}`
               : builders < 0
@@ -101,7 +101,7 @@ export function computeResources(input: KingdomInput): ResourceState[] {
     basis:
       savingsRate !== null
         ? `net cash flow ÷ income ≈ ${(savingsRate * 100).toFixed(0)}% savings rate`
-        : "net cash flow of the reference moon",
+        : "net cash flow of the reference month",
     provisional: provisional || flow === null,
   };
 

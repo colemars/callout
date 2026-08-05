@@ -22,7 +22,7 @@ describe("kingdomModel on the day-one sandbox (the sanity story)", () => {
     expect(byKey.get("gold")?.level).toBe(5);
     expect(byKey.get("gold")?.displayValue).toBe("$56,580.00");
     expect(byKey.get("grain")?.level).toBe(5);
-    expect(byKey.get("grain")?.displayValue).toBe("57.4 moons of grain");
+    expect(byKey.get("grain")?.displayValue).toBe("57.4 months of grain");
     expect(byKey.get("stone")?.level).toBe(2);
     expect(byKey.get("stone")?.displayValue).toBe("$29,960.00");
     expect(byKey.get("builders")?.level).toBe(0);

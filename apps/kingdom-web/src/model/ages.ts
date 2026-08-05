@@ -79,8 +79,8 @@ export function computeAge(input: KingdomInput): AgeState {
       "More tribute arrives than leaves",
       flow !== null && flow > 0 && !provisional,
       flow === null
-        ? "the first full moon has not closed"
-        : `net cash flow ${fmtMinor(flow)}${provisional ? " (moon still open)" : ""}`,
+        ? "the first full month has not closed"
+        : `net cash flow ${fmtMinor(flow)}${provisional ? " (month still open)" : ""}`,
       flow === null || provisional,
     ),
     gate(
@@ -149,7 +149,7 @@ export function computeAge(input: KingdomInput): AgeState {
       "One coin in ten builds the realm",
       savingsRate !== null && savingsRate >= 0.1 && !provisional,
       savingsRate === null
-        ? "savings rate unmeasured (needs a full moon)"
+        ? "savings rate unmeasured (needs a full month)"
         : `savings rate ${(savingsRate * 100).toFixed(0)}%`,
       savingsRate === null || provisional,
     ),

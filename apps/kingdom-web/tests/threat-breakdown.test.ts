@@ -120,34 +120,35 @@ describe("the raiders' toll (bank-reported APRs)", () => {
     today: "2026-08-15",
   });
 
-  it("sums balance × APR ÷ 12 for known rates; hidden rates just show no rate", () => {
+  it("sums balance × APR ÷ 12; unreported rates use the LABELED assumption", () => {
     const input = withMetrics(
       [
         card("a", 2_000_000, { apr: 24 }), // $20,000 at 24% -> $400/mo
         card("b", 1_000_000, { apr: 30 }), // $10,000 at 30% -> $250/mo
-        card("c", 500_000), // rate hidden
+        card("c", 500_000), // no reported rate -> assumed 24% -> $100/mo
         card("zero", 0, { apr: 20 }), // paid off — not part of the raid
       ],
       3_500_000,
     );
     const bandits = computeThreats(input).find((t) => t.kind === "bandits");
-    expect(bandits?.narrative).toContain("Each moon they take ≈ $650.00 in interest");
+    expect(bandits?.narrative).toContain("Each month they take ≈ $750.00 in interest");
     expect(bandits?.narrative).not.toContain("hidden"); // no meta-nag in the fiction
     expect(bandits?.basis).toContain("bank-reported APRs");
+    expect(bandits?.basis).toContain("24% assumed where unreported");
     // One line per raiding card, largest hoard first; toll on the card's line.
     const labels = bandits?.causes.map((c) => c.label) ?? [];
     expect(labels[0]).toContain("Card a");
-    expect(labels[0]).toContain("24% ≈ $400.00/moon");
-    expect(labels[2]).toBe("Test Bank Card c"); // no rate part — silence, not a guess
+    expect(labels[0]).toContain("24% ≈ $400.00/month");
+    expect(labels[0]).not.toContain("assumed");
+    expect(labels[2]).toContain("assumed 24% ≈ $100.00/month"); // labeled, never disguised
     expect(labels.some((l) => l.includes("Card zero"))).toBe(false);
   });
 
-  it("claims no toll number when every rate is hidden — silence over false comfort", () => {
+  it("an all-assumed toll still shows — and the basis owns the assumption", () => {
     const input = withMetrics([card("a", 1_000_000)], 1_000_000);
     const bandits = computeThreats(input).find((t) => t.kind === "bandits");
-    expect(bandits?.narrative).not.toContain("≈");
-    expect(bandits?.narrative).toContain("their toll in interest");
-    expect(bandits?.basis).toBe("high-interest debt (credit balances)");
+    expect(bandits?.narrative).toContain("Each month they take ≈ $200.00 in interest"); // 10k at 24%
+    expect(bandits?.basis).toContain("24% assumed where unreported");
   });
 
   it("folds due-soon and overdue tribute onto the card's own line", () => {
