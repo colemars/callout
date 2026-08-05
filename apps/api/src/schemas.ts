@@ -156,8 +156,12 @@ export const syncRunSchema = z.object({
   scribe: scribeReportSchema.optional(),
 });
 
-/** Products with server-held state; extend as products gain a server side. */
-export const productParams = z.object({ product: z.enum(["kingdom"]) });
+/**
+ * Products with server-held state; extend as products gain a server side.
+ * "kingdom" is churny (last-seen baseline; writers ignore 409s);
+ * "kingdom-meta" is precious (epoch, endowment, spends) — writers CAS-retry.
+ */
+export const productParams = z.object({ product: z.enum(["kingdom", "kingdom-meta"]) });
 
 export const productStateSchema = z.object({
   product: z.string(),

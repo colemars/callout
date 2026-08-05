@@ -849,7 +849,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    product: "kingdom";
+                    product: "kingdom" | "kingdom-meta";
                 };
                 cookie?: never;
             };
@@ -899,7 +899,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    product: "kingdom";
+                    product: "kingdom" | "kingdom-meta";
                 };
                 cookie?: never;
             };

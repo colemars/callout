@@ -57,6 +57,8 @@ export interface KingdomMetrics extends MetricsView {
   };
   /** Trailing income average from the engine (server-persisted snapshots). */
   incomeBaseline?: { monthsCounted: number; averageMonthly: ApiMoney | null };
+  /** Trailing savings rate from the engine (share of income kept). */
+  savingsRate?: { monthsCounted: number; pct: number | null };
   goalStatuses?: {
     goalId: string;
     kind: string;

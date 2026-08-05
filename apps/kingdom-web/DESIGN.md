@@ -102,6 +102,15 @@ Everything simply *stops growing* until behavior recovers. This is
 psychologically right (strategy game, not guilt game) and operationally right:
 a Plaid outage or bad sync must never destroy a kingdom.
 
+**One sanctioned exception: fleeing the kingdom.** The player may abandon the
+realm and found a new one (a fresh epoch on the event cursor). Influence,
+unlocks, and quest grants stay behind with the old crown; a reduced founding
+endowment is struck from currently-held state milestones. Nothing crosses
+foundedAt — which is exactly what makes repeated fleeing pointless — and real
+financial data is untouched: you cannot flee your debts. Built for the
+returning-after-long-absence player, offered alongside (never instead of) the
+normal replay.
+
 ## Workers & allocation (the strategy layer)
 
 Workers represent **available financial capacity**: monthly surplus ÷ $100.

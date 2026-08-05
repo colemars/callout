@@ -4,6 +4,7 @@ import { Amount, Table, fmtMoney } from "@platform/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { type EconomyView, InfluenceChip, LedgerOfDeeds, ownedItems } from "../components/economy";
 import {
   AgeBanner,
   Chronicle,
@@ -13,17 +14,32 @@ import {
   ThreatCards,
 } from "../components/kingdom";
 import { clients, supabase } from "../lib/clients";
+import {
+  type LoadedMeta,
+  fetchEventsSince,
+  fleeKingdom,
+  loadOrFoundMeta,
+  updateMeta,
+} from "../lib/meta";
 import { narrateDelta } from "../lib/replay";
 import { fetchLastSeen, saveLastSeen, shouldReplay } from "../lib/serverLastSeen";
 import { translate } from "../lib/translate";
 import { useKingdomData } from "../lib/useKingdomData";
 import { type KingdomDelta, computeKingdomDiff } from "../model/diff";
+import { foldInfluence, influenceBalance, purchase } from "../model/economy";
 import { kingdomModel } from "../model/kingdomModel";
+
+/** Away this long, the crown is offered a fresh start alongside the replay. */
+const FLEE_OFFER_GAP_MS = 60 * 24 * 60 * 60 * 1000;
 
 export default function ThroneRoom() {
   const router = useRouter();
   const state = useKingdomData(clients);
   const [replay, setReplay] = useState<KingdomDelta[] | null>(null);
+  const [economy, setEconomy] = useState<(EconomyView & { loaded: LoadedMeta }) | null>(null);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [fleeOffered, setFleeOffered] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (state.status === "unauthenticated") router.replace("/login");
@@ -46,6 +62,9 @@ export default function ThroneRoom() {
       if (cancelled) return;
       if (lastSeen !== null && shouldReplay(lastSeen.lastSeenAt, Date.now())) {
         setReplay(computeKingdomDiff(lastSeen.state, kingdom));
+        // A LONG absence earns the offer of a fresh start — alongside the
+        // replay, never instead of it.
+        if (Date.now() - lastSeen.lastSeenAt >= FLEE_OFFER_GAP_MS) setFleeOffered(true);
       }
       await saveLastSeen(clients.api, kingdom, lastSeen?.version).catch(() => {});
     })();
@@ -53,6 +72,67 @@ export default function ThroneRoom() {
       cancelled = true;
     };
   }, [kingdom]);
+
+  // The Influence economy: load (or found) the meta record, then fold the
+  // reign's events into the balance. Pure fold — full replay every open.
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await loadOrFoundMeta(clients.api, state.input.metrics);
+        const events = await fetchEventsSince(clients.api, loaded.meta.epoch.epochSeq);
+        if (cancelled) return;
+        setEconomy({
+          loaded,
+          meta: loaded.meta,
+          fold: foldInfluence(events, loaded.meta.epoch.epochSeq),
+          readOnly: loaded.readOnly,
+        });
+      } catch {
+        // The economy failing to load never blocks the throne room.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state]);
+
+  async function handlePurchase(itemId: string) {
+    if (economy === null || busy) return;
+    setBusy(true);
+    try {
+      const result = await updateMeta(clients.api, economy.loaded, (meta) =>
+        purchase(meta, itemId, influenceBalance(meta, economy.fold), new Date().toISOString()),
+      );
+      if (result !== null) {
+        setEconomy({ loaded: result, meta: result.meta, fold: economy.fold, readOnly: false });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleFlee() {
+    if (economy === null || state.status !== "ready" || busy) return;
+    setBusy(true);
+    try {
+      const result = await fleeKingdom(clients.api, economy.loaded, state.input.metrics);
+      if (result !== null) {
+        setEconomy({
+          loaded: result,
+          meta: result.meta,
+          fold: { influence: 0, grants: [] },
+          readOnly: false,
+        });
+        setReplay(null);
+        setFleeOffered(false);
+        setLedgerOpen(false);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -70,12 +150,31 @@ export default function ThroneRoom() {
     <main className="mx-auto max-w-3xl px-6 py-8">
       <header className="flex items-baseline justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-bold tracking-tight">🏰 Financial Kingdom</h1>
+          <h1 className="font-serif text-2xl font-bold tracking-tight">
+            🏰 Financial Kingdom
+            {economy !== null &&
+              ownedItems(economy.meta)
+                .filter((i) => i.emblem !== "")
+                .map((i) => (
+                  <span key={i.id} title={i.name}>
+                    {" "}
+                    {i.emblem}
+                  </span>
+                ))}
+          </h1>
           <p className="text-sm text-stone-500 dark:text-amber-200/60">
             Your kingdom is your balance sheet.
+            {economy !== null &&
+              (() => {
+                const titles = ownedItems(economy.meta)
+                  .filter((i) => i.title !== "")
+                  .map((i) => i.title);
+                return titles.length > 0 ? ` The crown is styled ${titles.join(", ")}.` : "";
+              })()}
           </p>
         </div>
         <div className="flex items-baseline gap-4">
+          {economy !== null && <InfluenceChip view={economy} onOpen={() => setLedgerOpen(true)} />}
           <Link
             href="/decrees/"
             className="text-sm text-stone-500 underline hover:text-amber-800 dark:text-amber-200/60"
@@ -105,6 +204,26 @@ export default function ThroneRoom() {
         </p>
       )}
 
+      {fleeOffered && economy !== null && (
+        <section className="mt-6 rounded-lg border border-amber-900/20 bg-amber-100/60 p-3 text-sm dark:border-amber-200/20 dark:bg-amber-950/40">
+          <span className="font-serif font-semibold text-amber-900 dark:text-amber-200">
+            The crown has been long away.
+          </span>{" "}
+          <span className={"text-stone-600 dark:text-amber-200/70"}>
+            The realm stands as you left it — or, if the weight of the old reign is too much, you
+            may{" "}
+            <button
+              type="button"
+              onClick={() => setLedgerOpen(true)}
+              className="underline hover:text-amber-800"
+            >
+              abandon the kingdom and flee
+            </button>{" "}
+            to found a new one.
+          </span>
+        </section>
+      )}
+
       {replay !== null && replay.length > 0 && (
         <section className="mt-6 rounded-lg border border-amber-900/20 bg-amber-100/60 p-3 dark:border-amber-200/20 dark:bg-amber-950/40">
           <h2 className="font-serif text-sm font-semibold text-amber-900 dark:text-amber-200">
@@ -132,6 +251,16 @@ export default function ThroneRoom() {
               ))}
           </ul>
         </section>
+      )}
+
+      {ledgerOpen && economy !== null && (
+        <LedgerOfDeeds
+          view={economy}
+          onClose={() => setLedgerOpen(false)}
+          onPurchase={handlePurchase}
+          onFlee={handleFlee}
+          busy={busy}
+        />
       )}
 
       <AgeBanner age={kingdom.age} />

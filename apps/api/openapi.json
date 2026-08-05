@@ -1465,7 +1465,8 @@
             "schema": {
               "type": "string",
               "enum": [
-                "kingdom"
+                "kingdom",
+                "kingdom-meta"
               ]
             },
             "in": "path",
@@ -1572,7 +1573,8 @@
             "schema": {
               "type": "string",
               "enum": [
-                "kingdom"
+                "kingdom",
+                "kingdom-meta"
               ]
             },
             "in": "path",
