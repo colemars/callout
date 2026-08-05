@@ -345,3 +345,81 @@ describe("runSync with the Investments product", () => {
     expect(reports[0]?.message).toBe("investments: RATE_LIMIT");
   });
 });
+
+describe("runSync with the Liabilities product", () => {
+  const simplePages: SyncPage[] = [
+    { added: [], modified: [], removedSourceTxnIds: [], nextCursor: "c1", hasMore: false },
+  ];
+  const fakeRepo = () => {
+    const stored: unknown[] = [];
+    return {
+      stored,
+      repo: {
+        async upsertMany(_u: unknown, rows: readonly unknown[]) {
+          stored.push(...rows);
+        },
+        async listForUser() {
+          return [];
+        },
+      },
+    };
+  };
+
+  it("upserts mapped snapshots and reports ok (unknown accounts skipped)", async () => {
+    const fakes = makeFakes();
+    const { stored, repo } = fakeRepo();
+    const liabilities = {
+      provider: {
+        async fetchLiabilities() {
+          return [
+            { externalAccountId: "ext-1", kind: "credit" as const, aprBps: 2499 },
+            { externalAccountId: "nope", kind: "credit" as const, aprBps: 1 },
+          ];
+        },
+      },
+      repo,
+    };
+    const reports = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      liabilities,
+    });
+    expect(reports[0]?.liabilities).toBe("ok");
+    expect(reports[0]?.liabilityCount).toBe(1);
+    expect(stored).toHaveLength(1);
+  });
+
+  it("treats missing consent as unsupported; unexpected errors carry the code", async () => {
+    const fakes = makeFakes();
+    const consent = {
+      provider: {
+        async fetchLiabilities(): Promise<never> {
+          throw new PlaidError({ error_code: "ADDITIONAL_CONSENT_REQUIRED", error_message: "x" });
+        },
+      },
+      repo: fakeRepo().repo,
+    };
+    const r1 = await runSync(USER, {
+      ...deps(fakes, pagedProvider(simplePages)),
+      liabilities: consent,
+    });
+    expect(r1[0]?.liabilities).toBe("unsupported");
+    expect(r1[0]?.message).toBeUndefined();
+
+    const fakes2 = makeFakes();
+    const boom = {
+      provider: {
+        async fetchLiabilities(): Promise<never> {
+          throw new PlaidError({ error_code: "RATE_LIMIT", error_message: "slow" });
+        },
+      },
+      repo: fakeRepo().repo,
+    };
+    const r2 = await runSync(USER, {
+      ...deps(fakes2, pagedProvider(simplePages)),
+      liabilities: boom,
+    });
+    expect(r2[0]?.status).toBe("ok"); // never fails the connection
+    expect(r2[0]?.liabilities).toBe("error");
+    expect(r2[0]?.message).toBe("liabilities: RATE_LIMIT");
+  });
+});

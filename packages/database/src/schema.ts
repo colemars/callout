@@ -250,3 +250,29 @@ export const userCategoryRules = platform.table(
   },
   (t) => [primaryKey({ columns: [t.userId, t.source, t.matchKey] })],
 );
+
+/**
+ * Latest per-account liability snapshot (Plaid Liabilities): the bank-reported
+ * APR, minimum payment, and due date. Separate table so the account upsert's
+ * shared values object never clobbers it. One row per account, refreshed each
+ * sync.
+ */
+export const accountLiabilities = platform.table(
+  "account_liabilities",
+  {
+    accountId: uuid("account_id")
+      .primaryKey()
+      .references(() => accounts.id),
+    userId: uuid("user_id").notNull(),
+    kind: text("kind").notNull(), // credit | student | mortgage
+    /** APR in basis points: 29.99% -> 2999. Rates are not money. */
+    aprBps: integer("apr_bps"),
+    aprType: text("apr_type"),
+    minPaymentMinor: bigint("min_payment_minor", { mode: "number" }),
+    nextDueDate: date("next_due_date", { mode: "string" }),
+    isOverdue: boolean("is_overdue"),
+    lastPaymentMinor: bigint("last_payment_minor", { mode: "number" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("account_liabilities_user_ix").on(t.userId)],
+);

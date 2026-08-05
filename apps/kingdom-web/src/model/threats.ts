@@ -58,6 +58,28 @@ function categoryBreakdown(
   return lines.sort((a, b) => b.deltaMinor - a.deltaMinor);
 }
 
+/** Estimated monthly interest across credit accounts with a bank-reported APR. */
+export function banditToll(accounts: readonly KingdomInput["accounts"][number][]): {
+  tollMinor: number;
+  hiddenCount: number;
+} {
+  let tollMinor = 0;
+  let hiddenCount = 0;
+  for (const a of accounts) {
+    if (classifyAccount(a) !== "credit" || a.balance.amountMinor <= 0) continue;
+    if (a.apr === undefined) hiddenCount++;
+    else tollMinor += Math.round((a.balance.amountMinor * a.apr) / 100 / 12);
+  }
+  return { tollMinor, hiddenCount };
+}
+
+function daysUntil(todayIso: string, dateIso: string): number | null {
+  const today = Date.parse(todayIso);
+  const date = Date.parse(dateIso);
+  if (Number.isNaN(today) || Number.isNaN(date)) return null;
+  return Math.round((date - today) / 86_400_000);
+}
+
 export function computeThreats(input: KingdomInput): ThreatState[] {
   const { ref, prior } = referenceMonths(input.metrics);
   const threats: ThreatState[] = [];
@@ -66,25 +88,62 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
   const highInterest = input.metrics?.totalHighInterestDebt?.amountMinor ?? 0;
   if (highInterest > 0) {
     const severity: Severity = highInterest < 1_000_00 ? 1 : highInterest < 10_000_00 ? 2 : 3;
+    // The raiders' toll: real APR × balance for cards the bank reported a rate
+    // for. Cards without a reported rate are counted, never guessed at.
+    const { tollMinor, hiddenCount } = banditToll(input.accounts);
     const causes = (input.metrics?.debtTrajectory ?? [])
       .filter((d) => {
         const account = input.accounts.find((a) => a.id === d.accountId);
         return account !== undefined && classifyAccount(account) === "credit";
       })
-      .map((d) => ({
-        label: `${d.institution} ${d.name}${
-          d.delta30d === null ? "" : d.delta30d.amountMinor > 0 ? " — growing" : " — shrinking"
-        }`,
-        amount: d.currentBalance,
-      }));
+      .map((d) => {
+        const account = input.accounts.find((a) => a.id === d.accountId);
+        const apr = account?.apr;
+        const cardToll =
+          apr === undefined || d.currentBalance.amountMinor <= 0
+            ? ""
+            : ` at ${apr}% ≈ ${fmtMinor(Math.round((d.currentBalance.amountMinor * apr) / 100 / 12))}/moon`;
+        return {
+          label: `${d.institution} ${d.name}${cardToll}${
+            d.delta30d === null ? "" : d.delta30d.amountMinor > 0 ? " — growing" : " — shrinking"
+          }`,
+          amount: d.currentBalance,
+        };
+      });
+    for (const a of input.accounts) {
+      if (classifyAccount(a) !== "credit" || a.balance.amountMinor <= 0) continue;
+      const due = a.nextDueDate === undefined ? null : daysUntil(input.today, a.nextDueDate);
+      if (a.isOverdue === true) {
+        causes.push({
+          label: `⚠ tribute OVERDUE — ${a.institution} ${a.name}`,
+          amount: a.minPayment ?? { amountMinor: 0, currency: "USD" },
+        });
+      } else if (due !== null && due >= 0 && due <= 7) {
+        causes.push({
+          label: `tribute demanded in ${due} day${due === 1 ? "" : "s"} — ${a.institution} ${a.name}`,
+          amount: a.minPayment ?? { amountMinor: 0, currency: "USD" },
+        });
+      }
+    }
+    const tollLine =
+      tollMinor > 0
+        ? ` Each moon they take ≈ ${fmtMinor(tollMinor)} in interest.`
+        : " Each moon they take their toll in interest.";
+    const hiddenLine =
+      hiddenCount > 0
+        ? ` ${hiddenCount} card${hiddenCount === 1 ? " keeps its rate" : "s keep their rates"} hidden — renew their oath in the Counting House to reveal them.`
+        : "";
     threats.push({
       kind: "bandits",
       active: true,
       severity,
       title: "Bandits raid the countryside",
-      narrative: `Raiders hold ${fmtMinor(highInterest)} of the realm's coin. Each moon they take their toll in interest — drive them out and the roads grow safe for merchants.`,
+      narrative: `Raiders hold ${fmtMinor(highInterest)} of the realm's coin.${tollLine}${hiddenLine} Drive them out and the roads grow safe for merchants.`,
       causes,
-      basis: "high-interest debt (credit balances)",
+      basis:
+        tollMinor > 0
+          ? "high-interest debt (credit balances); toll from bank-reported APRs"
+          : "high-interest debt (credit balances)",
     });
   } else {
     threats.push(dormant("bandits", "Bandits", "conditions-clear"));

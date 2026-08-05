@@ -9,6 +9,7 @@ import {
   createCategorizer,
   createPlaidClient,
   createPlaidInvestmentsProvider,
+  createPlaidLiabilitiesProvider,
   createPlaidProvider,
   runScribe,
   runSync,
@@ -17,6 +18,7 @@ import {
   createAccountRepository,
   createConnectionStore,
   createInvestmentActivityRepository,
+  createLiabilityRepository,
   createScribeStore,
   createSnapshotRepository,
   createTransactionRepository,
@@ -59,6 +61,10 @@ export async function runSyncCommand(db: PlatformDb): Promise<UserSyncReport[]> 
     investments: {
       provider: createPlaidInvestmentsProvider(client),
       repo: createInvestmentActivityRepository(db),
+    },
+    liabilities: {
+      provider: createPlaidLiabilitiesProvider(client),
+      repo: createLiabilityRepository(db),
     },
     tokens: createVaultTokenStore(db),
     connections: createConnectionStore(db),

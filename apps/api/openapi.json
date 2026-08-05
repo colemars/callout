@@ -114,6 +114,34 @@
                       },
                       "isActive": {
                         "type": "boolean"
+                      },
+                      "apr": {
+                        "type": "number"
+                      },
+                      "aprType": {
+                        "type": "string"
+                      },
+                      "minPayment": {
+                        "type": "object",
+                        "properties": {
+                          "amountMinor": {
+                            "type": "integer"
+                          },
+                          "currency": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "amountMinor",
+                          "currency"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "nextDueDate": {
+                        "type": "string"
+                      },
+                      "isOverdue": {
+                        "type": "boolean"
                       }
                     },
                     "required": [
@@ -1134,6 +1162,17 @@
                             ]
                           },
                           "investmentActivityCount": {
+                            "type": "number"
+                          },
+                          "liabilities": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "unsupported",
+                              "error"
+                            ]
+                          },
+                          "liabilityCount": {
                             "type": "number"
                           },
                           "message": {

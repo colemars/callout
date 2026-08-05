@@ -12,6 +12,7 @@ import {
   createCategorizer,
   createPlaidClient,
   createPlaidInvestmentsProvider,
+  createPlaidLiabilitiesProvider,
   createPlaidProvider,
   runScribe,
   runSync,
@@ -22,6 +23,7 @@ import {
   createConnectionStore,
   createEventStore,
   createInvestmentActivityRepository,
+  createLiabilityRepository,
   createMetricSnapshotStore,
   createScribeStore,
   createSnapshotRepository,
@@ -68,6 +70,10 @@ export function createUserSync(
       investments: {
         provider: createPlaidInvestmentsProvider(client),
         repo: createInvestmentActivityRepository(db),
+      },
+      liabilities: {
+        provider: createPlaidLiabilitiesProvider(client),
+        repo: createLiabilityRepository(db),
       },
       tokens: createVaultTokenStore(db),
       connections: createConnectionStore(db),

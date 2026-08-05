@@ -81,6 +81,14 @@ export interface paths {
                             };
                             balanceAsOf?: string;
                             isActive: boolean;
+                            apr?: number;
+                            aprType?: string;
+                            minPayment?: {
+                                amountMinor: number;
+                                currency: string;
+                            };
+                            nextDueDate?: string;
+                            isOverdue?: boolean;
                         }[];
                     };
                 };
@@ -722,6 +730,9 @@ export interface paths {
                                 /** @enum {string} */
                                 investments?: "ok" | "unsupported" | "error";
                                 investmentActivityCount?: number;
+                                /** @enum {string} */
+                                liabilities?: "ok" | "unsupported" | "error";
+                                liabilityCount?: number;
                                 message?: string;
                             }[];
                             newEvents: number;

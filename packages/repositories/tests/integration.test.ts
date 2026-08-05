@@ -16,6 +16,7 @@ import {
   createEventStore,
   createGoalRepository,
   createInvestmentActivityRepository,
+  createLiabilityRepository,
   createMetricSnapshotStore,
   createProductStateStore,
   createSnapshotRepository,
@@ -423,5 +424,52 @@ describe("category provenance", () => {
     const row2 = (await repo.findByUser(USER)).find((t) => t.sourceTxnId === "prov-2");
     expect(row2?.category).toBe("transfer");
     expect(row2?.categorySource).toBe("ai");
+  });
+});
+
+describe("LiabilityRepository", () => {
+  it("one snapshot per account: upsert overwrites, listing is user-scoped", async () => {
+    const accountRepo = createAccountRepository(db);
+    const card = await accountRepo.upsertByExternalId(USER, {
+      userId: USER,
+      source: "plaid",
+      externalId: "plaid-card-liab",
+      name: "Card",
+      institution: "Test Bank",
+      kind: "credit",
+      balance: money(200_000),
+      isActive: true,
+    });
+
+    const repo = createLiabilityRepository(db);
+    await repo.upsertMany(USER, [
+      {
+        accountId: card.id,
+        userId: USER,
+        kind: "credit",
+        aprBps: 2499,
+        aprType: "purchase_apr",
+        minPayment: money(40_00),
+        nextDueDate: isoDate("2026-08-27"),
+        isOverdue: false,
+      },
+    ]);
+
+    const first = await repo.listForUser(USER);
+    const mine = first.find((l) => l.accountId === card.id);
+    expect(mine).toMatchObject({ kind: "credit", aprBps: 2499, isOverdue: false });
+    expect(mine?.minPayment).toEqual(money(40_00));
+
+    // Refresh overwrites in place — still one row.
+    await repo.upsertMany(USER, [
+      { accountId: card.id, userId: USER, kind: "credit", aprBps: 2799, isOverdue: true },
+    ]);
+    const second = await repo.listForUser(USER);
+    const refreshed = second.filter((l) => l.accountId === card.id);
+    expect(refreshed).toHaveLength(1);
+    expect(refreshed[0]?.aprBps).toBe(2799);
+    expect(refreshed[0]?.minPayment).toBeUndefined(); // absent fields clear on refresh
+
+    expect(await repo.listForUser(OTHER_USER)).toEqual([]);
   });
 });

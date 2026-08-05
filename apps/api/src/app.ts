@@ -14,6 +14,7 @@ import {
   createEventStore,
   createGoalRepository,
   createInvestmentActivityRepository,
+  createLiabilityRepository,
   createMetricSnapshotStore,
   createProductStateStore,
   createTransactionRepository,
@@ -137,7 +138,23 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
         { schema: { response: { 200: z.array(accountSchema), 401: errorSchema } } },
         async (request) => {
           const userId = await requireUser(request);
-          return createAccountRepository(deps.db).listActive(userId);
+          const [accounts, liabilities] = await Promise.all([
+            createAccountRepository(deps.db).listActive(userId),
+            createLiabilityRepository(deps.db).listForUser(userId),
+          ]);
+          const byAccount = new Map(liabilities.map((l) => [l.accountId, l]));
+          return accounts.map((a) => {
+            const l = byAccount.get(a.id);
+            if (l === undefined) return a;
+            return {
+              ...a,
+              ...(l.aprBps === undefined ? {} : { apr: l.aprBps / 100 }),
+              ...(l.aprType === undefined ? {} : { aprType: l.aprType }),
+              ...(l.minPayment === undefined ? {} : { minPayment: l.minPayment }),
+              ...(l.nextDueDate === undefined ? {} : { nextDueDate: l.nextDueDate }),
+              ...(l.isOverdue === undefined ? {} : { isOverdue: l.isOverdue }),
+            };
+          });
         },
       );
 

@@ -52,6 +52,13 @@ actually derivable (dividends + interest, month over month). Chronicle entries
 may also originate from `/api/v1/investments/activity` records (contribution →
 caravan, dividend/interest → estate yield), refId = activity id.
 
+## Account liability fields (additive, 2026-08-04)
+
+`/api/v1/accounts` entries may carry `apr` (percent), `aprType`, `minPayment`,
+`nextDueDate`, `isOverdue` (Plaid Liabilities, when consented). The bandit
+threat's narrative/causes and the banditCamp structure detail derive the
+raiders' toll from them; absence means "rate hidden", never a guessed rate.
+
 ## Getting data
 
 - **In-page engine (recommended: Phaser/TS)**: import `kingdomModel` +

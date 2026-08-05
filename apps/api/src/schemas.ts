@@ -22,6 +22,12 @@ export const accountSchema = z.object({
   creditLimit: moneySchema.optional(),
   balanceAsOf: z.string().optional(),
   isActive: z.boolean(),
+  /** Bank-reported liability facts (Plaid Liabilities), when consented. */
+  apr: z.number().optional(),
+  aprType: z.string().optional(),
+  minPayment: moneySchema.optional(),
+  nextDueDate: z.string().optional(),
+  isOverdue: z.boolean().optional(),
 });
 
 export const transactionSchema = z.object({
@@ -124,6 +130,8 @@ export const syncReportSchema = z.object({
   removed: z.number(),
   investments: z.enum(["ok", "unsupported", "error"]).optional(),
   investmentActivityCount: z.number().optional(),
+  liabilities: z.enum(["ok", "unsupported", "error"]).optional(),
+  liabilityCount: z.number().optional(),
   message: z.string().optional(),
 });
 

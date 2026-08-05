@@ -81,3 +81,85 @@ describe("drought breakdown", () => {
     expect(true).toBe(true);
   });
 });
+
+describe("the raiders' toll (bank-reported APRs)", () => {
+  const card = (
+    id: string,
+    balanceMinor: number,
+    extra?: Partial<import("../src/model/types").KingdomAccount>,
+  ) => ({
+    id,
+    name: `Card ${id}`,
+    institution: "Test Bank",
+    kind: "credit",
+    balance: usd(balanceMinor),
+    ...extra,
+  });
+
+  const withMetrics = (
+    accounts: import("../src/model/types").KingdomAccount[],
+    highInterestMinor: number,
+  ): KingdomInput => ({
+    accounts,
+    transactions: [],
+    investmentActivity: [],
+    events: [],
+    metrics: {
+      totalHighInterestDebt: usd(highInterestMinor),
+      debtTrajectory: accounts.map((a) => ({
+        accountId: a.id,
+        name: a.name,
+        institution: a.institution,
+        kind: a.kind,
+        currentBalance: a.balance,
+        delta30d: null,
+        delta60d: null,
+        delta90d: null,
+      })),
+    } as unknown as KingdomInput["metrics"],
+    today: "2026-08-15",
+  });
+
+  it("sums balance × APR ÷ 12 for known rates and counts the hidden", () => {
+    const input = withMetrics(
+      [
+        card("a", 2_000_000, { apr: 24 }), // $20,000 at 24% -> $400/mo
+        card("b", 1_000_000, { apr: 30 }), // $10,000 at 30% -> $250/mo
+        card("c", 500_000), // rate hidden
+      ],
+      3_500_000,
+    );
+    const bandits = computeThreats(input).find((t) => t.kind === "bandits");
+    expect(bandits?.narrative).toContain("Each moon they take ≈ $650.00 in interest");
+    expect(bandits?.narrative).toContain("1 card keeps its rate hidden");
+    expect(bandits?.basis).toContain("bank-reported APRs");
+    // Per-card toll line rides on the cause label.
+    expect(bandits?.causes.find((c) => c.label.includes("Card a"))?.label).toContain(
+      "at 24% ≈ $400.00/moon",
+    );
+  });
+
+  it("claims no toll number when every rate is hidden — silence over false comfort", () => {
+    const input = withMetrics([card("a", 1_000_000)], 1_000_000);
+    const bandits = computeThreats(input).find((t) => t.kind === "bandits");
+    expect(bandits?.narrative).not.toContain("≈");
+    expect(bandits?.narrative).toContain("their toll in interest");
+    expect(bandits?.basis).toBe("high-interest debt (credit balances)");
+  });
+
+  it("warns of tribute due within a week and overdue tribute", () => {
+    const input = withMetrics(
+      [
+        card("due", 100_000, { apr: 20, nextDueDate: "2026-08-18", minPayment: usd(4_000) }),
+        card("late", 100_000, { apr: 20, isOverdue: true, minPayment: usd(3_500) }),
+        card("far", 100_000, { apr: 20, nextDueDate: "2026-09-20" }),
+      ],
+      300_000,
+    );
+    const bandits = computeThreats(input).find((t) => t.kind === "bandits");
+    const labels = bandits?.causes.map((c) => c.label) ?? [];
+    expect(labels.some((l) => l.includes("tribute demanded in 3 days"))).toBe(true);
+    expect(labels.some((l) => l.includes("tribute OVERDUE"))).toBe(true);
+    expect(labels.some((l) => l.includes("Card far") && l.includes("tribute"))).toBe(false);
+  });
+});

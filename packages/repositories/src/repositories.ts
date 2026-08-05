@@ -1,5 +1,6 @@
 import type { PlatformDb } from "@platform/database";
 import {
+  accountLiabilities,
   accounts,
   balanceSnapshots,
   budgets,
@@ -9,6 +10,7 @@ import {
 } from "@platform/database";
 import type {
   AccountId,
+  AccountLiability,
   AccountRepository,
   BalanceSnapshot,
   BudgetRepository,
@@ -17,6 +19,7 @@ import type {
   GoalRepository,
   ISODate,
   InvestmentActivityRepository,
+  LiabilityRepository,
   NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,
@@ -30,6 +33,7 @@ import {
   budgetFromRow,
   goalFromRow,
   investmentActivityFromRow,
+  liabilityFromRow,
   snapshotFromRow,
   transactionFromRow,
 } from "./mappers.js";
@@ -267,6 +271,39 @@ export function createSnapshotRepository(db: PlatformDb): SnapshotRepository {
         .limit(1);
       const row = rows[0];
       return row === undefined ? null : snapshotFromRow(row);
+    },
+  };
+}
+
+export function createLiabilityRepository(db: PlatformDb): LiabilityRepository {
+  return {
+    async upsertMany(userId: UserId, rows: readonly AccountLiability[]) {
+      for (const row of rows) {
+        const values = {
+          accountId: row.accountId,
+          userId,
+          kind: row.kind,
+          aprBps: row.aprBps ?? null,
+          aprType: row.aprType ?? null,
+          minPaymentMinor: row.minPayment?.amountMinor ?? null,
+          nextDueDate: row.nextDueDate ?? null,
+          isOverdue: row.isOverdue ?? null,
+          lastPaymentMinor: row.lastPayment?.amountMinor ?? null,
+          updatedAt: new Date(),
+        };
+        await db
+          .insert(accountLiabilities)
+          .values(values)
+          .onConflictDoUpdate({ target: accountLiabilities.accountId, set: values });
+      }
+    },
+
+    async listForUser(userId: UserId) {
+      const rows = await db
+        .select()
+        .from(accountLiabilities)
+        .where(eq(accountLiabilities.userId, userId));
+      return rows.map(liabilityFromRow);
     },
   };
 }

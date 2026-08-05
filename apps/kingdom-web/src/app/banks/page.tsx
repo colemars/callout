@@ -206,15 +206,14 @@ export default function CountingHouse() {
             {items.map((i) => (
               <li key={i.id} className="text-sm">
                 {i.institution_name} — {i.status}
-                {i.status !== "ok" && (
-                  <button
-                    type="button"
-                    onClick={() => start(i.id)}
-                    className="ml-2 text-amber-800 underline dark:text-amber-200"
-                  >
-                    renew the oath
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => start(i.id)}
+                  className="ml-2 text-amber-800 underline dark:text-amber-200"
+                  title="Re-link to grant deeper records (rates, due dates)"
+                >
+                  renew the oath
+                </button>
               </li>
             ))}
           </ul>

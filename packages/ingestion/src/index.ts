@@ -21,6 +21,8 @@ export type {
   ProviderInvestmentActivity,
 } from "./investments/provider.js";
 export { createPlaidInvestmentsProvider, mapPlaidInvestmentKind } from "./investments/provider.js";
+export type { LiabilitiesProvider, PlaidApr, ProviderLiability } from "./liabilities/provider.js";
+export { createPlaidLiabilitiesProvider, pickCreditApr } from "./liabilities/provider.js";
 export type { AnthropicConfig, AnthropicHttp } from "./scribe/anthropic.js";
 export { AnthropicError, createAnthropicClient } from "./scribe/anthropic.js";
 export type {

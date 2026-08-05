@@ -1,4 +1,5 @@
 import type {
+  accountLiabilities,
   accounts,
   balanceSnapshots,
   budgets,
@@ -9,6 +10,7 @@ import type {
 import type {
   Account,
   AccountKind,
+  AccountLiability,
   AccountSource,
   BalanceSnapshot,
   Budget,
@@ -145,5 +147,21 @@ export function snapshotFromRow(row: SnapshotRow): BalanceSnapshot {
     accountId: accountId(row.accountId),
     asOf: isoDate(row.asOf),
     balance: money(row.balanceMinor, currency(row.currency)),
+  };
+}
+
+type LiabilityRow = typeof accountLiabilities.$inferSelect;
+
+export function liabilityFromRow(row: LiabilityRow): AccountLiability {
+  return {
+    accountId: accountId(row.accountId),
+    userId: userId(row.userId),
+    kind: row.kind as AccountLiability["kind"],
+    ...(row.aprBps === null ? {} : { aprBps: row.aprBps }),
+    ...(row.aprType === null ? {} : { aprType: row.aprType }),
+    ...(row.minPaymentMinor === null ? {} : { minPayment: money(row.minPaymentMinor) }),
+    ...(row.nextDueDate === null ? {} : { nextDueDate: isoDate(row.nextDueDate) }),
+    ...(row.isOverdue === null ? {} : { isOverdue: row.isOverdue }),
+    ...(row.lastPaymentMinor === null ? {} : { lastPayment: money(row.lastPaymentMinor) }),
   };
 }

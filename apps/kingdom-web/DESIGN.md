@@ -210,6 +210,15 @@ That's the FI screenshot people share.
 
 ## Punt list
 
+**Liabilities INTEGRATED (2026-08-04)**: Plaid Liabilities feeds per-card APRs,
+minimum payments, due dates, and overdue flags into `platform.account_liabilities`
+(served on `/api/v1/accounts`). The bandit threat/camp show the raiders' toll
+(balance × bank-reported APR ÷ 12, "≈"-marked); cards without a reported rate
+are counted as "rates hidden", never guessed at. Items linked before liabilities
+consent gain it via a Counting House re-oath (update-mode
+`additional_consented_products`).
+
+
 - Insurance + income diversification in the moat (no data)
 - Rentals ("villages") and businesses ("workshops") (no data)
 - Home value / Manor equity (Zillow API is partner-only; RentCast or manual

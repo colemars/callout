@@ -10,6 +10,12 @@ import type { Account, ApiEvent, ApiMoney, MetricsView, Txn } from "@platform/ui
 export interface KingdomAccount extends Account {
   subtype?: string;
   creditLimit?: ApiMoney;
+  /** Bank-reported liability facts (Plaid Liabilities), when consented. */
+  apr?: number;
+  aprType?: string;
+  minPayment?: ApiMoney;
+  nextDueDate?: string;
+  isOverdue?: boolean;
 }
 
 export interface KingdomTxn extends Txn {

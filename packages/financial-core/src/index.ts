@@ -48,6 +48,7 @@ export {
   NON_SPENDING_CATEGORIES,
 } from "./entities/category.js";
 export type { Account, AccountKind, AccountSource } from "./entities/account.js";
+export type { AccountLiability, LiabilityKind } from "./entities/liability.js";
 export { isDebtAccount } from "./entities/account.js";
 export type { Transaction, TransactionSource } from "./entities/transaction.js";
 export { isInflow, isOutflow } from "./entities/transaction.js";
@@ -75,6 +76,7 @@ export type {
   ExternalAccount,
   GoalRepository,
   InvestmentActivityRepository,
+  LiabilityRepository,
   NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,

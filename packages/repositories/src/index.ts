@@ -3,6 +3,7 @@ export {
   createBudgetRepository,
   createGoalRepository,
   createInvestmentActivityRepository,
+  createLiabilityRepository,
   createSnapshotRepository,
   createTransactionRepository,
 } from "./repositories.js";

@@ -1,4 +1,5 @@
 import { classifyAccount, fmtMinor, lifestyleShare, referenceMonths, sumBalances } from "./derive";
+import { banditToll } from "./threats";
 import type { AgeState, KingdomInput, MoatState, ResourceState, StructureState } from "./types";
 
 type Level = StructureState["level"];
@@ -174,7 +175,12 @@ export function computeStructures(
                 ? 4
                 : 5,
       ),
-      detail: `${fmtMinor(highInterest)} claimed by raiders`,
+      detail: (() => {
+        const { tollMinor } = banditToll(input.accounts);
+        return tollMinor > 0
+          ? `${fmtMinor(highInterest)} claimed by raiders · ≈ ${fmtMinor(tollMinor)}/moon toll`
+          : `${fmtMinor(highInterest)} claimed by raiders`;
+      })(),
     });
   }
 

@@ -52,10 +52,12 @@ async function handlePost(userId: string, body: Record<string, unknown>): Promis
         p_secret_id: item.access_token_secret_id,
       });
       params.access_token = token;
+      // A re-oath is the moment to gather consent the item was born without.
+      params.additional_consented_products = ["investments", "liabilities"];
     } else {
       params.products = ["transactions"];
-      // Investments attaches when the institution supports it; plain banks still link.
-      params.optional_products = ["investments"];
+      // Attach when the institution supports them; plain banks still link.
+      params.optional_products = ["investments", "liabilities"];
     }
     let resp: { link_token: string };
     try {

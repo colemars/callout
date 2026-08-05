@@ -3,6 +3,7 @@ import type { Account } from "../entities/account.js";
 import type { Category } from "../entities/category.js";
 import type { Goal } from "../entities/goal.js";
 import type { InvestmentActivity } from "../entities/investment-activity.js";
+import type { AccountLiability } from "../entities/liability.js";
 import type { BalanceSnapshot, Budget } from "../entities/misc.js";
 import type { Transaction, TransactionSource } from "../entities/transaction.js";
 import type { AccountId, TransactionId, UserId } from "../ids.js";
@@ -73,4 +74,10 @@ export interface SnapshotRepository {
     accountId: AccountId,
     date: ISODate,
   ): Promise<BalanceSnapshot | null>;
+}
+
+export interface LiabilityRepository {
+  /** Upsert keyed on accountId (one snapshot per account). */
+  upsertMany(userId: UserId, rows: readonly AccountLiability[]): Promise<void>;
+  listForUser(userId: UserId): Promise<AccountLiability[]>;
 }

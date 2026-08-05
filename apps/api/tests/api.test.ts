@@ -381,3 +381,34 @@ describe("transaction category override", () => {
     ).toBe(401);
   });
 });
+
+describe("account liabilities on GET /accounts", () => {
+  it("merges bank-reported APR facts and never leaks across users", async () => {
+    const accounts = (await get("/api/v1/accounts", GOOD_TOKEN)).json();
+    const target = accounts[0];
+    expect(target.apr).toBeUndefined(); // nothing seeded yet
+
+    const { accountLiabilities } = schema;
+    await db.insert(accountLiabilities).values({
+      accountId: target.id,
+      userId: USER,
+      kind: "credit",
+      aprBps: 2999,
+      aprType: "purchase_apr",
+      minPaymentMinor: 40_00,
+      nextDueDate: "2026-08-27",
+      isOverdue: false,
+    });
+
+    const after = (await get("/api/v1/accounts", GOOD_TOKEN)).json();
+    const enriched = after.find((a: { id: string }) => a.id === target.id);
+    expect(enriched).toMatchObject({
+      apr: 29.99,
+      aprType: "purchase_apr",
+      minPayment: { amountMinor: 40_00 },
+      nextDueDate: "2026-08-27",
+      isOverdue: false,
+    });
+    expect(enriched.userId).toBeUndefined(); // serializer still strips internals
+  });
+});

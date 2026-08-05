@@ -1,8 +1,10 @@
 import type {
   AccountId,
+  AccountLiability,
   AccountRepository,
   ISODate,
   InvestmentActivityRepository,
+  LiabilityRepository,
   NewInvestmentActivity,
   NewTransaction,
   SnapshotRepository,
@@ -11,6 +13,7 @@ import type {
 } from "@platform/financial-core";
 import { addDays, money } from "@platform/financial-core";
 import type { InvestmentsProvider } from "./investments/provider.js";
+import type { LiabilitiesProvider } from "./liabilities/provider.js";
 import { PlaidError } from "./plaid/client.js";
 import type {
   AccessTokenStore,
@@ -27,6 +30,11 @@ export interface SyncDeps {
   readonly investments?: {
     readonly provider: InvestmentsProvider;
     readonly repo: InvestmentActivityRepository;
+  };
+  /** Optional Liabilities product sync (APRs, min payments, due dates). */
+  readonly liabilities?: {
+    readonly provider: LiabilitiesProvider;
+    readonly repo: LiabilityRepository;
   };
   readonly tokens: AccessTokenStore;
   readonly connections: ConnectionStore;
@@ -48,6 +56,9 @@ export interface SyncReport {
   /** Investments product outcome; absent when the sync isn't configured for it. */
   readonly investments?: "ok" | "unsupported" | "error";
   readonly investmentActivityCount?: number;
+  /** Liabilities product outcome; absent when the sync isn't configured for it. */
+  readonly liabilities?: "ok" | "unsupported" | "error";
+  readonly liabilityCount?: number;
   readonly message?: string;
 }
 
@@ -198,6 +209,54 @@ async function syncConnection(
     }
   }
 
+  // Liabilities product: one snapshot per debt account per sync. Like
+  // investments, its failures never fail the whole connection sync.
+  let liabilities: SyncReport["liabilities"];
+  let liabilityCount: number | undefined;
+  let liabilitiesMessage: string | undefined;
+  if (deps.liabilities !== undefined) {
+    try {
+      const rows = await deps.liabilities.provider.fetchLiabilities(token);
+      const upserts: AccountLiability[] = [];
+      for (const row of rows) {
+        const accountId = accountIds.get(row.externalAccountId);
+        if (accountId === undefined) continue;
+        upserts.push({
+          accountId,
+          userId,
+          kind: row.kind,
+          ...(row.aprBps === undefined ? {} : { aprBps: row.aprBps }),
+          ...(row.aprType === undefined ? {} : { aprType: row.aprType }),
+          ...(row.minPaymentMinor === undefined ? {} : { minPayment: money(row.minPaymentMinor) }),
+          ...(row.nextDueDate === undefined ? {} : { nextDueDate: row.nextDueDate }),
+          ...(row.isOverdue === undefined ? {} : { isOverdue: row.isOverdue }),
+          ...(row.lastPaymentMinor === undefined
+            ? {}
+            : { lastPayment: money(row.lastPaymentMinor) }),
+        });
+      }
+      await deps.liabilities.repo.upsertMany(userId, upserts);
+      liabilities = "ok";
+      liabilityCount = upserts.length;
+    } catch (error) {
+      if (
+        error instanceof PlaidError &&
+        [
+          "PRODUCTS_NOT_SUPPORTED",
+          "PRODUCT_NOT_READY",
+          "NO_LIABILITY_ACCOUNTS",
+          "INVALID_PRODUCT",
+          "ADDITIONAL_CONSENT_REQUIRED",
+        ].includes(error.code)
+      ) {
+        liabilities = "unsupported";
+      } else {
+        liabilities = "error";
+        liabilitiesMessage = `liabilities: ${error instanceof PlaidError ? error.code : String(error)}`;
+      }
+    }
+  }
+
   await deps.connections.update(connection.id, {
     cursor,
     status: "ok",
@@ -211,7 +270,11 @@ async function syncConnection(
     removed,
     ...(investments === undefined ? {} : { investments }),
     ...(investmentActivityCount === undefined ? {} : { investmentActivityCount }),
-    ...(investmentsMessage === undefined ? {} : { message: investmentsMessage }),
+    ...(liabilities === undefined ? {} : { liabilities }),
+    ...(liabilityCount === undefined ? {} : { liabilityCount }),
+    ...(investmentsMessage === undefined && liabilitiesMessage === undefined
+      ? {}
+      : { message: [investmentsMessage, liabilitiesMessage].filter(Boolean).join("; ") }),
   };
 }
 
