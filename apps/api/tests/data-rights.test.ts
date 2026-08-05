@@ -5,8 +5,12 @@ import { PGlite } from "@electric-sql/pglite";
 import { AuthError, type JwtVerifier } from "@platform/auth";
 import type { PlatformDb } from "@platform/database";
 import { providerConnections, schema } from "@platform/database";
-import { money, userId } from "@platform/financial-core";
-import { createAccountRepository, createTransactionRepository } from "@platform/repositories";
+import { isoDate, money, userId } from "@platform/financial-core";
+import {
+  createAccountRepository,
+  createEventStore,
+  createTransactionRepository,
+} from "@platform/repositories";
 import { drizzle } from "drizzle-orm/pglite";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -81,6 +85,16 @@ beforeAll(async () => {
   db = drizzle(client, { schema }) as unknown as PlatformDb;
   await seedUser(USER, "mine");
   await seedUser(OTHER, "theirs");
+  // An event whose payload embeds the userId — the export must strip it.
+  await createEventStore(db).insertMany([
+    {
+      userId: USER,
+      occurredOn: isoDate("2026-08-01"),
+      type: "NET_CASH_FLOW_POSITIVE",
+      month: "2026-07",
+      netFlow: money(100_00),
+    } as never,
+  ]);
 
   app = await buildApp({
     db,
@@ -105,6 +119,8 @@ describe("GET /api/v1/export", () => {
     const body = res.json();
     expect(body.accounts).toHaveLength(1);
     expect(body.transactions).toHaveLength(1);
+    expect(body.events).toHaveLength(1); // and its payload survives, minus the id
+    expect(body.events[0].payload.netFlow).toEqual({ amountMinor: 100_00, currency: "USD" });
     expect(body.connections).toEqual([{ institution: "Tartan Bank", status: "ok" }]);
     const raw = res.body;
     expect(raw).not.toContain("accessTokenSecretId");

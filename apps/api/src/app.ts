@@ -19,6 +19,7 @@ import {
   createLiabilityRepository,
   createMetricSnapshotStore,
   createProductStateStore,
+  createSnapshotRepository,
   createTransactionRepository,
   createUserCategoryRuleStore,
   deleteAllUserData,
@@ -591,6 +592,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             connections,
             kingdomState,
             kingdomMeta,
+            snapshots,
           ] = await Promise.all([
             createAccountRepository(deps.db).listActive(userId),
             createLiabilityRepository(deps.db).listForUser(userId),
@@ -604,28 +606,47 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
             createConnectionStore(deps.db).list(userId),
             createProductStateStore(deps.db).get(userId, "kingdom"),
             createProductStateStore(deps.db).get(userId, "kingdom-meta"),
+            createSnapshotRepository(deps.db).listByUser(userId),
           ]);
           const byAccount = new Map(liabilities.map((l) => [l.accountId, l]));
           return {
             exportedAt: new Date().toISOString(),
+            // The FULL liability picture — an archive that silently drops
+            // fields is a broken promise.
             accounts: accounts.map((a) => {
               const l = byAccount.get(a.id);
-              return l === undefined
-                ? a
-                : { ...a, ...(l.aprBps === undefined ? {} : { apr: l.aprBps / 100 }) };
+              if (l === undefined) return a;
+              return {
+                ...a,
+                ...(l.aprBps === undefined ? {} : { apr: l.aprBps / 100 }),
+                ...(l.aprType === undefined ? {} : { aprType: l.aprType }),
+                ...(l.minPayment === undefined ? {} : { minPayment: l.minPayment }),
+                ...(l.nextDueDate === undefined ? {} : { nextDueDate: l.nextDueDate }),
+                ...(l.isOverdue === undefined ? {} : { isOverdue: l.isOverdue }),
+              };
             }),
             transactions,
             budgets,
             goals,
             investmentActivity: activity,
-            events: events.map((s) => ({
-              id: s.id,
-              seq: s.seq,
-              type: s.event.type,
-              occurredOn: s.event.occurredOn as string,
-              createdAt: s.createdAt,
-              payload: s.event as unknown as Record<string, unknown>,
+            balanceSnapshots: snapshots.map((s) => ({
+              accountId: s.accountId as string,
+              asOf: s.asOf as string,
+              balance: s.balance,
             })),
+            events: events.map((s) => {
+              // The caller's own id carries no information in their own
+              // archive — payloads ship without it.
+              const { userId: _own, ...payload } = s.event as unknown as Record<string, unknown>;
+              return {
+                id: s.id,
+                seq: s.seq,
+                type: s.event.type,
+                occurredOn: s.event.occurredOn as string,
+                createdAt: s.createdAt,
+                payload,
+              };
+            }),
             latestMetrics:
               latest === null
                 ? null
@@ -702,14 +723,18 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
               : request.query.since !== undefined
                 ? await store.listSince(userId, new Date(request.query.since), request.query.limit)
                 : await store.listRecent(userId, request.query.limit);
-          return stored.map((s) => ({
-            id: s.id,
-            seq: s.seq,
-            type: s.event.type,
-            occurredOn: s.event.occurredOn as string,
-            createdAt: s.createdAt,
-            payload: s.event as unknown as Record<string, unknown>,
-          }));
+          return stored.map((s) => {
+            // The caller's own id carries no information in their own feed.
+            const { userId: _own, ...payload } = s.event as unknown as Record<string, unknown>;
+            return {
+              id: s.id,
+              seq: s.seq,
+              type: s.event.type,
+              occurredOn: s.event.occurredOn as string,
+              createdAt: s.createdAt,
+              payload,
+            };
+          });
         },
       );
     },

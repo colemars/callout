@@ -1158,6 +1158,14 @@ export interface paths {
                                 ticker?: string;
                                 quantity?: string;
                             }[];
+                            balanceSnapshots: {
+                                accountId: string;
+                                asOf: string;
+                                balance: {
+                                    amountMinor: number;
+                                    currency: string;
+                                };
+                            }[];
                             events: {
                                 id: string;
                                 seq: number;

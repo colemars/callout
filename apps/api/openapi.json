@@ -2186,6 +2186,42 @@
                         "additionalProperties": false
                       }
                     },
+                    "balanceSnapshots": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "asOf": {
+                            "type": "string"
+                          },
+                          "balance": {
+                            "type": "object",
+                            "properties": {
+                              "amountMinor": {
+                                "type": "integer"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "amountMinor",
+                              "currency"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "asOf",
+                          "balance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "events": {
                       "type": "array",
                       "items": {
@@ -2315,6 +2351,7 @@
                     "budgets",
                     "goals",
                     "investmentActivity",
+                    "balanceSnapshots",
                     "events",
                     "latestMetrics",
                     "productState",

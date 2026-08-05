@@ -275,6 +275,13 @@ export const exportSchema = z.object({
   budgets: z.array(budgetSchema),
   goals: z.array(goalSchema),
   investmentActivity: z.array(investmentActivitySchema),
+  balanceSnapshots: z.array(
+    z.object({
+      accountId: z.string(),
+      asOf: z.string(),
+      balance: moneySchema,
+    }),
+  ),
   events: z.array(eventSchema),
   latestMetrics: snapshotSchema.nullable(),
   productState: z.array(productStateSchema),
