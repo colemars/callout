@@ -156,14 +156,44 @@ describe("threat activation on month-over-month data", () => {
     );
   });
 
-  it("drought: income falls 20%+", () => {
+  it("drought: needs a real fall vs the trailing average AND thin coverage", () => {
     const input = base();
     if (input.metrics?.completedMonth && input.metrics.priorMonth) {
       input.metrics.completedMonth = month("2026-07", { housing: 2_000_00 }, -500_00); // income 1500
       input.metrics.priorMonth = month("2026-06", { housing: 2_000_00 }, 3_000_00); // income 5000
+      input.metrics.incomeBaseline = { monthsCounted: 4, averageMonthly: usd(5_000_00) };
     }
     const state = kingdomModel(input, translate);
-    expect(state.threats.find((t) => t.kind === "drought")?.active).toBe(true);
+    const drought = state.threats.find((t) => t.kind === "drought");
+    // 70% below a 4-month average AND income under essentials: severe.
+    expect(drought?.active).toBe(true);
+    expect(drought?.severity).toBe(3);
+    expect(drought?.narrative).toContain("70% below the realm's 4-month average");
+    expect(drought?.narrative).toContain("no longer covers");
+  });
+
+  it("drought: a dip after a fat month is NOT a drought when needs stay covered", () => {
+    const input = base();
+    if (input.metrics?.completedMonth && input.metrics.priorMonth) {
+      // Income $8k this month vs a $12k average (33% drop) — but essentials
+      // are only $2k, covered 4x over. The realm tightens no belts.
+      input.metrics.completedMonth = month("2026-07", { housing: 2_000_00 }, 6_000_00);
+      input.metrics.priorMonth = month("2026-06", { housing: 2_000_00 }, 10_000_00);
+      input.metrics.incomeBaseline = { monthsCounted: 5, averageMonthly: usd(12_000_00) };
+    }
+    const state = kingdomModel(input, translate);
+    const drought = state.threats.find((t) => t.kind === "drought");
+    expect(drought?.active).toBe(false);
+    expect(drought?.dormantReason).toBe("conditions-clear");
+  });
+
+  it("drought: silent without 3 months of history — an average of one month is no average", () => {
+    const input = base();
+    if (input.metrics) {
+      input.metrics.incomeBaseline = { monthsCounted: 2, averageMonthly: usd(5_000_00) };
+    }
+    const state = kingdomModel(input, translate);
+    expect(state.threats.find((t) => t.kind === "drought")?.dormantReason).toBe("no-data");
   });
 
   it("fire: a single outsized non-exempt expense; granary softens the blow", () => {

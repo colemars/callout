@@ -55,6 +55,8 @@ export interface KingdomMetrics extends MetricsView {
     passiveIncomePriorMonth: ApiMoney;
     passiveIncomeMonthly: ApiMoney | null;
   };
+  /** Trailing income average from the engine (server-persisted snapshots). */
+  incomeBaseline?: { monthsCounted: number; averageMonthly: ApiMoney | null };
 }
 
 export interface KingdomInput {

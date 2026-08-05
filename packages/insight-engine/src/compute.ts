@@ -53,6 +53,33 @@ export function computeMetrics(
     emergencyRunwayMonths: computeRunwayMonths(state.accounts, state.transactions, asOf, config),
     investments: summarizeInvestments(state.investmentActivity, asOf, config),
     uncategorized: summarizeUncategorized(state, completedMonth),
+    incomeBaseline: computeIncomeBaseline(state, config, asOf),
+  };
+}
+
+/**
+ * Trailing average monthly income over up to 6 completed months with activity.
+ * Income per month ≈ net cash flow + spending (all money in, not just lines
+ * tagged 'income'). Null under 2 informative months — an average of one month
+ * is not an average.
+ */
+function computeIncomeBaseline(
+  state: FinancialState,
+  config: EngineConfig,
+  asOf: ISODate,
+): MetricSet["incomeBaseline"] {
+  const months = lastFullMonths(asOf, 6);
+  let total = 0;
+  let counted = 0;
+  for (const month of months) {
+    const summary = summarizeMonth(state.transactions, month, config);
+    if (summary.transactionCount === 0) continue;
+    total += summary.netCashFlow.amountMinor + summary.totalSpending.amountMinor;
+    counted++;
+  }
+  return {
+    monthsCounted: counted,
+    averageMonthly: counted < 2 ? null : money(Math.round(total / counted)),
   };
 }
 

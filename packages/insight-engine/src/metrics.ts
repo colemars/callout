@@ -97,6 +97,15 @@ export interface MetricSet {
   readonly investments: InvestmentSummary;
   /** Money the categorizer couldn't place — miscategorization must be loud. */
   readonly uncategorized: UncategorizedSummary;
+  /** Trailing income average — one hot or cold month is not a trend. */
+  readonly incomeBaseline: IncomeBaseline;
+}
+
+export interface IncomeBaseline {
+  /** Full months with activity that informed the average (up to 6). */
+  readonly monthsCounted: number;
+  /** Average monthly income (net cash flow + spending); null under 2 months of data. */
+  readonly averageMonthly: Money | null;
 }
 
 export interface UncategorizedSummary {

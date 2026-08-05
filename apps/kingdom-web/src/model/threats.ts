@@ -208,44 +208,57 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
       threats.push(dormant("feast", "Royal feasts", "conditions-clear"));
     }
 
-    // DROUGHT — income loss.
+    // DROUGHT — income loss, judged against the realm's own history, not one
+    // month: the harvest must fall well below the trailing average AND no
+    // longer comfortably cover the realm's needs. A fat month followed by a
+    // normal one is not a drought.
     const incomeNow = incomeEstimate(ref);
     const incomePrior = incomeEstimate(prior);
-    const droughtHit =
-      incomePrior !== null &&
-      ((incomeNow !== null &&
-        incomeNow <= incomePrior * 0.8 &&
-        incomePrior - incomeNow >= 250_00) ||
-        (incomeNow === null && incomePrior > 500_00));
-    if (droughtHit && incomePrior !== null) {
-      const drop = incomeNow === null ? 1 : 1 - incomeNow / incomePrior;
-      threats.push({
-        kind: "drought",
-        active: true,
-        severity: drop < 0.35 ? 1 : drop < 0.7 ? 2 : 3,
-        title: "Drought grips the fields",
-        narrative: `Less tribute arrives than the month before (${fmtMinor(incomePrior)} → ${fmtMinor(incomeNow ?? 0)}). Workers drift away while the harvest is thin.`,
-        causes: [
-          {
-            label: `${fmtMinor(incomePrior - (incomeNow ?? 0))} less tribute arrived in ${monthName(ref.month)} than in ${monthName(prior.month)}`,
-          },
-        ],
-        basis: "income ≈ net cash flow + spending, completed vs prior month",
-        breakdown: [
-          {
-            label: "income",
-            previousMinor: incomePrior,
-            currentMinor: incomeNow ?? 0,
-            deltaMinor: (incomeNow ?? 0) - incomePrior,
-            risingIsGood: true,
-          },
-        ],
-        months: { current: ref.month, previous: prior.month },
-      });
+    const baseline = input.metrics?.incomeBaseline;
+    const essentialsNow = categorySum(ref, ESSENTIAL_CATEGORIES);
+    if (
+      baseline?.averageMonthly == null ||
+      baseline.monthsCounted < 3 ||
+      incomeNow === null ||
+      essentialsNow <= 0
+    ) {
+      threats.push(dormant("drought", "Drought", "no-data"));
     } else {
-      threats.push(
-        dormant("drought", "Drought", incomePrior === null ? "no-data" : "conditions-clear"),
-      );
+      const avg = baseline.averageMonthly.amountMinor;
+      const drop = avg > 0 ? 1 - incomeNow / avg : 0;
+      const coverage = incomeNow / essentialsNow;
+      if (drop >= 0.25 && coverage < 2) {
+        const severity: Severity = coverage < 1 ? 3 : coverage < 1.5 ? 2 : 1;
+        threats.push({
+          kind: "drought",
+          active: true,
+          severity,
+          title: "Drought grips the fields",
+          narrative: `The harvest came in ${(drop * 100).toFixed(0)}% below the realm's ${baseline.monthsCounted}-month average (${fmtMinor(avg)} → ${fmtMinor(incomeNow)}). ${
+            coverage < 1
+              ? "It no longer covers the realm's essential needs."
+              : `It still covers essential needs ${coverage.toFixed(1)}× over — belt-tightening, not famine.`
+          }`,
+          causes: [
+            {
+              label: `${fmtMinor(avg - incomeNow)} below the ${baseline.monthsCounted}-month average harvest`,
+            },
+          ],
+          basis: `income ≈ net cash flow + spending, vs trailing ${baseline.monthsCounted}-month average; coverage vs essential spend`,
+          breakdown: [
+            {
+              label: "income",
+              previousMinor: incomePrior ?? 0,
+              currentMinor: incomeNow,
+              deltaMinor: incomeNow - (incomePrior ?? 0),
+              risingIsGood: true,
+            },
+          ],
+          months: { current: ref.month, previous: prior.month },
+        });
+      } else {
+        threats.push(dormant("drought", "Drought", "conditions-clear"));
+      }
     }
   }
 
