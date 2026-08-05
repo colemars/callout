@@ -13,6 +13,7 @@ export {
   createConnectionStore,
   createScribeStore,
   createVaultTokenStore,
+  findConnectionByExternalItemId,
 } from "./ingestion-stores.js";
 export type { ProductStateRecord, ProductStateStore } from "./product-state.js";
 export { createProductStateStore } from "./product-state.js";

@@ -5,6 +5,7 @@ import { runImportConnections } from "./commands/import-connections.js";
 import { runImportCsv } from "./commands/import-csv.js";
 import { runInsights } from "./commands/insights.js";
 import { runSyncCommand } from "./commands/sync.js";
+import { runUpdateWebhooks } from "./commands/update-webhooks.js";
 import { requireEnv } from "./env.js";
 
 const USAGE = `usage: worker <command>
@@ -15,6 +16,7 @@ commands:
   import-connections   Copy public.plaid_items -> platform.provider_connections (cursor NULL)
   import-csv <file>    Import an Apple Card statement CSV
   backfill             Copy legacy public.* rows into platform.* with reconciliation
+  update-webhooks      Point every Plaid item at the platform webhook endpoint
 `;
 
 async function main(): Promise<number> {
@@ -36,6 +38,11 @@ async function main(): Promise<number> {
       const summary = await runInsights(db);
       console.log(JSON.stringify(summary, null, 2));
       return 0;
+    }
+    case "update-webhooks": {
+      const reports = await runUpdateWebhooks(db);
+      console.log(JSON.stringify({ reports }, null, 2));
+      return 0; // per-item failures (dead sandbox items) are expected noise
     }
     case "import-connections": {
       const result = await runImportConnections(db);

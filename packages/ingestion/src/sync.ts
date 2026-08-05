@@ -68,9 +68,17 @@ export interface SyncReport {
  * function: accounts + balances first (loan accounts may never appear in the
  * transaction stream), then the cursor loop, then cursor/status persistence.
  */
-export async function runSync(userId: UserId, deps: SyncDeps): Promise<SyncReport[]> {
+export async function runSync(
+  userId: UserId,
+  deps: SyncDeps,
+  /** Restrict to one connection (webhook-targeted sync); omit for all. */
+  filter?: { readonly connectionId?: string },
+): Promise<SyncReport[]> {
   const reports: SyncReport[] = [];
-  for (const connection of await deps.connections.list(userId)) {
+  const connections = (await deps.connections.list(userId)).filter(
+    (c) => filter?.connectionId === undefined || c.id === filter.connectionId,
+  );
+  for (const connection of connections) {
     const institution = connection.institutionName ?? connection.externalItemId;
     try {
       reports.push(await syncConnection(userId, connection, institution, deps));

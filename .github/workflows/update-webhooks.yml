@@ -1,0 +1,27 @@
+name: Update Plaid webhooks
+
+# One-shot/backfill: point every existing Plaid item at the platform's
+# webhook endpoint. New items get the URL at link time; run this manually
+# after the endpoint changes or when older items need pointing.
+on:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PLAID_CLIENT_ID: ${{ secrets.PLAID_CLIENT_ID }}
+      PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
+      PLAID_ENV: ${{ vars.PLAID_ENV || 'sandbox' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter @platform/worker
+      - name: Update webhooks
+        run: node apps/worker/dist/cli.js update-webhooks

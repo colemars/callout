@@ -1,4 +1,6 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
+import { Alarm, ComparisonOperator, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
+import { SnsAction } from "aws-cdk-lib/aws-cloudwatch-actions";
 import { Rule, Schedule } from "aws-cdk-lib/aws-events";
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
@@ -6,6 +8,8 @@ import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
+import { Topic } from "aws-cdk-lib/aws-sns";
+import { EmailSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
 
@@ -85,7 +89,31 @@ export class PlatformWorkersStack extends Stack {
       }),
     );
 
+    // Roadmap Phase E: a broken nightly sync must page, not rot silently —
+    // stale snapshots looked exactly like fresh ones until someone noticed.
+    const alerts = new Topic(this, "OpsAlerts");
+    alerts.addSubscription(new EmailSubscription(EMAIL));
+
+    new Alarm(this, "SyncErrors", {
+      metric: syncFn.metricErrors({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+      alarmDescription: "The nightly platform sync Lambda errored — snapshots may be stale.",
+    }).addAlarmAction(new SnsAction(alerts));
+
+    new Alarm(this, "EventsDLQBacklog", {
+      metric: dlq.metricApproximateNumberOfMessagesVisible({ period: Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+      alarmDescription: "Digest events landed in the DLQ — the notifier is failing.",
+    }).addAlarmAction(new SnsAction(alerts));
+
     new CfnOutput(this, "EventsQueueUrl", { value: eventsQueue.queueUrl });
     new CfnOutput(this, "SyncFunctionName", { value: syncFn.functionName });
+    new CfnOutput(this, "OpsAlertsTopicArn", { value: alerts.topicArn });
   }
 }

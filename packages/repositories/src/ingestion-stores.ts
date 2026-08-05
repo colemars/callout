@@ -11,6 +11,28 @@ import type {
 } from "@platform/ingestion";
 import { and, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 
+/**
+ * Webhook routing: Plaid names an item, the platform must find whose it is.
+ * Null when unknown (a webhook for a deleted or foreign item is ignorable).
+ */
+export async function findConnectionByExternalItemId(
+  db: PlatformDb,
+  externalItemId: string,
+): Promise<{ id: ConnectionId; userId: UserId } | null> {
+  const rows = await db
+    .select({ id: providerConnections.id, userId: providerConnections.userId })
+    .from(providerConnections)
+    .where(
+      and(
+        eq(providerConnections.provider, "plaid"),
+        eq(providerConnections.externalItemId, externalItemId),
+      ),
+    )
+    .limit(1);
+  const row = rows[0];
+  return row === undefined ? null : { id: connectionId(row.id), userId: userId(row.userId) };
+}
+
 export function createConnectionStore(db: PlatformDb): ConnectionStore {
   return {
     async list(user: UserId): Promise<ProviderConnection[]> {

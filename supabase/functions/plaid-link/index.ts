@@ -42,6 +42,14 @@ async function handlePost(userId: string, body: Record<string, unknown>): Promis
       redirectUri = cfg?.value ?? undefined;
     }
     if (redirectUri) params.redirect_uri = redirectUri;
+    // New items report changes by webhook (fresh data without the daily wait).
+    let webhookUrl = Deno.env.get("PLAID_WEBHOOK_URL");
+    if (!webhookUrl) {
+      const { data: cfg } = await db.from("app_config")
+        .select("value").eq("key", "plaid_webhook_url").maybeSingle();
+      webhookUrl = cfg?.value ?? undefined;
+    }
+    if (webhookUrl) params.webhook = webhookUrl;
     if (body.update_item_id) {
       // Update mode: reuse the existing Item's access token — caller must own it.
       const { data: item } = await connections()

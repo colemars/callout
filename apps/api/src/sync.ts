@@ -42,7 +42,11 @@ export interface UserSyncResult {
   readonly scribe?: ScribeReport;
 }
 
-export type UserSync = (userId: UserId) => Promise<UserSyncResult>;
+export type UserSync = (
+  userId: UserId,
+  /** Restrict to one connection — webhook-targeted syncs stay cheap. */
+  opts?: { readonly connectionId?: string },
+) => Promise<UserSyncResult>;
 
 export function createUserSync(
   db: PlatformDb,
@@ -58,7 +62,7 @@ export function createUserSync(
       : createAnthropicClient({ apiKey: anthropic.apiKey }, (url, init) =>
           fetch(url, { ...init, signal: AbortSignal.timeout(8000) }),
         );
-  return async (userId) => {
+  return async (userId, opts) => {
     const rules = await db.select().from(categoryRules).where(eq(categoryRules.source, "plaid"));
     const userRules = await createUserCategoryRuleStore(db).listForUser(userId, "plaid");
     const categorize = createCategorizer(
@@ -66,25 +70,29 @@ export function createUserSync(
       userRules,
     );
 
-    const reports = await runSync(userId, {
-      provider: createPlaidProvider(client),
-      investments: {
-        provider: createPlaidInvestmentsProvider(client),
-        repo: createInvestmentActivityRepository(db),
+    const reports = await runSync(
+      userId,
+      {
+        provider: createPlaidProvider(client),
+        investments: {
+          provider: createPlaidInvestmentsProvider(client),
+          repo: createInvestmentActivityRepository(db),
+        },
+        liabilities: {
+          provider: createPlaidLiabilitiesProvider(client),
+          repo: createLiabilityRepository(db),
+        },
+        tokens: createVaultTokenStore(db),
+        connections: createConnectionStore(db),
+        accountRepo: createAccountRepository(db),
+        transactionRepo: createTransactionRepository(db),
+        snapshotRepo: createSnapshotRepository(db),
+        categorize,
+        today: isoDate(new Date().toISOString().slice(0, 10)),
+        now: () => new Date(),
       },
-      liabilities: {
-        provider: createPlaidLiabilitiesProvider(client),
-        repo: createLiabilityRepository(db),
-      },
-      tokens: createVaultTokenStore(db),
-      connections: createConnectionStore(db),
-      accountRepo: createAccountRepository(db),
-      transactionRepo: createTransactionRepository(db),
-      snapshotRepo: createSnapshotRepository(db),
-      categorize,
-      today: isoDate(new Date().toISOString().slice(0, 10)),
-      now: () => new Date(),
-    });
+      opts?.connectionId === undefined ? undefined : { connectionId: opts.connectionId },
+    );
 
     // The scribe runs BEFORE the insights refresh so recategorizations land
     // in the snapshot the kingdom renders next.

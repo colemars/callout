@@ -55,6 +55,7 @@ import {
   transactionSchema,
 } from "./schemas.js";
 import type { UserSync } from "./sync.js";
+import type { PlaidWebhook } from "./webhooks.js";
 
 export interface AppDeps {
   readonly db: PlatformDb;
@@ -63,11 +64,15 @@ export interface AppDeps {
   readonly logger?: boolean;
   /** On-demand sync for the calling user; absent when Plaid creds aren't configured. */
   readonly sync?: UserSync;
+  /** POST /webhooks/plaid handler; absent when Plaid creds aren't configured. */
+  readonly plaidWebhook?: PlaidWebhook;
 }
 
 declare module "fastify" {
   interface FastifyRequest {
     user: AuthenticatedUser | null;
+    /** Exact request bytes — Plaid webhook verification hashes them. */
+    rawBody?: Buffer;
   }
 }
 
@@ -84,6 +89,22 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   app.decorateRequest("user", null);
+
+  // JSON parsing that keeps the exact bytes: webhook signature verification
+  // hashes the raw body, and re-serialized JSON is not the same bytes.
+  app.addContentTypeParser("application/json", { parseAs: "buffer" }, (request, body, done) => {
+    const raw = body as Buffer;
+    request.rawBody = raw;
+    if (raw.length === 0) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(raw.toString("utf8")));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
 
   await app.register(helmet);
   await app.register(cors, {
@@ -135,6 +156,33 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     request.log.error(error);
     return reply.status(500).send({ error: "internal error" });
   });
+
+  // Plaid webhooks: outside /api/v1 (no bearer auth — authenticity comes from
+  // Plaid's signed Plaid-Verification JWT over the exact request bytes).
+  if (deps.plaidWebhook !== undefined) {
+    const webhook = deps.plaidWebhook;
+    app.post(
+      "/webhooks/plaid",
+      {
+        schema: {
+          response: {
+            200: z.object({ handled: z.string() }),
+            401: errorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const jwt = request.headers["plaid-verification"];
+        const verified =
+          request.rawBody !== undefined &&
+          (await webhook.verify(typeof jwt === "string" ? jwt : undefined, request.rawBody));
+        if (!verified) return reply.status(401).send({ error: "unverified webhook" });
+        const result = await webhook.handle(request.body as Record<string, unknown>);
+        request.log.info({ plaidWebhook: result.handled }, "plaid webhook");
+        return result;
+      },
+    );
+  }
 
   await app.register(
     async (scope) => {
