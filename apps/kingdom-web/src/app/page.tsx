@@ -98,7 +98,18 @@ export default function ThroneRoom() {
   const scene = useMemo(
     () =>
       kingdom !== null
-        ? buildSceneModel(kingdom, roads, economy === null || economy.readOnly)
+        ? buildSceneModel(
+            kingdom,
+            roads,
+            economy === null || economy.readOnly,
+            economy === null
+              ? null
+              : {
+                  balance: influenceBalance(economy.meta, economy.fold),
+                  unlocks: economy.meta.unlocks,
+                  spends: economy.meta.spends,
+                },
+          )
         : null,
     [kingdom, roads, economy],
   );
@@ -416,6 +427,7 @@ export default function ThroneRoom() {
           replay={reel}
           onAssignRole={handleAssignRole}
           onClearRole={handleClearRole}
+          onBuild={handlePurchase}
           onFail={() => setVistaFailed(true)}
         />
       )}

@@ -143,6 +143,70 @@ export function ensureTextures(scene: Phaser.Scene, palette: VistaPalette): void
       g.fillCircle(w / 2, h / 2, w / 2 - 2);
       g.lineStyle(2, spec.placeholder.roof, 1);
       g.strokeCircle(w / 2, h / 2, w / 2 - 2);
+    } else if (key.startsWith("monument:")) {
+      // Distinct monument silhouettes (Stage 6 placeholders).
+      if (key === "monument:wellspring") {
+        // A low, wide basin with a water-blue top and a small central spire.
+        drawPrism(
+          g,
+          w / 2,
+          h - 14,
+          w * 0.7,
+          spec.placeholder.body,
+          spec.placeholder.roof,
+          spec.placeholder.height,
+          palette.outline,
+        );
+        drawPrism(
+          g,
+          w / 2,
+          h - 14 - spec.placeholder.height,
+          w * 0.16,
+          spec.placeholder.body,
+          spec.placeholder.roof,
+          26,
+          palette.outline,
+        );
+      } else if (key === "monument:founder") {
+        // A wide pedestal bearing a tall, narrow bronze figure.
+        drawPrism(
+          g,
+          w / 2,
+          h - 14,
+          w * 0.56,
+          spec.placeholder.body,
+          darken(spec.placeholder.body, 1.05),
+          26,
+          palette.outline,
+        );
+        drawPrism(
+          g,
+          w / 2,
+          h - 40,
+          w * 0.2,
+          spec.placeholder.roof,
+          darken(spec.placeholder.roof, 1.15),
+          spec.placeholder.height,
+          palette.outline,
+        );
+      } else {
+        // The stargazers' tower: a tall shaft crowned with a round dome.
+        drawPrism(
+          g,
+          w / 2,
+          h - 14,
+          w * 0.34,
+          spec.placeholder.body,
+          darken(spec.placeholder.body, 1.05),
+          spec.placeholder.height,
+          palette.outline,
+        );
+        const domeY = h - 14 - spec.placeholder.height - 10;
+        g.fillStyle(spec.placeholder.roof, 1);
+        g.fillCircle(w / 2, domeY, 16);
+        g.lineStyle(2, palette.outline, 0.9);
+        g.strokeCircle(w / 2, domeY, 16);
+      }
     } else if (key.startsWith("traveler:")) {
       // A small figure: body prism + head dot.
       drawPrism(

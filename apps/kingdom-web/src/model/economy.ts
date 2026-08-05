@@ -270,7 +270,7 @@ export function influenceBalance(meta: KingdomMeta, fold: FoldResult): number {
 // Cosmetics only — never gameplay-relevant, never real money (DESIGN.md).
 // ---------------------------------------------------------------------------
 
-export const CATALOG_VERSION = 1;
+export const CATALOG_VERSION = 2;
 
 export interface CatalogItem {
   id: string;
@@ -281,6 +281,11 @@ export interface CatalogItem {
   title: string;
   price: number;
   flavor: string;
+  /**
+   * Stage 6: a monument stands on a fixed reserved plot in the vista once
+   * owned. Monuments are still cosmetics — scenery, never power.
+   */
+  monument?: { plotId: "plot-a" | "plot-b" | "plot-c" };
 }
 
 export const SPEND_CATALOG: readonly CatalogItem[] = [
@@ -315,6 +320,35 @@ export const SPEND_CATALOG: readonly CatalogItem[] = [
     title: "Debtslayer",
     price: 1000,
     flavor: "The raiders know this name.",
+  },
+  // Monuments (Stage 6): each is raised on ITS plot — the masons do not
+  // negotiate on siting. Bought from the vista's Masons' Yard panel.
+  {
+    id: "monument-wellspring",
+    name: "The Wellspring",
+    emblem: "",
+    title: "",
+    price: 400,
+    flavor: "A fountain on the commons — clear water, freely given.",
+    monument: { plotId: "plot-b" },
+  },
+  {
+    id: "monument-founder",
+    name: "Statue of the Founder",
+    emblem: "",
+    title: "",
+    price: 800,
+    flavor: "The crown that first raised these walls, cast in bronze.",
+    monument: { plotId: "plot-a" },
+  },
+  {
+    id: "monument-stargazers",
+    name: "The Stargazers' Tower",
+    emblem: "",
+    title: "",
+    price: 1500,
+    flavor: "From its dome the court reads the heavens — and the ledgers.",
+    monument: { plotId: "plot-c" },
   },
 ];
 

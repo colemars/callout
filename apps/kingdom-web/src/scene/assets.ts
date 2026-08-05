@@ -92,6 +92,21 @@ export function buildManifest(): Record<AssetKey, AssetSpec> {
     px: { w: 64, h: 96 },
     placeholder: { body: 0x3f6212, roof: 0x8b5e34, height: 48 },
   };
+  // Monuments (Stage 6): one sprite each — no tiers, a monument is finished
+  // the day it is raised. Distinct silhouettes: low fountain, tall statue,
+  // domed tower.
+  manifest["monument:wellspring"] = {
+    px: { w: 128, h: 120 },
+    placeholder: { body: 0xc9c3bb, roof: 0x4a90a4, height: 34 },
+  };
+  manifest["monument:founder"] = {
+    px: { w: 128, h: 168 },
+    placeholder: { body: 0xa8a29e, roof: 0xb8860b, height: 96 },
+  };
+  manifest["monument:stargazers"] = {
+    px: { w: 128, h: 184 },
+    placeholder: { body: 0xd6cfc2, roof: 0x4c5fd5, height: 112 },
+  };
   manifest["fx:dot"] = {
     px: { w: 8, h: 8 },
     placeholder: { body: 0xffffff, roof: 0xffffff, height: 0 },

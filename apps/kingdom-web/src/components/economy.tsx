@@ -158,10 +158,11 @@ export function LedgerOfDeeds({
           The Royal Herald's stall
         </h4>
         <p className={`mt-1 text-xs ${muted}`}>
-          Banners and styles for the crown — finery only, never power.
+          Banners and styles for the crown — finery only, never power. Monuments are the masons'
+          trade: tap an open plot in the vista to raise one.
         </p>
         <ul className="mt-2 flex flex-col gap-2 text-sm">
-          {SPEND_CATALOG.map((item) => {
+          {SPEND_CATALOG.filter((item) => item.monument === undefined).map((item) => {
             const owned = meta.unlocks.includes(item.id);
             const affordable = balance >= item.price;
             return (

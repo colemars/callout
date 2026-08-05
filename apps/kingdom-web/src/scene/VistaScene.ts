@@ -10,8 +10,14 @@ import type { StructureState } from "../model/types";
 import type { VistaCallbacks } from "./bridge";
 import { GATE, RESERVED_PLOTS, ROADS, SLOTS, isoToScreen, mapBounds, pathPoint } from "./layout";
 import { TONE_TINT, type VistaPalette } from "./palette";
-import { RegistryPanel, StewardPanel } from "./panels";
-import type { PlacedStructure, PlacedTraveler, ReplayMoment, SceneModel } from "./sceneModel";
+import { BuildPanel, RegistryPanel, StewardPanel } from "./panels";
+import type {
+  PlacedStructure,
+  PlacedTraveler,
+  PlotModel,
+  ReplayMoment,
+  SceneModel,
+} from "./sceneModel";
 import { ensureTextures } from "./textures";
 
 const TWEEN_MS = 700;
@@ -24,6 +30,10 @@ export class VistaScene extends Phaser.Scene {
   private uiCamera!: Phaser.Cameras.Scene2D.Camera;
   private structureSprites = new Map<string, Phaser.GameObjects.Image>();
   private travelerSprites = new Map<string, Phaser.GameObjects.Image>();
+  private plotSprites = new Map<
+    string,
+    { tile: Phaser.GameObjects.Image; monument: Phaser.GameObjects.Image | null }
+  >();
   private ambientSprites: Phaser.GameObjects.Image[] = [];
   private weatherFx = new Map<
     string,
@@ -31,7 +41,7 @@ export class VistaScene extends Phaser.Scene {
   >();
   private model: SceneModel | null = null;
   private pendingModel: SceneModel | null = null;
-  private panel: StewardPanel | RegistryPanel | null = null;
+  private panel: StewardPanel | RegistryPanel | BuildPanel | null = null;
   private ready = false;
   private replayTimers: Phaser.Time.TimerEvent[] = [];
   private pendingReplay: ReplayMoment[] | null = null;
@@ -254,12 +264,8 @@ export class VistaScene extends Phaser.Scene {
     const gate = this.add.image(gatePos.x, gatePos.y, "tile:road").setScale(1.1);
     this.addWorld(gate);
 
-    // Reserved plots: faint held ground (the Stage 6 endgame, visible now).
-    for (const plot of RESERVED_PLOTS) {
-      const center = isoToScreen(plot.tx + plot.w / 2, plot.ty + plot.h / 2);
-      const tile = this.add.image(center.x, center.y, "tile:plot").setAlpha(0.55);
-      this.addWorld(tile);
-    }
+    // Reserved plots render in syncPlots (Stage 6): they carry build state
+    // now, so they live with the model, not the static terrain.
 
     // A few trees for life at the map edges.
     for (const [tx, ty] of [
@@ -277,6 +283,7 @@ export class VistaScene extends Phaser.Scene {
 
   private applyModel(model: SceneModel): void {
     this.model = model;
+    this.syncPlots(model.plots);
     this.syncStructures(model.structures);
     this.syncTravelers(model.travelers);
     this.syncAmbient(model.ambientCount);
@@ -307,8 +314,8 @@ export class VistaScene extends Phaser.Scene {
       if (this.weatherFx.has(kind)) continue;
       const objects: Phaser.GameObjects.GameObject[] = [];
       if (kind === "winter") {
-        // Real snowFALL: flakes spawn inside the map diamond only, fall a
-        // meaningful distance with a gentle sway, and fade at both ends.
+        // Real snowFALL: flakes spawn in a band lifted above the map diamond,
+        // fall down onto it with a gentle sway, and fade at both ends.
         // Geom.Polygon has NO getRandomPoint (a polygon emit zone silently
         // collapses to the origin — the tiny-column-of-snow bug), so the
         // zone is a custom source that rejection-samples the diamond.
@@ -478,6 +485,67 @@ export class VistaScene extends Phaser.Scene {
         ease: "Sine.easeInOut",
         delay: (i * 211) % 900,
       });
+    }
+  }
+
+  /**
+   * Stage 6: reserved plots. Empty ground is a faint held tile; a built
+   * monument stands on it. Both open the Masons' Yard panel — the tile to
+   * order the raising, the monument to admire the deed.
+   */
+  private syncPlots(plots: PlotModel[]): void {
+    for (const plot of plots) {
+      const slot = RESERVED_PLOTS.find((p) => p.id === plot.id);
+      if (slot === undefined) continue; // unknown plot id (newer model)
+      const center = isoToScreen(slot.tx + slot.w / 2, slot.ty + slot.h / 2);
+      let entry = this.plotSprites.get(plot.id);
+      if (entry === undefined) {
+        const tile = this.add.image(center.x, center.y, "tile:plot").setAlpha(0.55).setDepth(1);
+        // The whole tile is the tap target — already far past the 44px floor.
+        tile.setInteractive(
+          new Phaser.Geom.Rectangle(-12, -12, tile.width + 24, tile.height + 24),
+          Phaser.Geom.Rectangle.Contains,
+        );
+        this.addWorld(tile);
+        entry = { tile, monument: null };
+        this.plotSprites.set(plot.id, entry);
+      }
+
+      if (plot.built && plot.monument !== null && entry.monument === null) {
+        // The raising: reveal + celebration (a spend the crown chose).
+        const texture = `monument:${plot.monument.itemId.replace("monument-", "")}`;
+        const monument = this.add
+          .image(center.x, center.y + 20, texture)
+          .setOrigin(0.5, 1)
+          .setDepth(center.y)
+          .setAlpha(0);
+        monument.setInteractive(
+          new Phaser.Geom.Rectangle(-24, -24, monument.width + 48, monument.height + 48),
+          Phaser.Geom.Rectangle.Contains,
+        );
+        this.addWorld(monument);
+        entry.monument = monument;
+        this.tweens.add({ targets: monument, alpha: 1, duration: TWEEN_MS });
+        this.burstAt(center.x, center.y - 50, 0xf59e0b);
+      } else if (!plot.built && entry.monument !== null) {
+        // A flee reset the reign: the monument stays behind with the old crown.
+        entry.monument.destroy();
+        entry.monument = null;
+      }
+
+      // Rewire taps with the CURRENT model's state (balance moves).
+      const current = plot;
+      for (const target of [entry.tile, entry.monument]) {
+        if (target === null) continue;
+        target.removeAllListeners("pointerup");
+        target.on(
+          "pointerup",
+          (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation();
+            this.openBuild(current);
+          },
+        );
+      }
     }
   }
 
@@ -651,6 +719,27 @@ export class VistaScene extends Phaser.Scene {
       () => {
         this.closePanel();
         this.callbacks.onClearRole(placed.id);
+      },
+      () => this.closePanel(),
+    );
+    this.cameras.main.ignore(this.panel.root);
+  }
+
+  /** Stage 6: the Masons' Yard. Building flows back through React's CAS
+   * purchase path; the fresh model re-renders the monument; the panel closes
+   * on order as its feedback. */
+  private openBuild(plot: PlotModel): void {
+    this.closePanel();
+    this.panel = new BuildPanel(
+      this,
+      this.uiLayer,
+      plot,
+      this.model?.influence ?? null,
+      this.model?.registryReadOnly ?? true,
+      this.palette,
+      (itemId) => {
+        this.closePanel();
+        this.callbacks.onBuild(itemId);
       },
       () => this.closePanel(),
     );

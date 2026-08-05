@@ -16,6 +16,7 @@ export function KingdomVista({
   replay,
   onAssignRole,
   onClearRole,
+  onBuild,
   onFail,
 }: {
   model: SceneModel;
@@ -23,6 +24,8 @@ export function KingdomVista({
   replay?: ReplayMoment[] | null;
   onAssignRole: (travelerId: string, roleId: RoleId) => void;
   onClearRole: (travelerId: string) => void;
+  /** Stage 6: a monument ordered from the Masons' Yard (Influence spend). */
+  onBuild: (itemId: string) => void;
   onFail: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +66,7 @@ export function KingdomVista({
         {
           onAssignRole,
           onClearRole,
+          onBuild,
           onReady: () => {
             if (!cancelled) setReady(true);
           },

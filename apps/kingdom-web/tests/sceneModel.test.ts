@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { SPEND_CATALOG } from "../src/model/economy";
 import type { RoadsState, TravelerState } from "../src/model/roads";
 import type { KingdomState, StructureState } from "../src/model/types";
 import { GATE, RESERVED_PLOTS, SLOTS } from "../src/scene/layout";
 import {
   ETA_HORIZON_DAYS,
+  type EconomyLite,
   REPLAY_MOMENT_CAP,
   buildSceneModel,
   replayMoments,
@@ -85,7 +87,7 @@ describe("buildSceneModel", () => {
     const m = buildSceneModel(kingdom({ surveying: true }), roads([traveler({})]));
     expect(m.structures).toEqual([]);
     expect(m.travelers).toEqual([]);
-    expect(m.reservedPlots.length).toBeGreaterThan(0);
+    expect(m.plots.length).toBeGreaterThan(0);
   });
 
   it("every existing structure gets its authored slot; tiers collapse 0-5 -> 1-3", () => {
@@ -208,6 +210,57 @@ describe("travelerT — the ETA math", () => {
     expect(at(0, "at-gates")).toEqual({ t: 1, ghosted: false, agitated: false });
     expect(at(-3, "overdue")).toEqual({ t: 1, ghosted: false, agitated: true });
     expect(at(-4, "quiet")).toEqual({ t: 1, ghosted: true, agitated: false });
+  });
+});
+
+describe("build plots — the Stage 6 endgame", () => {
+  it("every reserved plot has exactly one designated monument in the catalog", () => {
+    const plotIds = SPEND_CATALOG.filter((i) => i.monument !== undefined).map(
+      (i) => i.monument?.plotId,
+    );
+    expect(new Set(plotIds).size).toBe(plotIds.length); // one monument per plot
+    expect([...plotIds].sort()).toEqual(RESERVED_PLOTS.map((p) => p.id).sort());
+  });
+
+  it("no economy -> plots unbuilt, unaffordable, influence unknown", () => {
+    const m = buildSceneModel(kingdom(), null);
+    expect(m.influence).toBeNull();
+    expect(m.plots).toHaveLength(RESERVED_PLOTS.length);
+    for (const plot of m.plots) {
+      expect(plot.built).toBe(false);
+      expect(plot.builtAt).toBeNull();
+      expect(plot.affordable).toBe(false);
+      expect(plot.monument).not.toBeNull();
+    }
+  });
+
+  it("unlocks build; spends date the raising; balance sets affordability", () => {
+    const economy: EconomyLite = {
+      balance: 500,
+      unlocks: ["monument-wellspring"],
+      spends: [{ itemId: "monument-wellspring", at: "2026-08-01T12:00:00Z" }],
+    };
+    const m = buildSceneModel(kingdom(), null, false, economy);
+    expect(m.influence).toBe(500);
+    const byId = new Map(m.plots.map((p) => [p.id, p]));
+    const wellspring = byId.get("plot-b");
+    expect(wellspring?.built).toBe(true);
+    expect(wellspring?.builtAt).toBe("2026-08-01T12:00:00Z");
+    const founder = byId.get("plot-a"); // costs 800 > 500
+    expect(founder?.built).toBe(false);
+    expect(founder?.affordable).toBe(false);
+    // The wellspring costs 400 <= 500 — affordable even though already built.
+    expect(wellspring?.affordable).toBe(true);
+  });
+
+  it("plots carry build state even while surveying", () => {
+    const economy: EconomyLite = {
+      balance: 0,
+      unlocks: ["monument-founder"],
+      spends: [{ itemId: "monument-founder", at: "2026-07-01T00:00:00Z" }],
+    };
+    const m = buildSceneModel(kingdom({ surveying: true }), null, true, economy);
+    expect(m.plots.find((p) => p.id === "plot-a")?.built).toBe(true);
   });
 });
 

@@ -58,6 +58,19 @@ merchant (pack + walking staff) · courier (satchel + horn) · official
 (ledger + seal sash) · guard (spear + kite shield) · raider (hood + axe) ·
 guest (cloak + gift box)
 
+## Monuments — 3 frames (Stage 6 build-plots)
+
+Frame names: `monument:<key>`. One frame each — a monument is finished the
+day it is raised. These are the Influence-spend showpieces; make them feel
+EARNED (finer detail than same-size structures is welcome).
+
+- `monument:wellspring` (128×120) — a low octagonal stone fountain on the
+  commons: clear blue water, a slender central jet, worn coping stones.
+- `monument:founder` (128×168) — a bronze statue of a crowned figure on a
+  wide stone pedestal; verdigris accents, laurel at the base.
+- `monument:stargazers` (128×184) — a tall slim observatory tower crowned
+  with a deep-blue dome, a brass telescope barrel just visible at the slit.
+
 ## Tiles & badges (7 frames)
 
 `tile:grass`, `tile:road` (worn dirt, subtle wheel ruts), `tile:water`,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CATALOG_VERSION,
   DEBT_ELIMINATED_INFLUENCE,
   type LedgerEvent,
   computeEndowment,
@@ -128,7 +129,7 @@ describe("purchase and balance", () => {
     if (bought !== null) {
       expect(influenceBalance(bought, fold)).toBe(200);
       expect(bought.unlocks).toEqual(["title-thrifty"]);
-      expect(bought.spends[0]?.catalogVersion).toBe(1);
+      expect(bought.spends[0]?.catalogVersion).toBe(CATALOG_VERSION);
     }
   });
 
@@ -137,6 +138,16 @@ describe("purchase and balance", () => {
     expect(purchase(meta, "nonsense", 500, "t")).toBeNull();
     const owned = purchase(meta, "banner-crimson", 500, "t");
     expect(owned !== null && purchase(owned, "banner-crimson", 500, "t")).toBeNull();
+  });
+
+  it("monuments buy through the same gates as any cosmetic", () => {
+    expect(purchase(meta, "monument-founder", 500, "t")).toBeNull(); // costs 800
+    const built = purchase(meta, "monument-wellspring", 500, "2026-08-05T02:00:00Z");
+    expect(built).not.toBeNull();
+    if (built !== null) {
+      expect(built.unlocks).toEqual(["monument-wellspring"]);
+      expect(purchase(built, "monument-wellspring", 5000, "t")).toBeNull(); // once, ever
+    }
   });
 });
 

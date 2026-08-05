@@ -10,7 +10,7 @@ import Phaser from "phaser";
 import { ROLE_CATALOG, type RoleId, roleFor } from "../model/roads";
 import type { StructureState } from "../model/types";
 import type { VistaPalette } from "./palette";
-import type { PlacedTraveler } from "./sceneModel";
+import type { PlacedTraveler, PlotModel } from "./sceneModel";
 
 const css = (color: number): string => `#${color.toString(16).padStart(6, "0")}`;
 
@@ -275,6 +275,130 @@ export class StewardPanel extends ParchmentPanel {
         style: { fontStyle: "italic" },
       }).height;
     }
+
+    this.finalize();
+  }
+}
+
+/**
+ * Stage 6: the Masons' Yard — a reserved plot's panel. Shows the plot's one
+ * designated monument; an affordable, writable crown may order it raised
+ * (an Influence spend through React's existing CAS purchase path).
+ */
+export class BuildPanel extends ParchmentPanel {
+  constructor(
+    scene: Phaser.Scene,
+    uiLayer: Phaser.GameObjects.Container,
+    plot: PlotModel,
+    influence: number | null,
+    readOnly: boolean,
+    palette: VistaPalette,
+    onBuild: (itemId: string) => void,
+    onClose: () => void,
+  ) {
+    super(scene, uiLayer, palette, onClose);
+    const monument = plot.monument;
+
+    const title = this.text(
+      monument === null ? "🏗  Open ground" : `🏗  ${monument.name}`,
+      18,
+      palette.ink,
+      { style: { fontStyle: "bold" }, width: this.textWidth - 60 },
+    );
+    this.closeLink(onClose);
+    this.y += title.height + 2;
+    this.y += this.text("The Masons' Yard", 11, palette.inkMuted).height + 8;
+
+    this.rule();
+    this.y += 10;
+
+    if (monument === null) {
+      // A plot with no designated monument (newer catalog than this build).
+      this.y +=
+        this.text("The masons hold this ground for a work not yet drawn up.", 14, palette.ink)
+          .height + 10;
+    } else if (plot.built) {
+      this.y += this.text(monument.flavor, 14, palette.ink).height + 10;
+      const raised =
+        plot.builtAt !== null
+          ? `Raised ${new Date(plot.builtAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}.`
+          : "Raised by the crown.";
+      this.y += this.text(raised, 12, palette.inkMuted).height + 6;
+    } else {
+      this.y += this.text(monument.flavor, 14, palette.ink).height + 10;
+
+      const ask = this.text("The masons ask", 12, palette.inkMuted, { width: 200 });
+      this.rightText(`${monument.price.toLocaleString("en-US")} ✨`, 12, palette.ink);
+      this.y += ask.height + 4;
+      const holds = this.text("The crown holds", 12, palette.inkMuted, { width: 200 });
+      this.rightText(
+        influence === null ? "—" : `${influence.toLocaleString("en-US")} ✨`,
+        12,
+        influence !== null && plot.affordable ? TONE_COLORS.good : palette.ink,
+      );
+      this.y += holds.height + 10;
+
+      if (readOnly || influence === null) {
+        this.y +=
+          this.text("The scribes cannot write here — the ledger is sealed.", 12, palette.inkMuted, {
+            style: { fontStyle: "italic" },
+          }).height + 4;
+      } else if (!plot.affordable) {
+        this.y +=
+          this.text("The crown lacks the Influence — deeds will provide.", 12, palette.inkMuted, {
+            style: { fontStyle: "italic" },
+          }).height + 4;
+      } else {
+        // The build order: one bordered button, 44px tap floor, drag-guarded.
+        const btnW = this.textWidth;
+        const btnH = 40;
+        const label = this.scene.add
+          .text(this.pad + btnW / 2, this.y + btnH / 2, "⚒  Raise it", {
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontSize: "14px",
+            fontStyle: "bold",
+            color: css(palette.gold),
+          })
+          .setOrigin(0.5)
+          .setResolution(this.resolution);
+        const box = this.scene.add.graphics();
+        box.lineStyle(1.5, palette.gold, 1);
+        box.strokeRoundedRect(this.pad, this.y, btnW, btnH, 8);
+        box.setInteractive(
+          new Phaser.Geom.Rectangle(this.pad, this.y - 2, btnW, btnH + 4),
+          Phaser.Geom.Rectangle.Contains,
+        );
+        box.on(
+          "pointerup",
+          (
+            p: Phaser.Input.Pointer,
+            _x: unknown,
+            _y: unknown,
+            event: Phaser.Types.Input.EventData,
+          ) => {
+            event.stopPropagation();
+            if (!isDrag(p)) onBuild(monument.itemId);
+          },
+        );
+        this.content.add(box);
+        this.content.add(label);
+        this.y += btnH + 6;
+      }
+    }
+
+    this.y += 6;
+    this.rule();
+    this.y += 8;
+    this.y += this.text(
+      "Influence is earned by deeds, never bought with coin. Monuments are finery for the realm — never power.",
+      11,
+      palette.inkMuted,
+      { style: { fontStyle: "italic" } },
+    ).height;
 
     this.finalize();
   }

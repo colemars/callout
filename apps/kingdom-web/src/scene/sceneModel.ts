@@ -4,6 +4,7 @@
 // clock, fully unit-testable. The Phaser layer is a thin shell over this.
 
 import type { KingdomDelta } from "../model/diff";
+import { SPEND_CATALOG } from "../model/economy";
 import type { RoadsState, RoleId, TravelerState } from "../model/roads";
 import type { KingdomState, StructureKey, StructureState, ThreatKind } from "../model/types";
 import { RESERVED_PLOTS, type RoadId, SLOTS } from "./layout";
@@ -39,12 +40,33 @@ export interface PlacedTraveler {
   state: TravelerState;
 }
 
+/** Stage 6: a reserved plot and its designated monument's build state. */
+export interface PlotModel {
+  id: string;
+  /** The one monument the masons will raise HERE (fixed siting). */
+  monument: { itemId: string; name: string; flavor: string; price: number } | null;
+  built: boolean;
+  /** ISO timestamp of the raising spend — null until built (or unknown). */
+  builtAt: string | null;
+  /** Whether the crown's current Influence covers the asking price. */
+  affordable: boolean;
+}
+
+/** The slice of the economy the vista needs — pure data, no meta machinery. */
+export interface EconomyLite {
+  balance: number;
+  unlocks: readonly string[];
+  spends: ReadonlyArray<{ itemId: string; at: string }>;
+}
+
 export interface SceneModel {
   surveying: boolean;
   ageId: 1 | 2 | 3 | 4;
   structures: PlacedStructure[];
-  /** Slot ids of reserved build plots — always present (Stage 6 endgame). */
-  reservedPlots: string[];
+  /** Reserved build plots with their build state — always present. */
+  plots: PlotModel[];
+  /** The crown's Influence balance — null when the economy is unavailable. */
+  influence: number | null;
   travelers: PlacedTraveler[];
   /** ACTIVE threats only — dormant threats render NOTHING (contract). */
   weather: Partial<Record<ThreatKind, 1 | 2 | 3>>;
@@ -137,12 +159,31 @@ const AMBIENT_BY_BUILDERS: Record<0 | 1 | 2 | 3 | 4 | 5, number> = {
   5: 20,
 };
 
+/** Plots with their designated monuments' build state (Stage 6). */
+function buildPlots(economy: EconomyLite | null): PlotModel[] {
+  return RESERVED_PLOTS.map((plot) => {
+    const item = SPEND_CATALOG.find((i) => i.monument?.plotId === plot.id);
+    if (item === undefined)
+      return { id: plot.id, monument: null, built: false, builtAt: null, affordable: false };
+    const built = economy?.unlocks.includes(item.id) ?? false;
+    return {
+      id: plot.id,
+      monument: { itemId: item.id, name: item.name, flavor: item.flavor, price: item.price },
+      built,
+      builtAt: built ? (economy?.spends.find((s) => s.itemId === item.id)?.at ?? null) : null,
+      affordable: economy !== null && economy.balance >= item.price,
+    };
+  });
+}
+
 export function buildSceneModel(
   kingdom: KingdomState,
   roads: RoadsState | null,
   registryReadOnly = false,
+  economy: EconomyLite | null = null,
 ): SceneModel {
-  const reservedPlots = RESERVED_PLOTS.map((p) => p.id);
+  const plots = buildPlots(economy);
+  const influence = economy?.balance ?? null;
 
   if (kingdom.surveying) {
     // The surveyors have not mapped the realm — terrain and plots only,
@@ -151,7 +192,8 @@ export function buildSceneModel(
       surveying: true,
       ageId: kingdom.age.current,
       structures: [],
-      reservedPlots,
+      plots,
+      influence,
       travelers: [],
       weather: {},
       ambientCount: 0,
@@ -214,7 +256,8 @@ export function buildSceneModel(
     surveying: false,
     ageId: kingdom.age.current,
     structures,
-    reservedPlots,
+    plots,
+    influence,
     travelers: placed.map(({ status: _status, ...rest }) => rest),
     weather,
     ambientCount: AMBIENT_BY_BUILDERS[builders?.level ?? 0],

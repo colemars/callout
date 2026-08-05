@@ -10,6 +10,8 @@ export interface VistaCallbacks {
   onAssignRole(travelerId: string, roleId: RoleId): void;
   /** The crown lets the visitor pass unnamed. */
   onClearRole(travelerId: string): void;
+  /** Stage 6: the crown orders a monument raised (an Influence purchase). */
+  onBuild(itemId: string): void;
   /** First frame is up; the shimmer can drop. */
   onReady(): void;
 }

@@ -54,7 +54,45 @@ const DEMO: SceneModel = {
       ...flags,
     },
   })),
-  reservedPlots: ["plot-a", "plot-b", "plot-c"],
+  plots: [
+    {
+      id: "plot-a",
+      monument: {
+        itemId: "monument-founder",
+        name: "Statue of the Founder",
+        flavor: "The crown that first raised these walls, cast in bronze.",
+        price: 800,
+      },
+      built: false,
+      builtAt: null,
+      affordable: true,
+    },
+    {
+      id: "plot-b",
+      monument: {
+        itemId: "monument-wellspring",
+        name: "The Wellspring",
+        flavor: "A fountain on the commons — clear water, freely given.",
+        price: 400,
+      },
+      built: true,
+      builtAt: "2026-08-01T12:00:00Z",
+      affordable: true,
+    },
+    {
+      id: "plot-c",
+      monument: {
+        itemId: "monument-stargazers",
+        name: "The Stargazers' Tower",
+        flavor: "From its dome the court reads the heavens — and the ledgers.",
+        price: 1500,
+      },
+      built: false,
+      builtAt: null,
+      affordable: false,
+    },
+  ],
+  influence: 950,
   travelers: [
     {
       id: "merchant:NETFLIX",
@@ -172,6 +210,7 @@ export default function VistaDemo() {
         replay={reel}
         onAssignRole={(id, role) => setAction(`assign ${role} to ${id}`)}
         onClearRole={(id) => setAction(`clear ${id}`)}
+        onBuild={(itemId) => setAction(`build ${itemId}`)}
         onFail={() => setAction("BOOT FAILED")}
       />
       <button
