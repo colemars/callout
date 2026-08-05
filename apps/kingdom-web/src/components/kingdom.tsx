@@ -202,12 +202,15 @@ export function ThreatCards({
             </p>
             <p className="mt-1">{t.narrative}</p>
             {t.causes.length > 0 && (
-              <ul className={`mt-1 text-xs ${muted}`}>
+              <ul className={`mt-1 flex flex-col gap-0.5 text-xs ${muted}`}>
                 {t.causes.map((c) => (
-                  <li key={c.label}>
-                    {c.label}
-                    {c.amount &&
-                      ` — ${(Math.abs(c.amount.amountMinor) / 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}`}
+                  <li key={c.label} className="flex justify-between gap-4">
+                    <span className="min-w-0">{c.label}</span>
+                    {c.amount && (
+                      <span className="shrink-0 tabular-nums">
+                        {fmtUsd(Math.abs(c.amount.amountMinor))}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

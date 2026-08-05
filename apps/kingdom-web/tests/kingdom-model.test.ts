@@ -41,7 +41,8 @@ describe("kingdomModel on the day-one sandbox (the sanity story)", () => {
     const active = state.threats.filter((t) => t.active);
     expect(active.map((t) => t.kind)).toEqual(["bandits"]);
     expect(active[0]?.severity).toBe(2);
-    expect(active[0]?.causes.map((c) => c.amount?.amountMinor)).toEqual([410_00, 5_020_00]);
+    // Largest hoard first — the raiders' ledger is sorted, not bank-ordered.
+    expect(active[0]?.causes.map((c) => c.amount?.amountMinor)).toEqual([5_020_00, 410_00]);
     // The $500 United txn is travel — never a castle fire.
     expect(state.threats.find((t) => t.kind === "fire")?.active).toBe(false);
     expect(state.threats.find((t) => t.kind === "winter")?.dormantReason).toBe("no-data");

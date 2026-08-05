@@ -120,23 +120,26 @@ describe("the raiders' toll (bank-reported APRs)", () => {
     today: "2026-08-15",
   });
 
-  it("sums balance × APR ÷ 12 for known rates and counts the hidden", () => {
+  it("sums balance × APR ÷ 12 for known rates; hidden rates just show no rate", () => {
     const input = withMetrics(
       [
         card("a", 2_000_000, { apr: 24 }), // $20,000 at 24% -> $400/mo
         card("b", 1_000_000, { apr: 30 }), // $10,000 at 30% -> $250/mo
         card("c", 500_000), // rate hidden
+        card("zero", 0, { apr: 20 }), // paid off — not part of the raid
       ],
       3_500_000,
     );
     const bandits = computeThreats(input).find((t) => t.kind === "bandits");
     expect(bandits?.narrative).toContain("Each moon they take ≈ $650.00 in interest");
-    expect(bandits?.narrative).toContain("1 card keeps its rate hidden");
+    expect(bandits?.narrative).not.toContain("hidden"); // no meta-nag in the fiction
     expect(bandits?.basis).toContain("bank-reported APRs");
-    // Per-card toll line rides on the cause label.
-    expect(bandits?.causes.find((c) => c.label.includes("Card a"))?.label).toContain(
-      "at 24% ≈ $400.00/moon",
-    );
+    // One line per raiding card, largest hoard first; toll on the card's line.
+    const labels = bandits?.causes.map((c) => c.label) ?? [];
+    expect(labels[0]).toContain("Card a");
+    expect(labels[0]).toContain("24% ≈ $400.00/moon");
+    expect(labels[2]).toBe("Test Bank Card c"); // no rate part — silence, not a guess
+    expect(labels.some((l) => l.includes("Card zero"))).toBe(false);
   });
 
   it("claims no toll number when every rate is hidden — silence over false comfort", () => {
@@ -147,7 +150,7 @@ describe("the raiders' toll (bank-reported APRs)", () => {
     expect(bandits?.basis).toBe("high-interest debt (credit balances)");
   });
 
-  it("warns of tribute due within a week and overdue tribute", () => {
+  it("folds due-soon and overdue tribute onto the card's own line", () => {
     const input = withMetrics(
       [
         card("due", 100_000, { apr: 20, nextDueDate: "2026-08-18", minPayment: usd(4_000) }),
@@ -158,8 +161,10 @@ describe("the raiders' toll (bank-reported APRs)", () => {
     );
     const bandits = computeThreats(input).find((t) => t.kind === "bandits");
     const labels = bandits?.causes.map((c) => c.label) ?? [];
-    expect(labels.some((l) => l.includes("tribute demanded in 3 days"))).toBe(true);
-    expect(labels.some((l) => l.includes("tribute OVERDUE"))).toBe(true);
-    expect(labels.some((l) => l.includes("Card far") && l.includes("tribute"))).toBe(false);
+    expect(labels.find((l) => l.includes("Card due"))).toContain("tribute in 3 days");
+    expect(labels.find((l) => l.includes("Card late"))).toContain("⚠ tribute OVERDUE");
+    expect(labels.find((l) => l.includes("Card far"))).not.toContain("tribute");
+    // Exactly one line per card — no separate tribute entries.
+    expect(labels).toHaveLength(3);
   });
 });

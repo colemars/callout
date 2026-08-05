@@ -89,56 +89,52 @@ export function computeThreats(input: KingdomInput): ThreatState[] {
   if (highInterest > 0) {
     const severity: Severity = highInterest < 1_000_00 ? 1 : highInterest < 10_000_00 ? 2 : 3;
     // The raiders' toll: real APR × balance for cards the bank reported a rate
-    // for. Cards without a reported rate are counted, never guessed at.
-    const { tollMinor, hiddenCount } = banditToll(input.accounts);
+    // for. Cards without a reported rate simply show no rate — never a guess.
+    const { tollMinor } = banditToll(input.accounts);
+    // One line per raiding card, largest hoard first: rate, toll, trend, and
+    // any looming tribute all ride on the card's own line.
     const causes = (input.metrics?.debtTrajectory ?? [])
       .filter((d) => {
         const account = input.accounts.find((a) => a.id === d.accountId);
-        return account !== undefined && classifyAccount(account) === "credit";
+        return (
+          account !== undefined &&
+          classifyAccount(account) === "credit" &&
+          d.currentBalance.amountMinor > 0
+        );
       })
+      .sort((a, b) => b.currentBalance.amountMinor - a.currentBalance.amountMinor)
       .map((d) => {
         const account = input.accounts.find((a) => a.id === d.accountId);
+        const parts: string[] = [];
         const apr = account?.apr;
-        const cardToll =
-          apr === undefined || d.currentBalance.amountMinor <= 0
-            ? ""
-            : ` at ${apr}% ≈ ${fmtMinor(Math.round((d.currentBalance.amountMinor * apr) / 100 / 12))}/moon`;
+        if (apr !== undefined) {
+          parts.push(
+            `${apr}% ≈ ${fmtMinor(Math.round((d.currentBalance.amountMinor * apr) / 100 / 12))}/moon`,
+          );
+        }
+        if (d.delta30d !== null) {
+          parts.push(d.delta30d.amountMinor > 0 ? "growing" : "shrinking");
+        }
+        const due =
+          account?.nextDueDate === undefined ? null : daysUntil(input.today, account.nextDueDate);
+        if (account?.isOverdue === true) parts.push("⚠ tribute OVERDUE");
+        else if (due !== null && due >= 0 && due <= 7)
+          parts.push(`tribute in ${due} day${due === 1 ? "" : "s"}`);
         return {
-          label: `${d.institution} ${d.name}${cardToll}${
-            d.delta30d === null ? "" : d.delta30d.amountMinor > 0 ? " — growing" : " — shrinking"
-          }`,
+          label: `${d.institution} ${d.name}${parts.length > 0 ? ` · ${parts.join(" · ")}` : ""}`,
           amount: d.currentBalance,
         };
       });
-    for (const a of input.accounts) {
-      if (classifyAccount(a) !== "credit" || a.balance.amountMinor <= 0) continue;
-      const due = a.nextDueDate === undefined ? null : daysUntil(input.today, a.nextDueDate);
-      if (a.isOverdue === true) {
-        causes.push({
-          label: `⚠ tribute OVERDUE — ${a.institution} ${a.name}`,
-          amount: a.minPayment ?? { amountMinor: 0, currency: "USD" },
-        });
-      } else if (due !== null && due >= 0 && due <= 7) {
-        causes.push({
-          label: `tribute demanded in ${due} day${due === 1 ? "" : "s"} — ${a.institution} ${a.name}`,
-          amount: a.minPayment ?? { amountMinor: 0, currency: "USD" },
-        });
-      }
-    }
     const tollLine =
       tollMinor > 0
         ? ` Each moon they take ≈ ${fmtMinor(tollMinor)} in interest.`
         : " Each moon they take their toll in interest.";
-    const hiddenLine =
-      hiddenCount > 0
-        ? ` ${hiddenCount} card${hiddenCount === 1 ? " keeps its rate" : "s keep their rates"} hidden — renew their oath in the Counting House to reveal them.`
-        : "";
     threats.push({
       kind: "bandits",
       active: true,
       severity,
       title: "Bandits raid the countryside",
-      narrative: `Raiders hold ${fmtMinor(highInterest)} of the realm's coin.${tollLine}${hiddenLine} Drive them out and the roads grow safe for merchants.`,
+      narrative: `Raiders hold ${fmtMinor(highInterest)} of the realm's coin.${tollLine} Drive them out and the roads grow safe for merchants.`,
       causes,
       basis:
         tollMinor > 0
