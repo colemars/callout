@@ -137,3 +137,18 @@ export function monthName(isoMonth: string): string {
   const m = /^\d{4}-(\d{2})/.exec(isoMonth);
   return m === null ? isoMonth : (MONTH_NAMES[Number(m[1]) - 1] ?? isoMonth);
 }
+
+/** Whole days from today to a date (negative = past); null on unparseable input. */
+export function daysUntil(todayIso: string, dateIso: string): number | null {
+  const today = Date.parse(todayIso);
+  const date = Date.parse(dateIso);
+  if (Number.isNaN(today) || Number.isNaN(date)) return null;
+  return Math.round((date - today) / 86_400_000);
+}
+
+/** ISO date + N days, UTC — no clock reads, no DST. */
+export function plusDays(dateIso: string, days: number): string {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}

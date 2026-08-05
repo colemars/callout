@@ -23,6 +23,9 @@ export interface EngineConfig {
   readonly recurringMaxGapDays: number;
   readonly recurringStddevPctOfAvg: number;
   readonly recurringStddevFloorMinor: number;
+  /** Recurring-income gap window — the floor admits biweekly payroll. */
+  readonly recurringIncomeMinGapDays: number;
+  readonly recurringIncomeMaxGapDays: number;
   /** Account kinds counted as high-interest debt. */
   readonly highInterestKinds: readonly ("credit" | "loan")[];
   /** Minimum change in high-interest debt (minor units) worth an event. */
@@ -52,6 +55,8 @@ export const defaultEngineConfig: EngineConfig = {
   recurringMaxGapDays: 35,
   recurringStddevPctOfAvg: 0.15,
   recurringStddevFloorMinor: 2_00,
+  recurringIncomeMinGapDays: 10,
+  recurringIncomeMaxGapDays: 35,
   highInterestKinds: ["credit"],
   debtDeltaThresholdMinor: 100_00,
   runwayChangeThresholdMonths: 0.5,

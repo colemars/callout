@@ -3,6 +3,7 @@ import {
   FEAST_CATEGORIES,
   categorySum,
   classifyAccount,
+  daysUntil,
   fmtMinor,
   incomeEstimate,
   lifestyleShare,
@@ -79,13 +80,6 @@ export function banditToll(accounts: readonly KingdomInput["accounts"][number][]
     tollMinor += Math.round((a.balance.amountMinor * apr) / 100 / 12);
   }
   return { tollMinor, assumedCount };
-}
-
-function daysUntil(todayIso: string, dateIso: string): number | null {
-  const today = Date.parse(todayIso);
-  const date = Date.parse(dateIso);
-  if (Number.isNaN(today) || Number.isNaN(date)) return null;
-  return Math.round((date - today) / 86_400_000);
 }
 
 export function computeThreats(input: KingdomInput): ThreatState[] {

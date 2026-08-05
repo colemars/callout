@@ -12,7 +12,7 @@
 //   re-derived. Expiry carries no penalty. Active quests survive the weekly
 //   regeneration; resolved ones chronicle briefly, then compact.
 
-import { monthName } from "./derive";
+import { monthName, plusDays } from "./derive";
 import type { KingdomMeta, LedgerEvent } from "./economy";
 import type { KingdomMetrics } from "./types";
 
@@ -275,12 +275,6 @@ export interface CouncilAdvance {
   grants: { questId: string; influence: number; at: string }[];
   changed: boolean;
 }
-
-const plusDays = (dateIso: string, days: number): string => {
-  const d = new Date(`${dateIso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-};
 
 /**
  * One pure council turn: judge active quests (fulfill or lapse), roll the

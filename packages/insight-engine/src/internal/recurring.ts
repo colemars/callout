@@ -4,17 +4,20 @@ import type { EngineConfig } from "../config.js";
 import type { RecurringCandidate } from "../metrics.js";
 
 /**
- * Ported from v_recurring_candidates: merchants appearing >= minHits times at
- * roughly monthly spacing with similar amounts (sample stddev under
- * max(pct-of-average, floor)).
+ * Core recurrence detection, parameterized by flow direction and gap window:
+ * merchants appearing >= minHits times at roughly regular spacing with
+ * similar amounts (sample stddev under max(pct-of-average, floor)).
  */
-export function detectRecurring(
+function detect(
   transactions: readonly Transaction[],
   config: EngineConfig,
+  keep: (t: Transaction) => boolean,
+  minGapDays: number,
+  maxGapDays: number,
 ): RecurringCandidate[] {
   const byMerchant = new Map<string, Transaction[]>();
   for (const t of transactions) {
-    if (t.pending || t.amount.amountMinor >= 0 || t.merchant === undefined) continue;
+    if (t.pending || t.merchant === undefined || !keep(t)) continue;
     const list = byMerchant.get(t.merchant);
     if (list) {
       list.push(t);
@@ -44,7 +47,7 @@ export function detectRecurring(
     const lastSeen = dates[dates.length - 1];
     if (firstSeen === undefined || lastSeen === undefined) continue;
     const gap = daysBetween(firstSeen, lastSeen) / (hits - 1);
-    if (gap < config.recurringMinGapDays || gap > config.recurringMaxGapDays) continue;
+    if (gap < minGapDays || gap > maxGapDays) continue;
 
     candidates.push({
       merchant,
@@ -57,4 +60,40 @@ export function detectRecurring(
   }
 
   return candidates.sort((a, b) => a.merchant.localeCompare(b.merchant));
+}
+
+/**
+ * Ported from v_recurring_candidates: recurring EXPENSES at roughly monthly
+ * spacing. This feeds RECURRING_EXPENSE_ADDED/REMOVED event derivation —
+ * its behavior must not drift.
+ */
+export function detectRecurring(
+  transactions: readonly Transaction[],
+  config: EngineConfig,
+): RecurringCandidate[] {
+  return detect(
+    transactions,
+    config,
+    (t) => t.amount.amountMinor < 0,
+    config.recurringMinGapDays,
+    config.recurringMaxGapDays,
+  );
+}
+
+/**
+ * Recurring INCOME (payroll, regular deposits): inflows only, with a wider
+ * gap window whose floor admits biweekly pay. Display-only — this feeds no
+ * event derivation; the ledger's recurring events stay expense-scoped.
+ */
+export function detectRecurringIncome(
+  transactions: readonly Transaction[],
+  config: EngineConfig,
+): RecurringCandidate[] {
+  return detect(
+    transactions,
+    config,
+    (t) => t.amount.amountMinor > 0 && t.category === "income",
+    config.recurringIncomeMinGapDays,
+    config.recurringIncomeMaxGapDays,
+  );
 }

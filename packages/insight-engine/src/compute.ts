@@ -5,7 +5,7 @@ import { computeBudgetStatus } from "./internal/budget.js";
 import { computeDebtTrajectory, totalHighInterestDebt } from "./internal/debt.js";
 import { computeGoalStatuses } from "./internal/goals.js";
 import { summarizeInvestments } from "./internal/investments.js";
-import { detectRecurring } from "./internal/recurring.js";
+import { detectRecurring, detectRecurringIncome } from "./internal/recurring.js";
 import { computeRunwayMonths, lastFullMonths } from "./internal/runway.js";
 import { summarizeMonth } from "./internal/spending.js";
 import type { MetricSet } from "./metrics.js";
@@ -43,6 +43,7 @@ export function computeMetrics(
     debtTrajectory: computeDebtTrajectory(state.accounts, state.snapshots, asOf),
     totalHighInterestDebt: totalHighInterestDebt(state.accounts, config),
     recurringCandidates: detectRecurring(state.transactions, config),
+    incomeCandidates: detectRecurringIncome(state.transactions, config),
     goalStatuses: computeGoalStatuses(
       state.goals,
       state.accounts,

@@ -5,6 +5,7 @@ import {
   META_SCHEMA_VERSION,
   foundMeta,
 } from "../model/economy";
+import { carryRegistryAcrossFlee } from "../model/roads";
 import type { KingdomMetrics } from "../model/types";
 
 type ApiClient = ProductClients["api"];
@@ -174,8 +175,13 @@ export async function fleeKingdom(
   const events = await fetchEventsSince(api, loaded.meta.epoch.epochSeq);
   const newest =
     events.length > 0 ? Math.max(...events.map((e) => e.seq)) : loaded.meta.epoch.epochSeq;
+  // The council, spends, and unlocks die with the old crown; the Road
+  // Registry does not — naming your visitors is taste, not reign progress.
   const result = await updateMeta(api, loaded, (meta) =>
-    foundMeta(newest, metrics, new Date().toISOString(), meta.epoch.fleeCount + 1),
+    carryRegistryAcrossFlee(
+      meta,
+      foundMeta(newest, metrics, new Date().toISOString(), meta.epoch.fleeCount + 1),
+    ),
   );
   if (result === null) return null;
   // Clear the last-seen baseline too: a fresh reign has no replay wall.

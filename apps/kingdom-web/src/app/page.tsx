@@ -14,6 +14,7 @@ import {
   StructureGrid,
   ThreatCards,
 } from "../components/kingdom";
+import { TheRoads } from "../components/roads";
 import { clients, supabase } from "../lib/clients";
 import {
   type LoadedMeta,
@@ -41,6 +42,13 @@ import {
   purchase,
 } from "../model/economy";
 import { kingdomModel } from "../model/kingdomModel";
+import {
+  type KingdomMetaWithRoads,
+  type RoleId,
+  assignRole,
+  clearRole,
+  computeRoads,
+} from "../model/roads";
 
 /** Away this long, the crown is offered a fresh start alongside the replay. */
 const FLEE_OFFER_GAP_MS = 60 * 24 * 60 * 60 * 1000;
@@ -63,6 +71,19 @@ export default function ThroneRoom() {
   const kingdom = useMemo(
     () => (state.status === "ready" ? kingdomModel(state.input, translate) : null),
     [state],
+  );
+
+  // The roads render with default roles even when the economy record failed
+  // to load — naming is disabled then, but the traffic itself is real data.
+  const roads = useMemo(
+    () =>
+      state.status === "ready"
+        ? computeRoads(
+            state.input,
+            (economy?.meta as KingdomMetaWithRoads | undefined)?.roadRegistry,
+          )
+        : null,
+    [state, economy],
   );
 
   // "While you were away": diff against the server-held baseline (the state
@@ -215,6 +236,34 @@ export default function ThroneRoom() {
     }
   }
 
+  async function handleAssignRole(travelerId: string, roleId: RoleId) {
+    if (economy === null || busy) return;
+    setBusy(true);
+    try {
+      const result = await updateMeta(clients.api, economy.loaded, (m) =>
+        assignRole(m, travelerId, roleId),
+      );
+      if (result !== null) {
+        setEconomy({ ...economy, loaded: result, meta: result.meta, readOnly: false });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleClearRole(travelerId: string) {
+    if (economy === null || busy) return;
+    setBusy(true);
+    try {
+      const result = await updateMeta(clients.api, economy.loaded, (m) => clearRole(m, travelerId));
+      if (result !== null) {
+        setEconomy({ ...economy, loaded: result, meta: result.meta, readOnly: false });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -348,6 +397,15 @@ export default function ThroneRoom() {
       <ResourceBars resources={kingdom.resources} />
       <ThreatCards threats={kingdom.threats} transactions={state.input.transactions} />
       <MoatMeter moat={kingdom.moat} />
+      {roads !== null && (
+        <TheRoads
+          roads={roads}
+          onAssign={handleAssignRole}
+          onClear={handleClearRole}
+          busy={busy}
+          readOnly={economy === null || economy.readOnly}
+        />
+      )}
       {economy !== null &&
         (() => {
           const council = (economy.meta as KingdomMetaWithCouncil).council;

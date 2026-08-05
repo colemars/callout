@@ -93,6 +93,11 @@ export interface MetricSet {
   /** Sum of balances across active accounts of the configured high-interest kinds. */
   readonly totalHighInterestDebt: Money;
   readonly recurringCandidates: readonly RecurringCandidate[];
+  /**
+   * Recurring income (payroll, regular deposits) — display-only: never feeds
+   * event derivation; the ledger's recurring events stay expense-scoped.
+   */
+  readonly incomeCandidates: readonly RecurringCandidate[];
   readonly goalStatuses: readonly GoalStatus[];
   /** Liquid balance ÷ average monthly essential spend; null when not computable. */
   readonly emergencyRunwayMonths: number | null;

@@ -72,6 +72,8 @@ export interface MetricsView {
   budgetStatus?: BudgetStatus[];
   debtTrajectory?: DebtEntry[];
   recurringCandidates?: RecurringCandidate[];
+  /** Recurring income (payroll, regular deposits) — display-only. */
+  incomeCandidates?: RecurringCandidate[];
   totalHighInterestDebt?: ApiMoney;
   emergencyRunwayMonths?: number | null;
   mtd?: { netCashFlow: ApiMoney; totalSpending: ApiMoney };
