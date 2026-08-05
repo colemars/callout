@@ -182,6 +182,57 @@ describe("advanceCouncil", () => {
   });
 });
 
+describe("review regressions", () => {
+  it("an advisor with an active quest stays silent in the new week's slate", () => {
+    const first = advanceCouncil(undefined, "2026-W32", metrics, [], "2026-08-05", new Set());
+    const backed = backProposal(first.council, "2026-W32:captain", 0, "2026-08-05") as CouncilState;
+    const next = advanceCouncil(backed, "2026-W33", metrics, [], "2026-08-12", new Set());
+    expect(next.council.active.map((q) => q.advisor)).toEqual(["captain"]);
+    expect(next.council.proposals.some((p) => p.advisor === "captain")).toBe(false);
+    expect(next.council.proposals.length).toBeGreaterThan(0); // others still speak
+  });
+
+  it("evidence dated after expiry proves nothing", () => {
+    const first = advanceCouncil(undefined, "2026-W32", metrics, [], "2026-08-05", new Set());
+    const backed = backProposal(first.council, "2026-W32:captain", 0, "2026-08-05") as CouncilState;
+    // Paydown occurs months after the 28-day term ended.
+    const late: LedgerEvent = {
+      seq: 999,
+      type: "HIGH_INTEREST_DEBT_DECREASED",
+      occurredOn: "2026-12-01",
+      payload: { delta: m(500_00) },
+    };
+    const judged = advanceCouncil(backed, "2026-W49", metrics, [late], "2026-12-02", new Set());
+    expect(judged.grants).toEqual([]);
+    expect(judged.council.resolved[0]?.outcome).toBe("lapsed");
+  });
+
+  it("an expired runway quest lapses even if live runway now meets the target", () => {
+    const first = advanceCouncil(undefined, "2026-W32", metrics, [], "2026-08-05", new Set());
+    const backed = backProposal(
+      first.council,
+      "2026-W32:treasurer",
+      0,
+      "2026-08-05",
+    ) as CouncilState;
+    const richNow = { ...metrics, emergencyRunwayMonths: 8 } as unknown as KingdomMetrics;
+    const judged = advanceCouncil(backed, "2026-W49", richNow, [], "2026-12-02", new Set());
+    expect(judged.grants).toEqual([]);
+    expect(judged.council.resolved[0]?.outcome).toBe("lapsed");
+    // ...but within the term, the same reading fulfills.
+    const inTime = advanceCouncil(backed, "2026-W32", richNow, [], "2026-08-20", new Set());
+    expect(inTime.council.resolved[0]?.outcome).toBe("fulfilled");
+  });
+
+  it("a null-metrics open in a new week keeps the stored slate", () => {
+    const first = advanceCouncil(undefined, "2026-W32", metrics, [], "2026-08-05", new Set());
+    const blind = advanceCouncil(first.council, "2026-W33", null, [], "2026-08-12", new Set());
+    expect(blind.changed).toBe(false);
+    expect(blind.council.proposals).toEqual(first.council.proposals);
+    expect(blind.council.week).toBe("2026-W32"); // rolls later, WITH metrics
+  });
+});
+
 describe("backProposal", () => {
   it("pins the baseline and removes the proposal; unknown ids refuse", () => {
     const first = advanceCouncil(undefined, "2026-W32", metrics, [], "2026-08-05", new Set());

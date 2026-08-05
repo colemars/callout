@@ -120,6 +120,9 @@ export default function ThroneRoom() {
               today,
               new Set(mc.questGrants.map((g) => g.questId)),
             );
+            // A CAS retry may find another device already advanced — no
+            // change means no write.
+            if (!a.changed) return null;
             return {
               ...mc,
               council: a.council,

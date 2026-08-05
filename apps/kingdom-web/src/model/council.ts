@@ -208,13 +208,18 @@ export interface OracleReading {
   progress: string;
 }
 
-/** Judge a backed quest against live metrics and its ledger window. */
+/**
+ * Judge a backed quest against live metrics and its ledger window. The
+ * window is bounded on BOTH ends: after the pinned baseline, and dated
+ * within the quest's term — evidence from after expiry proves nothing about
+ * the quest, however late it is discovered.
+ */
 export function readOracle(
   quest: Quest,
   metrics: KingdomMetrics | null,
   events: readonly LedgerEvent[],
 ): OracleReading {
-  const window = events.filter((e) => e.seq > quest.baselineSeq);
+  const window = events.filter((e) => e.seq > quest.baselineSeq && e.occurredOn <= quest.expiresOn);
   switch (quest.oracle.kind) {
     case "debt_paydown": {
       // Only unflagged decreases count — an unlinked card proves nothing.
@@ -297,7 +302,13 @@ export function advanceCouncil(
 
   for (const quest of base.active) {
     const reading = readOracle(quest, metrics, events);
-    if (reading.done) {
+    const expired = todayIso > quest.expiresOn;
+    // Ledger oracles carry dated evidence, so a fulfillment discovered after
+    // expiry still counts (readOracle bounds the window to the term). The
+    // runway oracle judges LIVE metrics — undated — so once expired it can
+    // only lapse.
+    const fulfilled = reading.done && !(expired && quest.oracle.kind === "runway_reach");
+    if (fulfilled) {
       newlyResolved.push({
         id: quest.id,
         advisor: quest.advisor,
@@ -309,7 +320,7 @@ export function advanceCouncil(
       if (!grantedIds.has(quest.id)) {
         grants.push({ questId: quest.id, influence: quest.reward, at: todayIso });
       }
-    } else if (todayIso > quest.expiresOn) {
+    } else if (expired) {
       newlyResolved.push({
         id: quest.id,
         advisor: quest.advisor,
@@ -323,14 +334,22 @@ export function advanceCouncil(
     }
   }
 
-  const weekRolled = base.week !== week;
+  // The week rolls only with metrics in hand — a briefly-unmeasured open in
+  // a new week must not replace the stored slate with silence.
+  const weekRolled = base.week !== week && metrics !== null;
   const resolved = [...newlyResolved, ...base.resolved]
     .filter((r) => plusDays(r.on, RESOLVED_KEEP_DAYS) >= todayIso)
     .slice(0, RESOLVED_KEEP);
 
   const next: CouncilState = {
-    week,
-    proposals: weekRolled ? generateProposals(week, metrics) : base.proposals,
+    week: weekRolled ? week : base.week,
+    // An advisor whose earlier quest is still running stays silent: one
+    // behavior must never fulfill two overlapping charges.
+    proposals: weekRolled
+      ? generateProposals(week, metrics).filter(
+          (p) => !stillActive.some((q) => q.advisor === p.advisor),
+        )
+      : base.proposals,
     active: stillActive,
     resolved,
   };
