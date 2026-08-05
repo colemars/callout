@@ -247,6 +247,11 @@ async function syncConnection(
       liabilities = "ok";
       liabilitiesGrant = "ok";
       liabilityCount = upserts.length;
+      // Provider returned records we couldn't attach to an account — surface
+      // it so an id-mismatch is distinguishable from "data not ready yet".
+      if (rows.length > 0 && upserts.length === 0) {
+        liabilitiesMessage = `liabilities: ${rows.length} record(s) for unmatched accounts`;
+      }
     } catch (error) {
       if (error instanceof PlaidError && error.code === "ADDITIONAL_CONSENT_REQUIRED") {
         // A re-link CAN grant this — remembered so the UI can offer it.
