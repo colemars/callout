@@ -8,6 +8,15 @@
 import Phaser from "phaser";
 import type { StructureState } from "../model/types";
 import type { VistaCallbacks } from "./bridge";
+import {
+  type CameraState,
+  clampState,
+  fitZoom,
+  homeState,
+  isHome,
+  panBy,
+  zoomAtPoint,
+} from "./cameraMath";
 import { GATE, RESERVED_PLOTS, ROADS, SLOTS, isoToScreen, mapBounds, pathPoint } from "./layout";
 import { TONE_TINT, type VistaPalette } from "./palette";
 import { BuildPanel, RegistryPanel, StewardPanel } from "./panels";
@@ -46,6 +55,18 @@ export class VistaScene extends Phaser.Scene {
   private replayTimers: Phaser.Time.TimerEvent[] = [];
   private pendingReplay: ReplayMoment[] | null = null;
 
+  // Stage 7: the living camera. Pose math lives in cameraMath.ts (pure).
+  private camState: CameraState = homeState(mapBounds());
+  private expanded = false;
+  private cameraTween: Phaser.Tweens.Tween | null = null;
+  private wasHome = true;
+  /** The reel may fly the camera — until the user's first gesture. */
+  private reelFlights = false;
+  private dragLast: { x: number; y: number } | null = null;
+  private pinch: { lastDist: number; lastMid: { x: number; y: number } } | null = null;
+  /** A pinch poisons the tap that ends it — no panel should open. */
+  private tapBlocked = false;
+
   constructor() {
     super("vista");
   }
@@ -76,6 +97,7 @@ export class VistaScene extends Phaser.Scene {
     this.drawTerrain();
     this.syncViewports();
     this.scale.on("resize", () => this.syncViewports());
+    this.setupCameraGestures();
 
     if (this.pendingModel !== null) this.applyModel(this.pendingModel);
     this.pendingModel = null;
@@ -108,8 +130,17 @@ export class VistaScene extends Phaser.Scene {
       return;
     }
     for (const timer of this.replayTimers) timer.remove();
+    // Stage 7: the reel borrows the camera — until the user's first gesture.
+    this.reelFlights = true;
     this.replayTimers = moments.map((moment, i) =>
       this.time.delayedCall(600 + i * 2000, () => this.playMoment(moment)),
+    );
+    // After the last moment has played and held, fly home.
+    this.replayTimers.push(
+      this.time.delayedCall(600 + moments.length * 2000, () => {
+        if (this.reelFlights) this.resetCamera(true);
+        this.reelFlights = false;
+      }),
     );
   }
 
@@ -152,6 +183,10 @@ export class VistaScene extends Phaser.Scene {
     if (moment.at !== "sky") {
       const slot = SLOTS[moment.at];
       const pos = isoToScreen(slot.tx + slot.w / 2, slot.ty + slot.h / 2);
+      // Stage 7: fly to the action (unless the user has taken the camera).
+      if (this.reelFlights) {
+        this.flyTo({ zoomFactor: 1.8, centerX: pos.x, centerY: pos.y - 40 }, 500);
+      }
       this.burstAt(pos.x, pos.y - 40, moment.tone === "bad" ? 0xef4444 : 0xf59e0b);
       const sprite = this.structureSprites.get(moment.at);
       if (sprite !== undefined) {
@@ -164,6 +199,9 @@ export class VistaScene extends Phaser.Scene {
           ease: "Sine.easeInOut",
         });
       }
+    } else if (this.reelFlights) {
+      // Realm-wide news reads best from the full framing.
+      this.resetCamera(true);
     }
   }
 
@@ -206,7 +244,9 @@ export class VistaScene extends Phaser.Scene {
   private syncViewports(): void {
     this.cameras.main.setSize(this.scale.width, this.scale.height);
     this.uiCamera.setSize(this.scale.width, this.scale.height);
-    this.fitWorldCamera();
+    // Re-clamp the pose against the fresh viewport (the fit zoom moved).
+    this.camState = clampState(this.camState, this.viewport(), mapBounds());
+    this.applyCamera();
     // Re-lay the panel only on WIDTH changes: phones fire height-only
     // resizes when the browser chrome collapses mid-scroll, and slamming
     // the report shut on scroll is hostile.
@@ -216,14 +256,184 @@ export class VistaScene extends Phaser.Scene {
     this.lastViewportWidth = this.scale.width;
   }
 
-  private fitWorldCamera(): void {
+  // -------------------------------------------------------------------------
+  // Stage 7: the living camera — pan, pinch, wheel, flights. The pose is a
+  // CameraState (pure math in cameraMath.ts); this section only applies it
+  // and translates input into it. User gestures always beat automation.
+  // -------------------------------------------------------------------------
+
+  private viewport(): { width: number; height: number } {
+    return { width: this.scale.width, height: this.scale.height };
+  }
+
+  private applyCamera(): void {
     if (this.scale.width < 50 || this.scale.height < 40) return; // not laid out yet
-    const b = mapBounds();
-    const bw = b.maxX - b.minX;
-    const bh = b.maxY - b.minY;
-    const zoom = Math.min(this.scale.width / bw, this.scale.height / bh) * 0.96;
+    const zoom = fitZoom(this.viewport(), mapBounds()) * this.camState.zoomFactor;
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(b.minX + bw / 2, b.minY + bh / 2);
+    this.cameras.main.centerOn(this.camState.centerX, this.camState.centerY);
+    const home = isHome(this.camState);
+    if (home !== this.wasHome) {
+      this.wasHome = home;
+      this.callbacks.onCameraHome(home);
+    }
+  }
+
+  /** Expanded mode frees plain-wheel zoom; inline requires Ctrl/⌘ (maps convention). */
+  setExpanded(expanded: boolean): void {
+    this.expanded = expanded;
+  }
+
+  /** Animate back to the full-map home pose. */
+  resetCamera(animated = true): void {
+    this.flyTo(homeState(mapBounds()), animated ? 450 : 0);
+  }
+
+  private stopCameraTween(): void {
+    this.cameraTween?.stop();
+    this.cameraTween = null;
+  }
+
+  /** A user gesture: kill automated motion, the reel loses the camera. */
+  private userGesture(): void {
+    this.stopCameraTween();
+    this.reelFlights = false;
+  }
+
+  private flyTo(target: CameraState, ms: number): void {
+    this.stopCameraTween();
+    const to = clampState(target, this.viewport(), mapBounds());
+    if (ms <= 0) {
+      this.camState = to;
+      this.applyCamera();
+      return;
+    }
+    const from = { ...this.camState };
+    const proxy = { t: 0 };
+    this.cameraTween = this.tweens.add({
+      targets: proxy,
+      t: 1,
+      duration: ms,
+      ease: "Sine.easeInOut",
+      onUpdate: () => {
+        // Re-clamp each frame: a mid-flight resize changes the fit.
+        this.camState = clampState(
+          {
+            zoomFactor: from.zoomFactor + (to.zoomFactor - from.zoomFactor) * proxy.t,
+            centerX: from.centerX + (to.centerX - from.centerX) * proxy.t,
+            centerY: from.centerY + (to.centerY - from.centerY) * proxy.t,
+          },
+          this.viewport(),
+          mapBounds(),
+        );
+        this.applyCamera();
+      },
+      onComplete: () => {
+        this.cameraTween = null;
+      },
+    });
+  }
+
+  /** A pointerup that traveled (or ended a pinch) is a gesture, not a tap. */
+  private isWorldDrag(p: Phaser.Input.Pointer): boolean {
+    return this.tapBlocked || Math.hypot(p.upX - p.downX, p.upY - p.downY) > 8;
+  }
+
+  private setupCameraGestures(): void {
+    // Wheel zoom via a raw DOM listener: Phaser's wheel path can't make the
+    // per-event choice we need (consume = preventDefault + zoom; pass =
+    // let the page scroll). Trackpad pinches arrive as wheel + ctrlKey.
+    const canvas = this.game.canvas;
+    const onWheel = (e: WheelEvent) => {
+      if (this.panel !== null) return;
+      const pinchOrKey = e.ctrlKey || e.metaKey;
+      if (!this.expanded && !pinchOrKey) return; // inline plain wheel = page scroll
+      e.preventDefault();
+      this.userGesture();
+      const speed = pinchOrKey && Math.abs(e.deltaY) < 50 ? 0.01 : 0.002;
+      const factor = this.camState.zoomFactor * Math.exp(-e.deltaY * speed);
+      this.camState = zoomAtPoint(
+        this.camState,
+        { x: e.offsetX, y: e.offsetY },
+        factor,
+        this.viewport(),
+        mapBounds(),
+      );
+      this.applyCamera();
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    this.events.once(Phaser.Scenes.Events.DESTROY, () =>
+      canvas.removeEventListener("wheel", onWheel),
+    );
+
+    // Pinch pairs TOUCH pointers only: browsers in touch mode also dispatch
+    // compatibility MOUSE events for a tap, and pairing that ghost with the
+    // real finger reads as a zero-width pinch that slams the zoom to a clamp.
+    const activeTouches = (): Phaser.Input.Pointer[] =>
+      this.input.manager.pointers.filter((p) => p.isDown && p !== this.input.manager.mousePointer);
+
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      if (this.panel !== null) return;
+      const touches = activeTouches();
+      if (touches.length >= 2) {
+        // Second finger: pan becomes pinch; the eventual tap is poisoned.
+        const [a, b] = touches as [Phaser.Input.Pointer, Phaser.Input.Pointer];
+        this.tapBlocked = true;
+        this.dragLast = null;
+        this.pinch = {
+          lastDist: Math.hypot(a.x - b.x, a.y - b.y),
+          lastMid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        };
+      } else if (this.pinch === null) {
+        this.userGesture();
+        this.tapBlocked = false;
+        this.dragLast = { x: p.x, y: p.y };
+      }
+    });
+
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      if (this.panel !== null) return;
+      if (this.pinch !== null) {
+        const touches = activeTouches();
+        if (touches.length < 2) return;
+        const [a, b] = touches as [Phaser.Input.Pointer, Phaser.Input.Pointer];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (this.pinch.lastDist > 0 && dist > 0) {
+          const factor = this.camState.zoomFactor * (dist / this.pinch.lastDist);
+          this.camState = zoomAtPoint(this.camState, mid, factor, this.viewport(), mapBounds());
+        }
+        this.camState = panBy(
+          this.camState,
+          mid.x - this.pinch.lastMid.x,
+          mid.y - this.pinch.lastMid.y,
+          this.viewport(),
+          mapBounds(),
+        );
+        this.applyCamera();
+        this.pinch = { lastDist: dist, lastMid: mid };
+        return;
+      }
+      if (this.dragLast === null || !p.isDown) return;
+      this.camState = panBy(
+        this.camState,
+        p.x - this.dragLast.x,
+        p.y - this.dragLast.y,
+        this.viewport(),
+        mapBounds(),
+      );
+      this.applyCamera();
+      this.dragLast = { x: p.x, y: p.y };
+    });
+
+    const endPointer = () => {
+      const touches = activeTouches();
+      if (touches.length < 2) this.pinch = null;
+      const remaining = touches[0];
+      this.dragLast =
+        this.pinch === null && remaining !== undefined ? { x: remaining.x, y: remaining.y } : null;
+    };
+    this.input.on("pointerup", endPointer);
+    this.input.on("pointerupoutside", endPointer);
   }
 
   private drawTerrain(): void {
@@ -544,8 +754,14 @@ export class VistaScene extends Phaser.Scene {
         target.removeAllListeners("pointerup");
         target.on(
           "pointerup",
-          (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+          (
+            p: Phaser.Input.Pointer,
+            _x: unknown,
+            _y: unknown,
+            event: Phaser.Types.Input.EventData,
+          ) => {
             event.stopPropagation();
+            if (this.isWorldDrag(p)) return;
             this.openBuild(current);
           },
         );
@@ -597,8 +813,14 @@ export class VistaScene extends Phaser.Scene {
       const state = placed.state;
       sprite.on(
         "pointerup",
-        (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+        (
+          p: Phaser.Input.Pointer,
+          _x: unknown,
+          _y: unknown,
+          event: Phaser.Types.Input.EventData,
+        ) => {
           event.stopPropagation();
+          if (this.isWorldDrag(p)) return; // a pan released here is not a tap
           this.openPanel(state);
         },
       );
@@ -663,8 +885,14 @@ export class VistaScene extends Phaser.Scene {
       const placed = t;
       sprite.on(
         "pointerup",
-        (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+        (
+          p: Phaser.Input.Pointer,
+          _x: unknown,
+          _y: unknown,
+          event: Phaser.Types.Input.EventData,
+        ) => {
           event.stopPropagation();
+          if (this.isWorldDrag(p)) return;
           this.openRegistry(placed);
         },
       );

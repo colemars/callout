@@ -34,6 +34,11 @@ export function KingdomVista({
   modelRef.current = model;
   const replayRef = useRef<ReplayMoment[] | null>(null);
   const [ready, setReady] = useState(false);
+  // Stage 7: the living camera — expand overlay + recenter control.
+  const [expanded, setExpanded] = useState(false);
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  const [cameraHome, setCameraHome] = useState(true);
   // Day/dusk is live: a theme flip reboots the canvas with the other
   // palette (rare event; textures are palette-baked, so a clean reboot is
   // the honest implementation).
@@ -67,6 +72,9 @@ export function KingdomVista({
           onAssignRole,
           onClearRole,
           onBuild,
+          onCameraHome: (isHome) => {
+            if (!cancelled) setCameraHome(isHome);
+          },
           onReady: () => {
             if (!cancelled) setReady(true);
           },
@@ -82,6 +90,7 @@ export function KingdomVista({
       // Models that changed during the engine load window would otherwise
       // be lost — flush the latest one now.
       h.update(modelRef.current);
+      h.setExpanded(expandedRef.current);
       if (replayRef.current !== null) h.playReplay(replayRef.current);
     })().catch((err) => {
       // The fallback grid takes over; the WHY must not vanish with it.
@@ -108,6 +117,23 @@ export function KingdomVista({
     handleRef.current?.playReplay(replay);
   }, [replay]);
 
+  // Expanded mode: the scene frees plain-wheel zoom, the page stops
+  // scrolling underneath, and Escape collapses.
+  useEffect(() => {
+    handleRef.current?.setExpanded(expanded);
+    if (!expanded) return;
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = priorOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [expanded]);
+
   // Offscreen = asleep: no reason to render a kingdom nobody is watching.
   useEffect(() => {
     const parent = containerRef.current;
@@ -123,17 +149,49 @@ export function KingdomVista({
     return () => observer.disconnect();
   }, []);
 
+  const controlClass =
+    "flex h-11 min-w-11 items-center justify-center rounded-lg border border-amber-900/25 bg-amber-50/90 px-3 text-sm text-amber-900 shadow-sm backdrop-blur-sm hover:bg-amber-100 dark:border-amber-200/25 dark:bg-stone-900/85 dark:text-amber-200 dark:hover:bg-stone-800";
+
   return (
-    <section className="mt-6">
+    <section className={expanded ? undefined : "mt-6"}>
       <div
         ref={containerRef}
-        className="relative aspect-[8/5] w-full overflow-hidden rounded-xl border border-amber-900/20 dark:border-amber-200/20"
+        className={
+          expanded
+            ? // The in-page overlay: fills the viewport on every device
+              // (native fullscreen is a no-go on iPhone). DOM modals (z-50)
+              // still layer above.
+              "fixed inset-0 z-40 overflow-hidden bg-stone-950"
+            : "relative aspect-[8/5] w-full overflow-hidden rounded-xl border border-amber-900/20 dark:border-amber-200/20"
+        }
       >
         {!ready && (
           <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-amber-100/60 dark:bg-stone-900/60">
             <p className="text-sm text-stone-500 dark:text-amber-200/60">
               The painters raise their scaffolds…
             </p>
+          </div>
+        )}
+        {ready && (
+          <div className="absolute right-3 top-3 z-10 flex gap-2">
+            {!cameraHome && (
+              <button
+                type="button"
+                onClick={() => handleRef.current?.resetCamera()}
+                title="Return to the full kingdom view"
+                className={controlClass}
+              >
+                🧭 recenter
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              title={expanded ? "Collapse the vista (Esc)" : "Expand the vista"}
+              className={controlClass}
+            >
+              {expanded ? "✕ close" : "⤢ expand"}
+            </button>
           </div>
         )}
       </div>

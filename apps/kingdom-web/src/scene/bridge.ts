@@ -12,6 +12,8 @@ export interface VistaCallbacks {
   onClearRole(travelerId: string): void;
   /** Stage 6: the crown orders a monument raised (an Influence purchase). */
   onBuild(itemId: string): void;
+  /** Stage 7: camera left/returned to the home framing (recenter button). */
+  onCameraHome(isHome: boolean): void;
   /** First frame is up; the shimmer can drop. */
   onReady(): void;
 }
@@ -22,5 +24,9 @@ export interface VistaHandle {
   playReplay(moments: ReplayMoment[]): void;
   /** Sleep/wake the render loop (offscreen, hidden tab). */
   setSleeping(sleeping: boolean): void;
+  /** Stage 7: animate the camera back to the full-map home pose. */
+  resetCamera(): void;
+  /** Stage 7: expanded mode frees plain-wheel zoom (inline needs Ctrl/⌘). */
+  setExpanded(expanded: boolean): void;
   destroy(): void;
 }

@@ -37,6 +37,13 @@ export async function createVista(
       width: Math.max(64, Math.round(initial.width)),
       height: Math.max(40, Math.round(initial.height)),
     },
+    input: {
+      // Stage 7: pinch needs two live touch pointers (+1 for a stray palm).
+      activePointers: 3,
+      // Wheel stays PASSIVE in Phaser: the scene's own canvas listener makes
+      // the per-event call (zoom+preventDefault vs. let the page scroll).
+      mouse: { preventDefaultWheel: false },
+    },
     // Note: canvas backing is CSS-pixel sized (Phaser 3 dropped the global
     // resolution option); panel TEXT crispness comes from per-Text
     // setResolution(min(DPR,2)) in panels.ts — the part that matters.
@@ -70,6 +77,12 @@ export async function createVista(
     setSleeping(sleeping: boolean) {
       if (sleeping) game.loop.sleep();
       else game.loop.wake();
+    },
+    resetCamera() {
+      scene.resetCamera(true);
+    },
+    setExpanded(expanded: boolean) {
+      scene.setExpanded(expanded);
     },
     destroy() {
       observer.disconnect();
